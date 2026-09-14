@@ -36,3 +36,13 @@ src/
 отступы `px-gutter` / `px-gutter-lg`, `py-section-y` / `py-section-y-lg`.
 
 Гарнитура Onest (400, 700) подключается с Google Fonts в `index.html`.
+
+## Публикация
+
+Сайт публикуется на GitHub Pages workflow'ом `.github/workflows/deploy-pages.yml`
+при каждом пуше в `main` (или вручную через «Run workflow»). Адрес:
+https://volkov43-beep.github.io/banivyatki-landing/
+
+В настройках репозитория (Settings → Pages) источник должен быть «GitHub Actions».
+Для приватного репозитория Pages доступен только на платных планах GitHub;
+на бесплатном плане репозиторий должен быть публичным.
