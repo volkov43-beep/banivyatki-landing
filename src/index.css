@@ -1,0 +1,47 @@
+@import './styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ink font-sans text-surface antialiased;
+    font-weight: 400;
+  }
+
+  /* Видимый фокус для клавиатуры */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  /* Уважаем prefers-reduced-motion: на странице нет анимаций,
+     но правило страхует будущие экраны. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Подписи на SVG-схеме.
+     Схема масштабируется через viewBox, поэтому размер шрифта в user units
+     делим на текущий масштаб (--s), чтобы на экране всегда было ровно 14px. */
+  .dg-label {
+    font-size: calc(var(--font-size-label) / var(--s, 1));
+    line-height: var(--line-height-label);
+    font-weight: 400;
+  }
+}
