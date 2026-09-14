@@ -1,0 +1,41 @@
+/*
+ * Дизайн-токены «Бани Вятки».
+ * Единственный источник значений: Tailwind читает эти переменные
+ * через theme.extend (см. tailwind.config.js).
+ */
+:root {
+  /* Палитра */
+  --color-ink: #1a1512;      /* тёмная основа: фон экрана, крупный текст на светлом */
+  --color-surface: #f4eadf;  /* светлая поверхность: текст на тёмном, фон светлых секций */
+  --color-accent: #c98a2e;   /* охристое золото: акценты, размерные линии, активные состояния */
+  --color-muted: #6e7a6a;    /* приглушённый хвойный: границы, второстепенный текст */
+  --color-alert: #8c3f1d;    /* обожжённый: редко, проблемные места на схеме */
+
+  /* Типографика — одна гарнитура, веса 400 и 700 */
+  --font-family-sans: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --font-size-heading: clamp(32px, 5vw, 56px);
+  --line-height-heading: 1.05;
+
+  --font-size-lead: clamp(18px, 2.2vw, 24px);
+  --line-height-lead: 1.45;
+
+  --font-size-title: 20px;
+  --line-height-title: 1.2;
+
+  --font-size-body: 17px;
+  --line-height-body: 1.5;
+
+  --font-size-label: 14px;
+  --line-height-label: 1.2;
+
+  /* Длина строки: не больше 70 символов */
+  --measure: 60ch;
+
+  /* Сетка */
+  --container-max: 1200px;
+  --gutter-mobile: 24px;
+  --gutter-desktop: 48px;
+  --section-y-mobile: 64px;
+  --section-y-desktop: 96px;
+}
