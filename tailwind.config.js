@@ -9,6 +9,8 @@ export default {
         accent: 'var(--color-accent)',
         muted: 'var(--color-muted)',
         alert: 'var(--color-alert)',
+        'muted-on-dark': 'var(--color-muted-on-dark)',
+        'alert-on-dark': 'var(--color-alert-on-dark)',
       },
       fontFamily: {
         sans: 'var(--font-family-sans)',
