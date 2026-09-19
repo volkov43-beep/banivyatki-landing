@@ -31,7 +31,7 @@ export default function SectionComparison() {
           видите, — ваше пространство.
         </p>
 
-        <ul className="mt-14 grid list-none gap-x-12 gap-y-10 p-0 md:mt-20 md:grid-cols-2">
+        <ul className="mt-14 grid list-none items-start gap-x-12 gap-y-10 p-0 md:mt-20 md:grid-cols-2">
           <AdvantageItem title={'Ширина 2,4 метра, пол — 2 метра'}>
             У бочки корпус 2 метра и узкий трапик. Паритесь семьёй, не задевая друг друга.
           </AdvantageItem>
