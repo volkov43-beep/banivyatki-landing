@@ -54,7 +54,7 @@ export default function SectionComparison() {
           ))}
         </ul>
 
-        <p className="mt-10 max-w-measure text-label text-muted md:mt-12">
+        <p className="mt-10 max-w-measure text-label text-muted-on-dark md:mt-12">
           Двойной проливной пол — в круглогодичных комплектациях. В готовом решении пол
           одинарный, с разуклонкой под слив.
         </p>
