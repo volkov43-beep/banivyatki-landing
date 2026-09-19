@@ -23,19 +23,40 @@ src/
   styles/tokens.css               — дизайн-токены: палитра, типографика, сетка
   components/
     SectionComparison.jsx         — экран «Чем подкова отличается от бани-бочки»
-    CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе
+    CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
+    PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой
+    diagrams/
+      MicroDiagram.jsx            — общая обвязка микро-схем (маркеры, подписи)
+      FrameJointDiagram.jsx       — узел обвязки и стяжка бочки
+      DrainFloorDiagram.jsx       — сечение двойного проливного пола
+      BodyCurveDiagram.jsx        — спина по дуге стены
+public/
+  photos/                         — фотографии (WebP)
 ```
 
 ## Дизайн-система
 
 Все значения объявлены CSS-переменными в `src/styles/tokens.css` и подключены
 в Tailwind через `theme.extend` (`tailwind.config.js`): цвета `ink`, `surface`,
-`accent`, `muted`, `alert`; размеры текста `text-heading`, `text-lead`,
+`accent`, `muted`, `alert`, а для тёмных секций `muted-on-dark` и `alert-on-dark`
+(`muted` и `alert` на фоне `ink` не проходят контраст AA); размеры текста `text-heading`, `text-lead`,
 `text-title`, `text-body`, `text-label`; контейнер `max-w-container`,
 отступы `px-gutter` / `px-gutter-lg`, `py-section-y` / `py-section-y-lg`.
 
 Гарнитура Onest (400, 700) подключается с Google Fonts в `index.html`.
+
+## Фотографии
+
+Положите файл WebP в `public/photos/` и укажите путь в `PhotoSlot`:
+
+```jsx
+<PhotoSlot src="photos/drain-floor.webp" alt="…" caption="…" />
+```
+
+Путь относительно `public/`, базовый путь сайта подставляется сам.
+Пока `src` пустой, компонент рисует рамку-заглушку с текстом «фото».
+Файлы 4:3, по умолчанию 800×600.
 
 ## Публикация
 
