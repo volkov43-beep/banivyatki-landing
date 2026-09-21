@@ -4,7 +4,7 @@
  * Компьютер (от 1024 px): картинка на весь экран высотой 90vh (640…900 px),
  * колонка текста справа от 58 % ширины. Затемнение: плавный градиент справа
  * налево с множеством остановок (левая часть с баней и женщиной не темнеет),
- * мягкий радиальный ореол за колонкой текста и градиент сверху под шапку.
+ * мягкий радиальный ореол за колонкой текста. Затемнения сверху под шапкой нет.
  * Положение кадра по ширине: 20 % от 1024, 30 % от 1280 — чтобы кресло
  * не резалось левым краем. Тексту дана мягкая тень без чёткого края.
  *
@@ -69,17 +69,7 @@ export default function SectionHero() {
           className="absolute inset-y-0 left-[44%] right-0 hidden lg:block"
           style={{
             background:
-              'radial-gradient(ellipse 60% 74% at 64% 48%, rgba(20,14,10,0.78) 0%, rgba(20,14,10,0.72) 50%, rgba(20,14,10,0.5) 72%, rgba(20,14,10,0.16) 88%, rgba(20,14,10,0) 100%)',
-          }}
-        />
-        {/* Затемнение сверху под шапку — только до 1023 px: на компьютере оно складывалось
-            с горизонтальным градиентом в тёмное пятно в правом верхнем углу */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[170px] lg:hidden"
-          style={{
-            background:
-              'linear-gradient(to bottom, rgb(26 21 18 / 0.8) 0, rgb(26 21 18 / 0.7) 60px, rgb(26 21 18 / 0) 170px)',
+              'radial-gradient(ellipse 60% 78% at 64% 45%, rgba(20,14,10,0.82) 0%, rgba(20,14,10,0.76) 50%, rgba(20,14,10,0.54) 72%, rgba(20,14,10,0.18) 88%, rgba(20,14,10,0) 100%)',
           }}
         />
         {/* Переход низа картинки в ink — только на телефоне */}
@@ -117,7 +107,7 @@ export default function SectionHero() {
             Рассчитать стоимость
           </a>
 
-          <ul className="mt-10 flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3]">
+          <ul className="mt-10 flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:flex-col lg:gap-2 lg:text-[16px]">
             {FACTS.map((fact) => {
               const inner = (
                 <>
@@ -126,13 +116,15 @@ export default function SectionHero() {
                 </>
               )
               return (
-                <li key={fact.strong}>
+                /* Точка и пункт не разрываются переносом: перенос идёт целым пунктом */
+                <li key={fact.strong} className="flex items-start whitespace-nowrap">
+                  <span aria-hidden="true" className="mr-3 mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                   {fact.href ? (
                     <a href={fact.href} target="_blank" rel="noopener noreferrer" className="text-surface no-underline">
                       {inner}
                     </a>
                   ) : (
-                    inner
+                    <span>{inner}</span>
                   )}
                 </li>
               )
