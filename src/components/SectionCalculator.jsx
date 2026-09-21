@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Segmented from './calculator/Segmented.jsx'
 import CalculatorCard from './calculator/CalculatorCard.jsx'
 import LeadForm from './calculator/LeadForm.jsx'
@@ -10,18 +10,46 @@ const TABS = [
   { id: 'business', label: 'Для бизнеса' },
 ]
 
+const SCROLL_OFFSET = 96 // верх формы на 96 px ниже верха экрана
+const SELECT_PAUSE_MS = 250 // пауза, чтобы человек увидел галочку
+const HIGHLIGHT_MS = 1200
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches
+
+function scrollToElement(el) {
+  const top = el.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET
+  window.scrollTo({ top, behavior: reducedMotion() ? 'auto' : 'smooth' })
+}
+
+/** Форма считается видимой, если её верх на экране и видно хотя бы 240 px. */
+function isInView(el) {
+  const r = el.getBoundingClientRect()
+  return r.top >= 0 && r.top + Math.min(r.height, 240) <= window.innerHeight
+}
+
 /**
  * Калькулятор стоимости. Грубый намеренно: цена видна без клика,
  * три варианта, телефон. Допы и комплектации собирает менеджер.
  * Единственное место на странице с ценами.
+ *
+ * Порядок: заголовок → цитата → вкладки → сезон → примечания → карточки → форма.
+ * После выбора карточки — пауза 250 мс и прокрутка к форме (если она не видна),
+ * панель формы на 1,2 с подсвечивается рамкой accent. На телефоне, пока форма
+ * за экраном, снизу закреплена полоска с итогом и кнопкой.
  */
 export default function SectionCalculator() {
   const [tab, setTab] = useState('self')
   const [season, setSeason] = useState('warm')
   const [selectedId, setSelectedId] = useState(null)
-  const formRef = useRef(null)
+  const [selectionTick, setSelectionTick] = useState(0)
+  const [highlight, setHighlight] = useState(false)
+  const [formVisible, setFormVisible] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const panelRef = useRef(null)
+  const cardsRef = useRef(null)
   const cardRefs = useRef([])
-  const scrollPending = useRef(false)
+  const timers = useRef([])
 
   const cards = CARDS[season]
   const selected = cards.find((c) => c.id === selectedId) || null
@@ -42,18 +70,46 @@ export default function SectionCalculator() {
   }
 
   function select(card) {
+    if (card.id !== selectedId) track('calc_card_select', { card_id: card.id })
     setSelectedId(card.id)
-    track('calc_card_select', { card_id: card.id })
-    scrollPending.current = window.matchMedia('(max-width: 1023px)').matches
+    setSelectionTick((t) => t + 1)
   }
 
-  // Плавная прокрутка к форме на телефоне после выбора карточки
+  const goToForm = useCallback(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    scrollToElement(panel)
+    setHighlight(true)
+    timers.current.push(setTimeout(() => setHighlight(false), HIGHLIGHT_MS))
+    if (isDesktop()) {
+      const phone = panel.querySelector('input[type="tel"]')
+      timers.current.push(setTimeout(() => phone?.focus({ preventScroll: true }), reducedMotion() ? 0 : 500))
+    }
+  }, [])
+
+  // После выбора: пауза, затем прокрутка к форме, если она не на экране.
+  // Если форма уже видна (человек сменил карточку) — только обновляется строка-итог.
   useEffect(() => {
-    if (!scrollPending.current || !formRef.current) return
-    scrollPending.current = false
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    formRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    if (!selectionTick || !panelRef.current) return undefined
+    const id = setTimeout(() => {
+      if (panelRef.current && !isInView(panelRef.current)) goToForm()
+    }, SELECT_PAUSE_MS)
+    return () => clearTimeout(id)
+  }, [selectionTick, goToForm])
+
+  // Видимость формы — для закреплённой полоски на телефоне
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel || typeof IntersectionObserver === 'undefined') return undefined
+    const observer = new IntersectionObserver(([entry]) => setFormVisible(entry.isIntersecting), {
+      rootMargin: '0px 0px -64px 0px',
+      threshold: 0.05,
+    })
+    observer.observe(panel)
+    return () => observer.disconnect()
   }, [selectedId])
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
   function onGroupKeyDown(e) {
     const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }
@@ -68,6 +124,10 @@ export default function SectionCalculator() {
   }
 
   const selectedIndex = cards.findIndex((c) => c.id === selectedId)
+  const summary = selected
+    ? `${SEASONS.find((s) => s.id === season).short}, ${selected.size}, ${formatPrice(selected.price)}`
+    : ''
+  const showBar = tab === 'self' && selected && !formVisible && !submitted
 
   return (
     <section id="calculator" aria-labelledby="calculator-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
@@ -75,6 +135,8 @@ export default function SectionCalculator() {
         <h2 id="calculator-title" className="text-heading">
           Сколько стоит
         </h2>
+
+        <p className="mt-6 max-w-measure border-l-2 border-accent pl-6 text-[18px] leading-[1.45]">{QUOTE}</p>
 
         <div className="mt-8">
           <Segmented label="Для кого баня" options={TABS} value={tab} onChange={changeTab} full />
@@ -89,7 +151,18 @@ export default function SectionCalculator() {
               </div>
             </div>
 
+            {season === 'warm' && (
+              <div className="mt-6 max-w-measure text-[15px] leading-normal text-muted">
+                {WARM_NOTES.map((note) => (
+                  <p key={note} className="mt-2 first:mt-0">
+                    {note}
+                  </p>
+                ))}
+              </div>
+            )}
+
             <div
+              ref={cardsRef}
               role="radiogroup"
               aria-label="Вариант бани"
               onKeyDown={onGroupKeyDown}
@@ -110,35 +183,43 @@ export default function SectionCalculator() {
               ))}
             </div>
 
-            {season === 'warm' && (
-              <div className="mt-6 max-w-measure text-[15px] leading-normal text-muted">
-                {WARM_NOTES.map((note) => (
-                  <p key={note} className="mt-2 first:mt-0">
-                    {note}
-                  </p>
-                ))}
-              </div>
-            )}
-
-            <p className="mt-8 max-w-measure border-l-2 border-accent pl-6 text-[18px] leading-[1.45]">{QUOTE}</p>
-
             {selected && (
-              <div className="mx-auto mt-10 max-w-[560px] scroll-mt-6 lg:mt-14">
-                <LeadForm
-                  key={`calculator-${season}`}
-                  formRef={formRef}
-                  variant="calculator"
-                  goal="calc_submit"
-                  submitLabel="Получить расчёт"
-                  summary={`${SEASONS.find((s) => s.id === season).short}, ${selected.size}, ${formatPrice(selected.price)}`}
-                  lead={{
-                    season,
-                    card_id: selected.id,
-                    card_title: selected.title,
-                    size: selected.size,
-                    price_shown: selected.price,
-                  }}
-                />
+              <div
+                ref={panelRef}
+                className={`mx-auto mt-8 max-w-[560px] rounded-md border bg-surface-2 p-5 transition-[border-color,box-shadow] duration-500 lg:mt-10 lg:p-8 ${
+                  highlight ? 'border-accent shadow-[inset_0_0_0_1px_var(--color-accent)]' : 'border-muted'
+                }`}
+              >
+                {!submitted && (
+                  <>
+                    <h3 className="text-[22px] font-bold leading-tight">Последний шаг — куда прислать расчёт</h3>
+                    <p className="mt-2 text-body">
+                      Вы выбрали: <b className="font-bold">{summary}</b>{' '}
+                      <button
+                        type="button"
+                        onClick={() => cardsRef.current && scrollToElement(cardsRef.current)}
+                        className="text-muted underline"
+                      >
+                        изменить
+                      </button>
+                    </p>
+                  </>
+                )}
+                <div className={submitted ? '' : 'mt-5'}>
+                  <LeadForm
+                    variant="calculator"
+                    goal="calc_submit"
+                    submitLabel="Получить расчёт"
+                    onSuccess={() => setSubmitted(true)}
+                    lead={{
+                      season,
+                      card_id: selected.id,
+                      card_title: selected.title,
+                      size: selected.size,
+                      price_shown: selected.price,
+                    }}
+                  />
+                </div>
               </div>
             )}
           </>
@@ -162,6 +243,25 @@ export default function SectionCalculator() {
           </div>
         )}
       </div>
+
+      {/* Закреплённая полоска на телефоне: выбранный вариант и кнопка к форме */}
+      {showBar && (
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-ink pb-[env(safe-area-inset-bottom)] text-surface lg:hidden">
+          <div className="flex h-16 items-center justify-between gap-4 px-4">
+            <p className="min-w-0 text-[15px] leading-tight">
+              <span className="block truncate">{selected.size}, </span>
+              <b className="block truncate font-bold text-accent">{formatPrice(selected.price)}</b>
+            </p>
+            <button
+              type="button"
+              onClick={goToForm}
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded bg-accent px-5 text-[15px] font-bold text-ink"
+            >
+              Получить расчёт
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
