@@ -6,7 +6,7 @@ import DrainFloorDiagram from './diagrams/DrainFloorDiagram.jsx'
 import BodyCurveDiagram from './diagrams/BodyCurveDiagram.jsx'
 
 /**
- * Экран «Чем подкова отличается от бани-бочки».
+ * Экран «Чем Подкова отличается от бани-бочки».
  * Тёмный фон ink, светлый текст — отдельная глава страницы.
  */
 export default function SectionComparison() {
@@ -17,7 +17,7 @@ export default function SectionComparison() {
     >
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
         <h2 id="comparison-title" className="max-w-[24ch] text-heading">
-          Чем подкова отличается от бани‑бочки
+          Чем Подкова отличается от бани‑бочки
         </h2>
 
         <div className="mt-12 md:mt-16">
@@ -27,7 +27,7 @@ export default function SectionComparison() {
         <p className="mt-12 max-w-measure border-l-2 border-accent pl-6 text-lead md:mt-16">
           В бочке пол круглый, поэтому внутрь кладут трапик. Сделаете его широким — он
           поднимется вверх, и вы ходите пригнувшись. Сделаете низким — он шириной
-          40&nbsp;сантиметров. У подковы пол прямой, два метра шириной. Всё, что вы
+          40&nbsp;сантиметров. У Подковы пол прямой, два метра шириной. Всё, что вы
           видите, — ваше пространство.
         </p>
 
@@ -42,7 +42,7 @@ export default function SectionComparison() {
             photo={
               <PhotoSlot
                 src=""
-                alt="Обвязка подковы на производстве: стены-дуги закреплены в силовой раме"
+                alt="Обвязка Подковы на производстве: стены-дуги закреплены в силовой раме"
                 caption="Обвязка на производстве, пока не зашита: стены-дуги закреплены в силовой раме"
               />
             }

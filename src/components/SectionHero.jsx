@@ -45,7 +45,7 @@ export default function SectionHero() {
             src={PHOTO.w1920}
             width="1920"
             height="1071"
-            alt="Баня-подкова под навесом на участке, рядом в кресле отдыхает женщина"
+            alt="Баня-Подкова под навесом на участке, рядом в кресле отдыхает женщина"
             fetchPriority="high"
             decoding="async"
             className="absolute inset-0 h-full w-full object-cover object-[center_40%] lg:object-[20%_center] xl:object-[30%_center]"
@@ -85,9 +85,10 @@ export default function SectionHero() {
         <div className="lg:max-w-[560px] lg:pb-[6vh]">
           <h1
             id="hero-title"
-            className="text-[clamp(30px,8vw,38px)] font-bold leading-[1.05] lg:text-[clamp(40px,3.7vw,54px)]"
+            className="text-[clamp(30px,8vw,38px)] font-bold leading-[1.05] lg:text-[clamp(40px,3.38vw,49px)]"
           >
-            Баня‑подкова: шире бочки, с&nbsp;ровным полом, под&nbsp;ключ
+            <span className="block">Баня‑Подкова:</span>
+            <span className="block text-balance">шире бочки, с&nbsp;ровным полом, под&nbsp;ключ</span>
           </h1>
 
           <p className="mt-5 text-[20px] leading-[1.4] opacity-[0.85]">

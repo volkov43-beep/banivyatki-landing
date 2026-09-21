@@ -24,7 +24,7 @@ src/
   components/
     Header.jsx                    — шапка: название и телефон поверх первого экрана
     SectionHero.jsx               — первый экран: картинка, заголовок, цена, кнопка
-    SectionComparison.jsx         — экран «Чем подкова отличается от бани-бочки»
+    SectionComparison.jsx         — экран «Чем Подкова отличается от бани-бочки»
     SectionInside.jsx             — экран «Что внутри» на светлом фоне
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
