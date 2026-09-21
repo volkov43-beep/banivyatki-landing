@@ -20,11 +20,17 @@ src/
   App.jsx
   main.jsx
   index.css                       — Tailwind, базовые стили, фокус, reduced-motion
+  data/calculator.js              — цены и тексты калькулятора
+  lib/                            — submitLead, track, utm, callback, phone
+  pages/PrivacyPage.jsx           — страница /privacy/
   styles/tokens.css               — дизайн-токены: палитра, типографика, сетка
   components/
     Header.jsx                    — шапка: название и телефон поверх первого экрана
     SectionHero.jsx               — первый экран: картинка, заголовок, цена, кнопка
     SectionComparison.jsx         — экран «Чем Подкова отличается от бани-бочки»
+    SectionCalculator.jsx         — калькулятор: вкладки, сезон, карточки, форма
+    calculator/                   — Segmented, FloorPlan, CalculatorCard, LeadForm
+    Footer.jsx                    — подвал с контактами и ссылкой на политику
     SectionInside.jsx             — экран «Что внутри» на светлом фоне
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
@@ -73,12 +79,32 @@ public/
 npx -y sharp-cli -i PROZ6025_HDR.jpg -o public/photos/pech.webp resize 1200 -f webp -q 80
 ```
 
-## Задел на калькулятор
+## ⚠️ Формы пока никуда не отправляют заявки
 
-В результате расчёта доставка показывается отдельной строкой:
-«Доставка — рассчитаем по адресу», кроме вариантов, где она входит в цену.
-Нижняя граница калькулятора обязана совпадать с ценой на первом экране:
-от 293 000 ₽ под ключ.
+**Не запускать рекламу до подключения Битрикс24.** Вся отправка идёт через
+одну функцию `submitLead(payload)` в `src/lib/submitLead.js`; сейчас она
+только пишет заявку в `console.log` и возвращает успех.
+
+## Калькулятор
+
+Данные карточек и цены — в одном файле `src/data/calculator.js`. Минимальная
+цена (`MIN_PRICE`, 293 000 ₽) автоматически показывается на первом экране,
+поэтому цены на странице не могут разойтись. Доставка в карточках — отдельной
+строкой: «Доставка — рассчитаем по адресу», кроме вариантов, где входит в цену.
+
+Состав `payload` заявки: `form`, `season`, `card_id`, `card_title`, `size`,
+`price_shown`, `phone`, `name`, `company`/`comment` (только для бизнеса),
+`contact_method`, `utm_*`, `page_url`, `submitted_at`. UTM-метки сохраняются
+в `sessionStorage` при первом заходе (`src/lib/utm.js`).
+
+Обещание перезвонить считается по московскому времени (`src/lib/callback.js`);
+для проверки время подменяется параметром `?now=2026-09-26T20:00`.
+
+Цели Яндекс.Метрики — `track(goal)` в `src/lib/track.js`; номер счётчика
+`YM_COUNTER_ID` пока `null`, без счётчика функция ничего не делает.
+
+Страница политики конфиденциальности — `/privacy/` (`privacy/index.html`,
+`src/pages/PrivacyPage.jsx`), собирается как вторая страница Vite.
 
 ## Публикация
 

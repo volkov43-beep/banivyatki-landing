@@ -12,6 +12,8 @@
  * кадра уходит в чёрный, а не в ink, поэтому нижние 22 % картинки сведены
  * с фоном коротким переходом в ink.
  */
+import { MIN_PRICE, formatPrice } from '../data/calculator.js'
+
 const BASE = import.meta.env.BASE_URL
 const PHOTO = {
   w1920: `${BASE}photos/hero-autumn-1920.webp`,
@@ -96,7 +98,7 @@ export default function SectionHero() {
           </p>
 
           <p className="mt-8 whitespace-nowrap leading-none">
-            <span className="text-[32px] font-bold text-accent">от 293&nbsp;000&nbsp;₽</span>{' '}
+            <span className="text-[32px] font-bold text-accent">{formatPrice(MIN_PRICE)}</span>{' '}
             <span className="text-[20px]">под ключ</span>
           </p>
 
