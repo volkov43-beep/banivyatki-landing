@@ -6,6 +6,7 @@ export default {
       colors: {
         ink: 'var(--color-ink)',
         surface: 'var(--color-surface)',
+        'surface-2': 'var(--color-surface-2)',
         accent: 'var(--color-accent)',
         muted: 'var(--color-muted)',
         alert: 'var(--color-alert)',

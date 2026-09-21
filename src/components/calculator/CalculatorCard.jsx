@@ -7,7 +7,8 @@ const BASE = import.meta.env.BASE_URL
  * Карточка варианта. Вся карточка — радиокнопка: кликабельна целиком,
  * выбирается с клавиатуры, видимый фокус, aria-checked.
  * Кнопка «Выбрать» внутри — только визуальная, чтобы не вкладывать
- * интерактивный элемент в интерактивный.
+ * интерактивный элемент в интерактивный. Нажатие на выбранную карточку
+ * снова вызывает onSelect — родитель прокручивает к форме.
  */
 export default function CalculatorCard({ card, selected, insulated, tabIndex, onSelect, cardRef }) {
   return (
@@ -66,7 +67,7 @@ export default function CalculatorCard({ card, selected, insulated, tabIndex, on
           selected ? 'bg-accent text-ink' : 'bg-ink text-surface'
         }`}
       >
-        {selected ? 'Выбрано' : 'Выбрать'}
+        {selected ? 'Выбрано ✓' : 'Выбрать'}
       </span>
     </div>
   )

@@ -22,12 +22,12 @@ const inputClass =
  *
  * variant: 'calculator' | 'business'
  * lead: поля, которые форма добавляет в payload (season, card_id, …)
- * summary: строка-итог над полями
+ * onSuccess: вызывается после успешной отправки
  *
  * Защита от спама: скрытое поле-ловушка и проверка, что форму заполняли
  * дольше трёх секунд. Без капчи.
  */
-export default function LeadForm({ variant, lead = {}, summary, submitLabel, goal, formRef }) {
+export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRef, onSuccess }) {
   const [phone, setPhone] = useState('')
   const [name, setName] = useState('')
   const [company, setCompany] = useState('')
@@ -84,6 +84,7 @@ export default function LeadForm({ variant, lead = {}, summary, submitLabel, goa
       track(goal)
       setDonePromise(promise)
       setStatus('done')
+      onSuccess?.()
     } catch {
       setStatus('error')
     }
@@ -102,13 +103,7 @@ export default function LeadForm({ variant, lead = {}, summary, submitLabel, goa
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="text-ink">
-      {summary && (
-        <p className="text-body">
-          Вы выбрали: <b className="font-bold">{summary}</b>
-        </p>
-      )}
-
-      <div className="mt-5 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <label className="block">
           <span className="mb-1 block text-[15px]">Телефон</span>
           <input
