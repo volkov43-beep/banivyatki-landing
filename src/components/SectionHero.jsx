@@ -1,13 +1,14 @@
 /**
  * Первый экран. Одно действие — кнопка «Рассчитать стоимость».
  *
- * Компьютер (от 768 px): картинка на весь экран высотой 90vh (640…900 px;
- * на 768…1023 px — 72vh, иначе женщина и баня не влезают в кадр),
- * колонка текста справа от 58 % ширины, затемнение градиентом справа налево
- * и сверху под шапку. Положение кадра по ширине: 10 % на планшете, 20 % от 1024,
- * 30 % от 1280 — чтобы кресло не резалось левым краем.
+ * Компьютер (от 1024 px): картинка на весь экран высотой 90vh (640…900 px),
+ * колонка текста справа от 58 % ширины. Затемнение: плавный градиент справа
+ * налево с множеством остановок (левая часть с баней и женщиной не темнеет),
+ * мягкий радиальный ореол за колонкой текста и градиент сверху под шапку.
+ * Положение кадра по ширине: 20 % от 1024, 30 % от 1280 — чтобы кресло
+ * не резалось левым краем. Тексту дана мягкая тень без чёткого края.
  *
- * Телефон: картинка высотой 46vh, текст под ней на фоне ink. Затемнение внизу
+ * Телефон и планшет (до 1023 px): картинка высотой 46vh, текст под ней на фоне ink. Затемнение внизу
  * кадра уходит в чёрный, а не в ink, поэтому нижние 22 % картинки сведены
  * с фоном коротким переходом в ink.
  */
@@ -32,11 +33,11 @@ export default function SectionHero() {
   return (
     <section id="top" aria-labelledby="hero-title" className="relative bg-ink text-surface">
       {/* Картинка */}
-      <div className="relative h-[46vh] min-h-[300px] md:h-[clamp(560px,72vh,900px)] lg:h-[clamp(640px,90vh,900px)]">
+      <div className="relative h-[46vh] min-h-[300px] lg:h-[clamp(640px,90vh,900px)]">
         <picture>
-          <source media="(max-width: 767px)" srcSet={PHOTO.mobile} />
+          <source media="(max-width: 1023px)" srcSet={PHOTO.mobile} />
           <source
-            media="(min-width: 768px)"
+            media="(min-width: 1024px)"
             srcSet={`${PHOTO.w1280} 1280w, ${PHOTO.w1920} 1920w`}
             sizes="100vw"
           />
@@ -47,17 +48,28 @@ export default function SectionHero() {
             alt="Баня-подкова под навесом на участке, рядом в кресле отдыхает женщина"
             fetchPriority="high"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-[center_40%] md:object-[10%_center] lg:object-[20%_center] xl:object-[30%_center]"
+            className="absolute inset-0 h-full w-full object-cover object-[center_40%] lg:object-[20%_center] xl:object-[30%_center]"
           />
         </picture>
 
-        {/* Затемнение справа налево — только на компьютере */}
+        {/* Затемнение справа налево — только на компьютере, плавное, без видимой границы */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 hidden md:block"
+          className="absolute inset-0 hidden lg:block"
           style={{
             background:
-              'linear-gradient(to right, rgb(26 21 18 / 0) 44%, rgb(26 21 18 / 0.9) 58%, rgb(26 21 18 / 0.92) 100%)',
+              'linear-gradient(to left, rgba(20,14,10,0.62) 0%, rgba(20,14,10,0.58) 12%, rgba(20,14,10,0.50) 22%, rgba(20,14,10,0.38) 32%, rgba(20,14,10,0.24) 41%, rgba(20,14,10,0.12) 49%, rgba(20,14,10,0.04) 56%, rgba(20,14,10,0) 62%)',
+          }}
+        />
+        {/* Мягкий ореол за колонкой текста: читаемость там, где текст, не гася остальное небо.
+            Сила подобрана по замеру контраста AA на 1440 и 1024 — это минимум, при котором
+            проходят и заголовок, и цена цветом accent, и факты 15 px. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 left-[44%] right-0 hidden lg:block"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 74% at 64% 48%, rgba(20,14,10,0.78) 0%, rgba(20,14,10,0.72) 50%, rgba(20,14,10,0.5) 72%, rgba(20,14,10,0.16) 88%, rgba(20,14,10,0) 100%)',
           }}
         />
         {/* Затемнение сверху под шапку */}
@@ -72,17 +84,17 @@ export default function SectionHero() {
         {/* Переход низа картинки в ink — только на телефоне */}
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-[22%] md:hidden"
+          className="absolute inset-x-0 bottom-0 h-[22%] lg:hidden"
           style={{ background: 'linear-gradient(to bottom, rgb(26 21 18 / 0), rgb(26 21 18 / 1))' }}
         />
       </div>
 
       {/* Колонка текста: на телефоне под картинкой, на компьютере поверх неё справа */}
-      <div className="px-5 pb-12 pt-6 md:absolute md:inset-y-0 md:left-[58%] md:right-0 md:flex md:items-center md:p-0 md:pr-gutter-lg">
-        <div className="md:max-w-[560px] md:pb-[6vh]">
+      <div className="px-5 pb-12 pt-6 lg:absolute lg:inset-y-0 lg:left-[58%] lg:right-0 lg:flex lg:items-center lg:p-0 lg:pr-gutter-lg lg:[text-shadow:0_1px_24px_rgba(0,0,0,0.35)]">
+        <div className="lg:max-w-[560px] lg:pb-[6vh]">
           <h1
             id="hero-title"
-            className="text-[clamp(30px,8vw,38px)] font-bold leading-[1.05] md:text-[clamp(40px,3.7vw,54px)]"
+            className="text-[clamp(30px,8vw,38px)] font-bold leading-[1.05] lg:text-[clamp(40px,3.7vw,54px)]"
           >
             Баня‑подкова: шире бочки, с&nbsp;ровным полом, под&nbsp;ключ
           </h1>
@@ -98,7 +110,7 @@ export default function SectionHero() {
 
           <a
             href="#calculator"
-            className="mt-8 inline-flex h-14 w-full items-center justify-center rounded px-8 text-body font-bold text-ink no-underline md:w-auto"
+            className="mt-8 inline-flex h-14 w-full items-center justify-center rounded px-8 text-body font-bold text-ink no-underline lg:w-auto"
             style={{ backgroundColor: 'var(--color-accent)' }}
           >
             Рассчитать стоимость
