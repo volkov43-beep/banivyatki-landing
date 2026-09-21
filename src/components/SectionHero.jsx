@@ -26,7 +26,7 @@ const FACTS = [
   { strong: 'Гарантия', rest: '5 лет' },
   {
     strong: '5,0',
-    rest: 'на Авито — 40 отзывов',
+    rest: 'на Авито — 25 отзывов о банях',
     href: 'https://www.avito.ru/brands/36cc84c3d198c57e876595ba59d31c61',
   },
 ]
