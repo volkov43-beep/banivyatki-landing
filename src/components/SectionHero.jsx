@@ -72,10 +72,11 @@ export default function SectionHero() {
               'radial-gradient(ellipse 60% 74% at 64% 48%, rgba(20,14,10,0.78) 0%, rgba(20,14,10,0.72) 50%, rgba(20,14,10,0.5) 72%, rgba(20,14,10,0.16) 88%, rgba(20,14,10,0) 100%)',
           }}
         />
-        {/* Затемнение сверху под шапку */}
+        {/* Затемнение сверху под шапку — только до 1023 px: на компьютере оно складывалось
+            с горизонтальным градиентом в тёмное пятно в правом верхнем углу */}
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[170px]"
+          className="absolute inset-x-0 top-0 h-[170px] lg:hidden"
           style={{
             background:
               'linear-gradient(to bottom, rgb(26 21 18 / 0.8) 0, rgb(26 21 18 / 0.7) 60px, rgb(26 21 18 / 0) 170px)',
