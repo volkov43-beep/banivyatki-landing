@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Segmented from './calculator/Segmented.jsx'
 import CalculatorCard from './calculator/CalculatorCard.jsx'
 import LeadForm from './calculator/LeadForm.jsx'
+import ReviewCard from './ReviewCard.jsx'
 import { SEASONS, CARDS, WARM_NOTES, QUOTE, BUSINESS, formatPrice } from '../data/calculator.js'
+import { BUSINESS_REVIEW } from '../data/reviews.js'
 import { track } from '../lib/track.js'
 
 const TABS = [
@@ -236,6 +238,8 @@ export default function SectionCalculator() {
                 ))}
               </ul>
               <p className="mt-4">{BUSINESS.outro}</p>
+              {/* Один настоящий отзыв арендодателя — в том же оформлении, что и блок «Отзывы» */}
+              <ReviewCard review={BUSINESS_REVIEW} as="div" className="mt-8" />
             </div>
             <div className="max-w-[560px]">
               <LeadForm variant="business" goal="business_submit" submitLabel="Обсудить проект" />

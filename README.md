@@ -21,6 +21,7 @@ src/
   main.jsx
   index.css                       — Tailwind, базовые стили, фокус, reduced-motion
   data/calculator.js              — цены и тексты калькулятора
+  data/reviews.js                 — отзывы: площадки, карточки, отзыв для бизнеса
   lib/                            — submitLead, track, utm, callback, phone
   pages/PrivacyPage.jsx           — страница /privacy/
   styles/tokens.css               — дизайн-токены: палитра, типографика, сетка
@@ -33,6 +34,8 @@ src/
     Footer.jsx                    — подвал с контактами и ссылкой на политику
     SectionInside.jsx             — экран «Что внутри» на светлом фоне
     SectionProcess.jsx            — экран «Как проходит заказ»: пять шагов
+    SectionReviews.jsx            — экран «Отзывы»: семь настоящих отзывов со ссылками
+    ReviewCard.jsx                — карточка отзыва
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
     PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой
