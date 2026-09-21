@@ -94,7 +94,7 @@ export function Dot({ x, y, tone = 'accent' }) {
 }
 
 /** Подпись 14 px. tone: 'muted' (цвет подписей схемы), 'accent', 'alert'. */
-export function Label({ x, y, tone = 'muted', anchor = 'middle', vertical = false, children }) {
+export function Label({ x, y, tone = 'muted', anchor = 'middle', vertical = false, size, children }) {
   const { scheme } = useDiagram()
   const fill = { accent: scheme.accentFill, alert: scheme.alertFill }[tone] || scheme.label
   return (
@@ -104,6 +104,7 @@ export function Label({ x, y, tone = 'muted', anchor = 'middle', vertical = fals
       textAnchor={anchor}
       transform={vertical ? `rotate(-90 ${x} ${y})` : undefined}
       className={`dg-label ${fill}`}
+      style={size ? { fontSize: `calc(${size}px / var(--s, 1))` } : undefined}
     >
       {children}
     </text>

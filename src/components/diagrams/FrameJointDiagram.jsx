@@ -8,7 +8,7 @@ import MicroDiagram, { contour, Thin, Label } from './MicroDiagram.jsx'
 export default function FrameJointDiagram() {
   return (
     <MicroDiagram
-      title="Узел обвязки подковы и стяжка бочки"
+      title="Узел обвязки Подковы и стяжка бочки"
       desc="Слева стена-дуга входит в паз обвязочного бруса. Справа стяжное кольцо на стенке бочки, которое нужно подтягивать."
     >
       {(id) => (
