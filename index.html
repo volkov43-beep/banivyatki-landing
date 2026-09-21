@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1A1512" />
     <title>Бани Вятки — мобильная баня «подкова»</title>
+    <!-- Картинка первого экрана: самый крупный элемент страницы, грузим первой -->
+    <link
+      rel="preload"
+      as="image"
+      href="%BASE_URL%photos/hero-autumn-mobile-1080.webp"
+      media="(max-width: 767px)"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      as="image"
+      imagesrcset="%BASE_URL%photos/hero-autumn-1280.webp 1280w, %BASE_URL%photos/hero-autumn-1920.webp 1920w"
+      imagesizes="100vw"
+      media="(min-width: 768px)"
+      fetchpriority="high"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
