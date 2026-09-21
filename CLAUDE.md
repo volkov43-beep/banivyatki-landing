@@ -56,6 +56,7 @@ src/
     SectionCalculator.jsx     — калькулятор
     calculator/               — Segmented, FloorPlan, CalculatorCard, LeadForm
     SectionInside.jsx         — «Что внутри»
+    SectionProcess.jsx        — «Как проходит заказ»: пять шагов, «Делаем мы / Делаете вы»
     Footer.jsx                — подвал: оператор, контакты, политика
     diagrams/                 — Diagram.jsx (общий каркас), MicroDiagram и схемы
   pages/PrivacyPage.jsx       — политика конфиденциальности
@@ -129,7 +130,10 @@ public/favicon-32.png, apple-touch-icon.png
    три карточки, панель формы, полоска на телефоне.
 5. `SectionInside` — светлый экран: пять блоков (вентиляция, утепление, печь,
    дерево, кровля), приглашение в шоурум с кнопкой на `#showroom` (блока ещё нет).
-6. `Footer` — оператор, телефон, почта, ссылка на `/privacy/`.
+6. `SectionProcess` (`#process`) — светлый экран: пять нумерованных шагов
+   (заявка, просмотр и договор, изготовление, доставка, гарантия) с колонками
+   «Делаем мы / Делаете вы», кнопка «Рассчитать стоимость» на `#calculator`.
+7. `Footer` — оператор, телефон, почта, ссылка на `/privacy/`.
 
 Ещё не сделаны: галерея работ, шоурум (`#showroom`), отзывы, подключение
 Битрикс24, счётчик Метрики.
@@ -161,8 +165,8 @@ public/favicon-32.png, apple-touch-icon.png
   «принято», ничего не отправляем.
 - `track(goal)` в `src/lib/track.js`: `YM_COUNTER_ID = null` — без счётчика
   функция молчит. Цели: `calc_season_change`, `calc_card_select`, `calc_submit`,
-  `business_tab_open`, `business_submit`, `phone_click` (глобальный слушатель
-  на ссылки `tel:`). Цели отправки — только при успешной отправке.
+  `business_tab_open`, `business_submit`, `process_cta_click` (кнопка блока
+  «Как проходит заказ»), `phone_click` (глобальный слушатель на ссылки `tel:`). Цели отправки — только при успешной отправке.
 - UTM (`src/lib/utm.js`): при первом заходе сохраняются в `sessionStorage`
   (`bv_utm`), при отправке берутся оттуда.
 - Обещание перезвонить (`src/lib/callback.js`), время по Москве:

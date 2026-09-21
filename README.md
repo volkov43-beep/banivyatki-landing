@@ -32,6 +32,7 @@ src/
     calculator/                   — Segmented, FloorPlan, CalculatorCard, LeadForm
     Footer.jsx                    — подвал с контактами и ссылкой на политику
     SectionInside.jsx             — экран «Что внутри» на светлом фоне
+    SectionProcess.jsx            — экран «Как проходит заказ»: пять шагов
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
     PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой
