@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import VisitCard from './showroom/VisitCard.jsx'
 import VisitForm from './showroom/VisitForm.jsx'
 import { track } from '../lib/track.js'
+import { onVisitRequest } from '../lib/visit.js'
 import { VISIT_TITLE, VISIT_SUBTITLE, SHOWROOM, PRODUCTION, VIDEO } from '../data/visit.js'
 
 /**
@@ -12,19 +13,23 @@ import { VISIT_TITLE, VISIT_SUBTITLE, SHOWROOM, PRODUCTION, VIDEO } from '../dat
  *
  * Кнопка в карточке: цель visit_button с типом, выбор способа в форме и
  * плавная прокрутка к ней (без анимации, если включён reduced-motion).
+ * То же делает запрос снаружи через lib/visit.js (ссылка в FAQ № 17:
+ * способ «Шоурум», в цели type "faq").
  */
 export default function SectionShowroom() {
   const [visitType, setVisitType] = useState(SHOWROOM.id)
   const formRef = useRef(null)
 
-  function handleVisit(id) {
+  function handleVisit(id, goal = id) {
     setVisitType(id)
-    track('visit_button', { type: id })
+    track('visit_button', { type: goal })
     const el = formRef.current
     if (!el) return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
   }
+
+  useEffect(() => onVisitRequest(handleVisit), [])
 
   return (
     <section id="showroom" aria-labelledby="showroom-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
