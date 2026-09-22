@@ -7,20 +7,22 @@ import VisitPhoto from './VisitPhoto.jsx'
  * фото справа), ниже на всю ширину лента фото в ряд. До 1023 px: фото →
  * текст → лента в две колонки; элемент ленты с `wide` занимает обе.
  * Подписи ленты мелкие, muted; в `numbered` перед подписью номер шага accent.
+ * `compact` — карточка поменьше: фото на треть ширины, текст на две трети.
  *
- * onVisit(id) — клик по кнопке; пока формы записи нет, кнопка без действия.
+ * onVisit(id) — клик по кнопке: блок прокручивает к форме записи и выбирает
+ * в ней нужный способ.
  */
-export default function VisitCard({ card, reverse = false, numbered = false, onVisit }) {
+export default function VisitCard({ card, reverse = false, numbered = false, compact = false, onVisit }) {
   const cols = card.gallery?.length || 0
   const rowClass = { 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5' }[cols] || 'lg:grid-cols-4'
 
   return (
     <article className="rounded-md bg-surface-2 p-5 md:p-8 lg:p-10" aria-labelledby={`visit-${card.id}-title`}>
-      <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
+      <div className={`grid gap-8 lg:items-center lg:gap-12 ${compact ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         <div className={reverse ? 'lg:order-2' : ''}>
-          <VisitPhoto name={card.photo.name} alt={card.photo.alt} sizes="(min-width: 1024px) 520px, 100vw" />
+          <VisitPhoto name={card.photo.name} alt={card.photo.alt} sizes={compact ? '(min-width: 1024px) 340px, 100vw' : '(min-width: 1024px) 520px, 100vw'} />
         </div>
-        <div className={reverse ? 'lg:order-1' : ''}>
+        <div className={`${reverse ? 'lg:order-1' : ''} ${compact ? 'lg:col-span-2' : ''}`}>
           <h3 id={`visit-${card.id}-title`} className="text-[22px] font-bold leading-[1.2]">
             {card.title}
           </h3>
