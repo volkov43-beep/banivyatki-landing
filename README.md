@@ -23,6 +23,7 @@ src/
   data/calculator.js              — цены и тексты калькулятора
   data/reviews.js                 — отзывы: площадки, карточки, отзыв для бизнеса
   data/faq.js                     — частые вопросы
+  data/objects.js                 — места, где стоят бани: названия и координаты
   lib/                            — submitLead, track, utm, callback, phone
   pages/PrivacyPage.jsx           — страница /privacy/
   styles/tokens.css               — дизайн-токены: палитра, типографика, сетка
@@ -34,6 +35,7 @@ src/
     calculator/                   — Segmented, FloorPlan, CalculatorCard, LeadForm
     Footer.jsx                    — подвал с контактами и ссылкой на политику
     SectionInside.jsx             — экран «Что внутри» на светлом фоне
+    SectionMap.jsx                — экран «Где стоят наши бани»: карта Яндекса и список мест
     SectionProcess.jsx            — экран «Как проходит заказ»: пять шагов
     SectionReviews.jsx            — экран «Отзывы»: семь настоящих отзывов
     ReviewCard.jsx                — карточка отзыва
@@ -87,6 +89,16 @@ public/
 ```bash
 npx -y sharp-cli -i PROZ6025_HDR.jpg -o public/photos/pech.webp resize 1200 -f webp -q 80
 ```
+
+## Карта Яндекса
+
+Блок «Где стоят наши бани» использует JavaScript API Яндекс Карт v3. Ключ
+берётся из переменной окружения `VITE_YMAPS_KEY` при сборке (локально —
+файл `.env`, см. `.env.example`; на GitHub Pages — секрет репозитория с тем же
+именем). Без ключа сайт собирается, блок показывает только список мест.
+
+Координаты мест: `VITE_YMAPS_KEY=… node scripts/geocode.mjs` — скрипт
+спрашивает HTTP Геокодер и переписывает `src/data/objects.js`.
 
 ## ⚠️ Формы пока никуда не отправляют заявки
 

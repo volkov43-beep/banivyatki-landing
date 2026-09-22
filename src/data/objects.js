@@ -1,0 +1,65 @@
+/**
+ * Где стоят наши бани: только названия мест и координаты.
+ * Никаких имён, телефонов, адресов и цен.
+ *
+ * group: 'kirov' — Киров и пригороды (одна точка), 'oblast' — Кировская
+ * область, 'far' — другие регионы.
+ *
+ * Координаты пишет scripts/geocode.mjs через HTTP Геокодер Яндекса
+ * (см. README). Пока скрипт не запускали, здесь предварительные значения —
+ * их нужно заменить запуском скрипта.
+ *
+ * Пока не показываем: Красное и Краснодар — место уточняется.
+ */
+export const OBJECTS = [
+  { name: 'Киров и пригороды', region: 'Кировская область', lat: 58.6036, lon: 49.668, group: 'kirov' },
+
+  { name: 'Кирово-Чепецк', region: 'Кировская область', lat: 58.555, lon: 50.0317, group: 'oblast' },
+  { name: 'Ключи (Кирово-Чепецкий р-н)', region: 'Кировская область', lat: 58.505, lon: 50.02, group: 'oblast' },
+  { name: 'Вахруши', region: 'Кировская область', lat: 58.6879, lon: 50.0244, group: 'oblast' },
+  { name: 'Кстинино', region: 'Кировская область', lat: 58.459, lon: 49.7746, group: 'oblast' },
+  { name: 'Слободской', region: 'Кировская область', lat: 58.7311, lon: 50.1697, group: 'oblast' },
+  { name: 'Карино (Слободской р-н)', region: 'Кировская область', lat: 58.786, lon: 50.445, group: 'oblast' },
+  { name: 'Луза (Слободской р-н)', region: 'Кировская область', lat: 58.7, lon: 50.1, group: 'oblast' },
+  { name: 'Стрижи', region: 'Кировская область', lat: 58.4522, lon: 49.2957, group: 'oblast' },
+  { name: 'Пасегово', region: 'Кировская область', lat: 58.528, lon: 49.472, group: 'oblast' },
+  { name: 'Садаковский', region: 'Кировская область', lat: 58.623, lon: 49.567, group: 'oblast' },
+  { name: 'Лянгасово', region: 'Кировская область', lat: 58.524, lon: 49.51, group: 'oblast' },
+  { name: 'Корчемкино', region: 'Кировская область', lat: 58.66, lon: 49.725, group: 'oblast' },
+  { name: 'Батыши', region: 'Кировская область', lat: 58.64, lon: 49.6, group: 'oblast' },
+  { name: 'Латыши', region: 'Кировская область', lat: 58.63, lon: 49.62, group: 'oblast' },
+  { name: 'Барамзы', region: 'Кировская область', lat: 58.64, lon: 49.63, group: 'oblast' },
+  { name: 'Головизнины', region: 'Кировская область', lat: 58.63, lon: 49.68, group: 'oblast' },
+  { name: 'Русское', region: 'Кировская область', lat: 58.539, lon: 49.706, group: 'oblast' },
+  { name: 'Бздюли', region: 'Кировская область', lat: 58.55, lon: 49.6, group: 'oblast' },
+  { name: 'Княжий Луг', region: 'Кировская область', lat: 58.57, lon: 49.76, group: 'oblast' },
+  { name: 'Шихово', region: 'Кировская область', lat: 58.6, lon: 49.82, group: 'oblast' },
+  { name: 'Большая Гора', region: 'Кировская область', lat: 58.61, lon: 49.6, group: 'oblast' },
+  { name: 'Мурыгино', region: 'Кировская область', lat: 58.741, lon: 49.498, group: 'oblast' },
+  { name: 'Шмагины', region: 'Кировская область', lat: 58.6, lon: 49.55, group: 'oblast' },
+  { name: 'Костино', region: 'Кировская область', lat: 58.658, lon: 49.74, group: 'oblast' },
+  { name: 'Кузены', region: 'Кировская область', lat: 58.55, lon: 49.66, group: 'oblast' },
+  { name: 'Нагоряна', region: 'Кировская область', lat: 58.66, lon: 49.66, group: 'oblast' },
+  { name: 'Березовка', region: 'Кировская область', lat: 58.52, lon: 49.6, group: 'oblast' },
+  { name: 'Зониха', region: 'Кировская область', lat: 58.57, lon: 49.5, group: 'oblast' },
+  { name: 'Симаки', region: 'Кировская область', lat: 58.62, lon: 49.75, group: 'oblast' },
+  { name: 'Суворовы', region: 'Кировская область', lat: 58.58, lon: 49.73, group: 'oblast' },
+  { name: 'Сунчиха', region: 'Кировская область', lat: 58.65, lon: 49.61, group: 'oblast' },
+  { name: 'Пагинка', region: 'Кировская область', lat: 58.61, lon: 49.8, group: 'oblast' },
+  { name: 'Кумёны', region: 'Кировская область', lat: 58.108, lon: 49.917, group: 'oblast' },
+  { name: 'Нолинск', region: 'Кировская область', lat: 57.56, lon: 49.94, group: 'oblast' },
+  { name: 'Малмыж', region: 'Кировская область', lat: 56.521, lon: 50.683, group: 'oblast' },
+  { name: 'Фалёнки', region: 'Кировская область', lat: 58.37, lon: 51.626, group: 'oblast' },
+
+  { name: 'Сыктывкар', region: 'Республика Коми', lat: 61.6688, lon: 50.8364, group: 'far' },
+  { name: 'Печора', region: 'Республика Коми', lat: 65.149, lon: 57.224, group: 'far' },
+  { name: 'Вухтым', region: 'Республика Коми', lat: 60.63, lon: 49.54, group: 'far' },
+  { name: 'Объячево', region: 'Республика Коми', lat: 60.362, lon: 49.645, group: 'far' },
+  { name: 'Нарьян-Мар', region: 'Ненецкий автономный округ', lat: 67.638, lon: 53.0069, group: 'far' },
+]
+
+/** Подпись точки «Киров и пригороды». */
+export const KIROV_LABEL = 'Киров и пригороды — больше 15 бань'
+
+/** Границы Кировской области для проверки на здравый смысл (примерно). */
+export const OBLAST_BOUNDS = { latMin: 56.0, latMax: 61.1, lonMin: 46.3, lonMax: 53.9 }
