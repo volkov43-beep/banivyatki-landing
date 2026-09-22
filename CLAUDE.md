@@ -52,7 +52,7 @@ src/
     Header.jsx                — шапка поверх первого экрана: логотип, телефон
     SectionHero.jsx           — первый экран
     SectionComparison.jsx     — «Чем Подкова отличается от бани-бочки»
-    CrossSectionDiagram.jsx   — главная схема: два сечения, силуэты
+    CrossSectionDiagram.jsx   — главная схема: чертёж diagram-sravnenie.webp + размеры в SVG
     AdvantageItem.jsx, PhotoSlot.jsx
     SectionCalculator.jsx     — калькулятор
     calculator/               — Segmented, FloorPlan, CalculatorCard, LeadForm
@@ -130,8 +130,17 @@ public/favicon-32.png, apple-touch-icon.png
 2. `SectionHero` — картинка `<picture>` (мобильный файл до 1023, горизонтальный
    от 1024), заголовок «Баня-Подкова: / шире бочки, с ровным полом, под ключ»,
    подзаголовок, цена `от MIN_PRICE`, одна кнопка на `#calculator`, факты доверия.
-3. `SectionComparison` — тёмный экран: схема бочка/Подкова с силуэтами,
+3. `SectionComparison` — тёмный экран: главная схема бочка/Подкова,
    подпись, четыре блока преимуществ (от 1024 px сетка 2 × 2 по верхнему краю).
+   Главная схема — готовый чертёж `diagram-sravnenie.webp` (1600 × 800, 2:1,
+   прозрачный фон, WebP качества 85, меньше 250 КБ) в одном SVG с viewBox
+   в размер картинки; размеры и подписи поверх: 2000 мм, «высота над головой»,
+   «трапик 40 см» (alert-on-dark), 2400 мм, 2300 мм, «пол 2000 мм» (accent),
+   названия бань 18 px жирные surface на одной базовой линии. Опорные точки
+   в `G` измерены по пикселям файла (427 единиц = 2000 мм), не на глаз.
+   До 600 px — та же картинка двумя SVG друг под другом с окнами viewBox
+   одинаковой ширины 820, чтобы люди остались одного роста. Картинка
+   грузится лениво (href по IntersectionObserver).
    Порядок в блоке: заголовок → схема → текст → фото → подпись. Фото есть в
    трёх: парная 1:1 (`shirina-parnaya.webp`), обвязка 4:3 (`obvyazka.webp`),
    проливной пол — пара 4:3 (`prolivnoy-pol-sverhu.webp` и `-razrez.webp`,
