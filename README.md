@@ -34,8 +34,10 @@ src/
     Footer.jsx                    — подвал с контактами и ссылкой на политику
     SectionInside.jsx             — экран «Что внутри» на светлом фоне
     SectionProcess.jsx            — экран «Как проходит заказ»: пять шагов
-    SectionReviews.jsx            — экран «Отзывы»: семь настоящих отзывов со ссылками
+    SectionReviews.jsx            — экран «Отзывы»: семь настоящих отзывов
     ReviewCard.jsx                — карточка отзыва
+    SourceIcon.jsx                — иконка площадки отзывов
+    RatingStars.jsx               — звёзды рейтинга (инлайн-SVG)
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
     PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой

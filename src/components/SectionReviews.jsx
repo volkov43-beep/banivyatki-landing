@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import ReviewCard from './ReviewCard.jsx'
+import SourceIcon from './SourceIcon.jsx'
+import RatingStars from './RatingStars.jsx'
 import { REVIEWS, SOURCES, MOBILE_VISIBLE } from '../data/reviews.js'
 import { track } from '../lib/track.js'
 
@@ -38,13 +40,26 @@ function splitColumns(reviews) {
 
 /**
  * Экран «Отзывы». Светлый фон surface. Каждый отзыв настоящий и проверяемый:
- * имя как на площадке, дата, источник, ссылка на оригинал.
+ * имя как на площадке, дата, источник. Ссылок на площадки нет.
  * От 1024 px — две колонки каскадом; до 1023 px — одна колонка, сначала
  * три отзыва и кнопка «Показать ещё отзывы». Без карусели.
  */
 export default function SectionReviews() {
   const desktop = useDesktop()
   const [expanded, setExpanded] = useState(false)
+  // Раскрытые отзывы храним здесь, а не в карточке: при смене раскладки
+  // (две колонки ↔ одна) карточки перемонтируются, а раскрытие остаётся.
+  const [openIds, setOpenIds] = useState(() => new Set())
+  const toggleOpen = (id) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const card = (review) => (
+    <ReviewCard key={review.id} review={review} expanded={openIds.has(review.id)} onToggle={() => toggleOpen(review.id)} />
+  )
 
   function showMore() {
     setExpanded(true)
@@ -61,38 +76,36 @@ export default function SectionReviews() {
           Что говорят владельцы бань
         </h2>
 
-        {/* Рейтинги — ссылки на площадки, открываются в новой вкладке */}
-        <p className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-lead">
+        {/* Рейтинги плашками: квадратная иконка площадки, оценка со звёздами, число отзывов. Без ссылок. */}
+        <ul className="mt-8 flex list-none flex-col gap-4 p-0 md:flex-row md:gap-6">
           {[SOURCES.avito, SOURCES.yandex].map((source) => (
-            <a
-              key={source.id}
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => track('reviews_source_click', { source: source.id })}
-              className="text-ink underline decoration-muted underline-offset-4"
-            >
-              <b className="font-bold">{source.rating}</b> на {source.name}
-            </a>
+            <li key={source.id} className="flex items-center gap-4 rounded-md bg-surface-2 px-5 py-4 md:min-w-[300px]">
+              <SourceIcon source={source.id} size={64} shape="square" />
+              <div>
+                <div className="flex items-center gap-3">
+                  <p className="text-[28px] font-bold leading-none">{source.rating}</p>
+                  <RatingStars rating={source.rating} id={`rating-${source.id}`} />
+                </div>
+                <p className="mt-1.5 text-label text-muted">
+                  {source.name} · {source.count}
+                </p>
+              </div>
+            </li>
           ))}
-        </p>
+        </ul>
 
         {desktop ? (
           <div className="mt-12 grid grid-cols-2 gap-6 md:mt-16">
             {splitColumns(REVIEWS).map((column, i) => (
               <ul key={i} className="flex list-none flex-col gap-6 p-0">
-                {column.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
+                {column.map(card)}
               </ul>
             ))}
           </div>
         ) : (
           <>
             <ul className="mt-12 flex list-none flex-col gap-6 p-0 md:mt-16">
-              {mobileList.map((review) => (
-                <ReviewCard key={review.id} review={review} />
-              ))}
+              {mobileList.map(card)}
             </ul>
             {!expanded && hiddenCount > 0 && (
               <button
