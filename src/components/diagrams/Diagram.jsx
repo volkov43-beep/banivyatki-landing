@@ -38,7 +38,7 @@ export function useDiagram() {
 }
 
 /** Держит --s = (ширина на экране) / (ширина viewBox). */
-function useUnitScale(ref, viewWidth) {
+export function useUnitScale(ref, viewWidth) {
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || !viewWidth) return undefined

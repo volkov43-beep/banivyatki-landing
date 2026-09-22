@@ -1,9 +1,8 @@
 import CrossSectionDiagram from './CrossSectionDiagram.jsx'
 import AdvantageItem from './AdvantageItem.jsx'
 import PhotoSlot from './PhotoSlot.jsx'
-import FrameJointDiagram from './diagrams/FrameJointDiagram.jsx'
+import LabeledDrawing from './diagrams/LabeledDrawing.jsx'
 import DrainFloorDiagram from './diagrams/DrainFloorDiagram.jsx'
-import BodyCurveDiagram from './diagrams/BodyCurveDiagram.jsx'
 
 /**
  * Экран «Чем Подкова отличается от бани-бочки».
@@ -53,7 +52,41 @@ export default function SectionComparison() {
 
           <AdvantageItem
             title="Без стяжек, на обвязке"
-            diagram={<FrameJointDiagram />}
+            diagram={
+              <LabeledDrawing
+                src="photos/diagram-obvyazka.webp"
+                width={1440}
+                height={850}
+                label="Сравнение: бочка держится на стальной стяжке, Подкова стоит на обвязке, доски стен соединены лунным пазом"
+                labels={[
+                  {
+                    n: 1,
+                    x: 383,
+                    y: 714,
+                    anchor: 'middle',
+                    lines: ['Бочка: стены держит', 'стальная стяжка —', 'её нужно подтягивать'],
+                    badge: [383, 730],
+                  },
+                  {
+                    n: 2,
+                    x: 1092,
+                    y: 714,
+                    anchor: 'middle',
+                    lines: ['Подкова: стены закреплены', 'в обвязке —', 'стягивать нечего'],
+                    badge: [1092, 730],
+                  },
+                  {
+                    n: 3,
+                    x: 1112,
+                    y: 469,
+                    anchor: 'middle',
+                    lines: ['Лунный паз:', 'вода стекает,', 'в стык не попадает'],
+                    leader: { from: [1190, 436], to: [1190, 391] },
+                    badge: [1112, 500],
+                  },
+                ]}
+              />
+            }
             photo={
               <PhotoSlot
                 src="photos/obvyazka.webp"
@@ -65,9 +98,16 @@ export default function SectionComparison() {
               />
             }
           >
-            У бань-бочек стяжки надо периодически подтягивать, пружинные лопаются. Подкова стоит
-            на обвязке — стены-дуги закреплены в силовой раме. Подтягивать нечего и лопаться
-            нечему, геометрия держится сама.
+            <p>
+              У бань-бочек стены держит стальная стяжка: её надо периодически подтягивать, а
+              пружинные лопаются. Подкова стоит на обвязке — стены-дуги закреплены в силовой раме.
+              Подтягивать нечего и лопаться нечему, геометрия держится сама.
+            </p>
+            <p>
+              Стены Подковы собраны из доски с лунным пазом: каждая доска входит в соседнюю плотно,
+              как в замок. Стыки без щелей, доски не расходятся, конопатить ничего не нужно. Паз
+              смотрит вниз — вода стекает по стене и не попадает в стык.
+            </p>
           </AdvantageItem>
 
           <AdvantageItem
@@ -108,7 +148,35 @@ export default function SectionComparison() {
             вскрывают полстены.
           </AdvantageItem>
 
-          <AdvantageItem title="Дуга стен по форме тела" diagram={<BodyCurveDiagram />}>
+          <AdvantageItem
+            title="Дуга стен по форме тела"
+            diagram={
+              <LabeledDrawing
+                src="photos/diagram-duga.webp"
+                width={1440}
+                height={1362}
+                label="Человек сидит в бане-Подкове, спина опирается на изогнутую стену"
+                labels={[
+                  {
+                    n: 1,
+                    x: 560,
+                    y: 660,
+                    lines: ['Спина лежит', 'на дуге стены'],
+                    leader: { from: [548, 648], to: [178, 610] },
+                    badge: [600, 650],
+                  },
+                  {
+                    n: 2,
+                    x: 560,
+                    y: 800,
+                    lines: ['Стена поддерживает', 'всю спину, от поясницы', 'до лопаток'],
+                    leader: { from: [548, 788], to: [161, 751] },
+                    badge: [600, 800],
+                  },
+                ]}
+              />
+            }
+          >
             Спинка обнимает — сидите долго, спина не затекает.
           </AdvantageItem>
         </ul>

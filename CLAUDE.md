@@ -63,7 +63,8 @@ src/
     SourceIcon.jsx            — иконка площадки: круглая для карточек, квадратная для плашек
     RatingStars.jsx           — звёзды рейтинга инлайн-SVG, заполнение из числа
     Footer.jsx                — подвал: оператор, контакты, политика
-    diagrams/                 — Diagram.jsx (общий каркас), MicroDiagram и схемы
+    diagrams/                 — Diagram.jsx (общий каркас), MicroDiagram и схемы,
+                                LabeledDrawing.jsx — готовый чертёж WebP + подписи в одном SVG
   pages/PrivacyPage.jsx       — политика конфиденциальности
 public/photos/                — WebP-фото, логотип, иконки площадок review-*.webp, rating-*.webp
 public/favicon-32.png, apple-touch-icon.png
@@ -136,6 +137,14 @@ public/favicon-32.png, apple-touch-icon.png
    проливной пол — пара 4:3 (`prolivnoy-pol-sverhu.webp` и `-razrez.webp`,
    до 600 px друг под другом, подписи 13 px, сноска про комплектации под парой).
    «Дуга стен» без фото. Фото со скруглением 6 px, без рамок и теней.
+   В «Без стяжек» и «Дуге стен» вместо микро-схем — готовые чертежи
+   `diagram-obvyazka.webp` (1440 × 850) и `diagram-duga.webp` (1440 × 1362):
+   WebP с прозрачностью, качество 85, каждый меньше 200 КБ, без скругления.
+   Подписи ставит `LabeledDrawing`: один SVG с viewBox в размер картинки,
+   внутри `<image>`, поверх текст 14 px (`dg-label`, через `--s`) цветом
+   muted-on-dark и выноски 1.5 px accent с точкой; до 600 px вместо текста —
+   золотые номера в кружках и список под картинкой. Картинка грузится лениво
+   (href ставится по IntersectionObserver). У SVG `role="img"` и `aria-label`.
 4. `SectionCalculator` (`#calculator`) — вкладки «Себе / Для бизнеса», сезон,
    три карточки, панель формы, полоска на телефоне.
 5. `SectionInside` — светлый экран: пять блоков (вентиляция, утепление, печь,
