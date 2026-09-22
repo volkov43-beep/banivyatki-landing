@@ -22,6 +22,7 @@ src/
   index.css                       — Tailwind, базовые стили, фокус, reduced-motion
   data/calculator.js              — цены и тексты калькулятора
   data/reviews.js                 — отзывы: площадки, карточки, отзыв для бизнеса
+  data/faq.js                     — частые вопросы
   lib/                            — submitLead, track, utm, callback, phone
   pages/PrivacyPage.jsx           — страница /privacy/
   styles/tokens.css               — дизайн-токены: палитра, типографика, сетка
@@ -38,6 +39,7 @@ src/
     ReviewCard.jsx                — карточка отзыва
     SourceIcon.jsx                — иконка площадки отзывов
     RatingStars.jsx               — звёзды рейтинга (инлайн-SVG)
+    SectionFaq.jsx                — экран «Частые вопросы»: аккордеон, JSON-LD
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
     PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой
