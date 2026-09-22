@@ -1,6 +1,7 @@
 import { FAQ, plainAnswer } from '../data/faq.js'
 import FaqQuestionForm from './FaqQuestionForm.jsx'
 import { track } from '../lib/track.js'
+import { requestVisit } from '../lib/visit.js'
 
 /**
  * Экран «Частые вопросы». Светлый фон surface, тёмный текст.
@@ -12,6 +13,14 @@ import { track } from '../lib/track.js'
  * Под списком — карточка с формой вопроса (FaqQuestionForm).
  */
 
+/** Ссылка на форму записи (#visit-form): плавная прокрутка и «Шоурум» в форме, цель visit_button с type "faq". */
+const VISIT_FORM_HREF = '#visit-form'
+
+function handleVisitLink(e) {
+  e.preventDefault()
+  requestVisit('showroom', 'faq')
+}
+
 /** Текст с ссылками вида [текст](#id) → React-узлы. */
 function renderText(text) {
   const parts = text.split(/(\[[^\]]+\]\(#[^)]+\))/g)
@@ -19,7 +28,12 @@ function renderText(text) {
     const m = part.match(/^\[([^\]]+)\]\((#[^)]+)\)$/)
     if (!m) return part
     return (
-      <a key={i} href={m[2]} className="underline decoration-muted underline-offset-4">
+      <a
+        key={i}
+        href={m[2]}
+        onClick={m[2] === VISIT_FORM_HREF ? handleVisitLink : undefined}
+        className="underline decoration-muted underline-offset-4"
+      >
         {m[1]}
       </a>
     )
