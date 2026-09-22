@@ -10,8 +10,14 @@ import { track } from '../lib/track.js'
  * без ключа, без сети или при ошибке API карты нет: остаются заголовок,
  * подзаголовок и текстовый список мест — без пустого прямоугольника.
  *
- * Скрипт API грузится только когда блок подходит к экрану (запас 300 px).
+ * Скрипт API грузится только когда блок подходит к экрану (запас 300 px)
+ * и один раз за визит: тариф бесплатный, лимит загрузок в сутки небольшой.
  * До загрузки на месте карты плашка того же размера цветом surface-2.
+ *
+ * Почему карты нет — видно в консоли браузера, значение ключа не печатается:
+ *   «Карта: ключ не передан в сборку»
+ *   «Карта: скрипт Яндекса не загрузился …»
+ *   «Карта: ошибка API — <текст ошибки>»
  *
  * Поведение: колесо мыши не масштабирует карту (страница прокручивается),
  * на телефоне одним пальцем прокручивается страница, карту двигают двумя
@@ -39,9 +45,14 @@ const HOME_BOUNDS = (() => {
   ]
 })()
 
-/** Приглушённый стиль карты в тон сайту: бежево-серая подложка, меньше подписей и POI. */
+/**
+ * Приглушённый стиль карты в тон сайту: бежево-серая суша, меньше подписей и POI.
+ * Каждое правило адресовано конкретным типам объектов (tags) — общего правила
+ * на всю карту нет, иначе подложка закрасится одним цветом. Границы (admin)
+ * только линией, без заливки.
+ */
 const MAP_STYLE = [
-  { tags: { any: ['land', 'landscape', 'admin', 'land_cover'] }, elements: 'geometry', stylers: [{ color: 'efe6da' }] },
+  { tags: { any: ['land', 'landscape', 'land_cover'] }, elements: 'geometry', stylers: [{ color: 'efe6da' }] },
   { tags: { any: ['vegetation', 'park', 'national_park', 'cemetery'] }, elements: 'geometry', stylers: [{ color: 'e6dfd0' }] },
   { tags: { any: ['water', 'bathing_place'] }, elements: 'geometry', stylers: [{ color: 'd6cfc2' }] },
   { tags: { any: ['road', 'path'] }, elements: 'geometry', stylers: [{ color: 'e2d8c8' }] },
@@ -54,6 +65,18 @@ const MAP_STYLE = [
 ]
 
 const CONTROLS_MODULE = '@yandex/ymaps3-controls@0.0.1'
+
+/** Сообщение в консоль о том, почему карты нет. Ключ в сообщение не попадает. */
+function reportMapError(err) {
+  const detail = err?.message ? ` — ${err.message}` : ''
+  if (err?.code === 'script' || err?.code === 'timeout') {
+    console.error(`Карта: скрипт Яндекса не загрузился${detail}`)
+  } else {
+    console.error(`Карта: ошибка API${detail}`)
+  }
+}
+
+let warnedNoKey = false
 
 /** DOM-элемент точки: золотой кружок с обводкой, подпись по клику. */
 function makePoint(place, isKirov) {
@@ -81,7 +104,13 @@ export default function SectionMap() {
 
   // Загрузка API, когда блок подходит к экрану
   useEffect(() => {
-    if (!KEY) return undefined
+    if (!KEY) {
+      if (!warnedNoKey) {
+        warnedNoKey = true
+        console.warn('Карта: ключ не передан в сборку (VITE_YMAPS_KEY пуст) — показан только список мест')
+      }
+      return undefined
+    }
     const el = wrapRef.current
     if (!el) return undefined
     if (typeof IntersectionObserver === 'undefined') {
@@ -110,7 +139,13 @@ export default function SectionMap() {
     async function init() {
       const ymaps3 = await loadYmaps(KEY)
       const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker, YMapControls } = ymaps3
-      const { YMapZoomControl } = await ymaps3.import(CONTROLS_MODULE)
+      // Кнопки +/− — отдельный модуль; если он не загрузился, карта всё равно нужна
+      let YMapZoomControl = null
+      try {
+        ;({ YMapZoomControl } = await ymaps3.import(CONTROLS_MODULE))
+      } catch (e) {
+        console.warn(`Карта: кнопки +/− не загрузились — ${e?.message || e}`)
+      }
       if (cancelled || !mapEl.current) return
 
       const coarse = window.matchMedia('(pointer: coarse)').matches
@@ -122,9 +157,12 @@ export default function SectionMap() {
         margin: [24, 24, 24, 24],
         copyrightsPosition: 'bottom right',
       })
+      // Подложка (тайлы схемы) обязательна — без неё будут только точки на пустом поле
       map.addChild(new YMapDefaultSchemeLayer({ theme: 'light', customization: MAP_STYLE }))
       map.addChild(new YMapDefaultFeaturesLayer({}))
-      map.addChild(new YMapControls({ position: 'right' }).addChild(new YMapZoomControl({})))
+      if (YMapZoomControl) {
+        map.addChild(new YMapControls({ position: 'right' }).addChild(new YMapZoomControl({})))
+      }
 
       for (const place of OBJECTS) {
         const isKirov = place.group === 'kirov'
@@ -150,7 +188,8 @@ export default function SectionMap() {
       track('map_view')
     }
 
-    init().catch(() => {
+    init().catch((err) => {
+      reportMapError(err)
       if (!cancelled) setStatus('failed')
     })
     return () => {
