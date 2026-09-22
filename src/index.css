@@ -45,3 +45,44 @@
     font-weight: 400;
   }
 }
+
+/* Точки на карте «Где стоят наши бани» (DOM-маркеры Яндекс Карт v3) */
+.bv-map-point {
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-accent);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+.bv-map-point--big {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-ink);
+}
+.bv-map-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: var(--color-ink);
+  color: var(--color-surface);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.bv-map-point.is-open .bv-map-tip {
+  display: block;
+}

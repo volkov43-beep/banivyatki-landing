@@ -36,7 +36,11 @@ jobs:
 
       # Проектный сайт живёт по адресу <owner>.github.io/<repo>/,
       # поэтому базовый путь берём из имени репозитория.
+      # Ключ Яндекс Карт — из секрета репозитория (Settings → Secrets and variables →
+      # Actions). Без него сайт собирается, блок карты показывает только список мест.
       - run: npm run build -- --base=/${{ github.event.repository.name }}/
+        env:
+          VITE_YMAPS_KEY: ${{ secrets.VITE_YMAPS_KEY }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
