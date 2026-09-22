@@ -24,7 +24,7 @@ const PHOTO = {
 const FACTS = [
   { strong: '1000+', rest: 'бань с 2012 года' },
   { strong: 'Гарантия', rest: '5 лет' },
-  { strong: '5,0', rest: 'на Авито — 25 отзывов о банях' },
+  { strong: '5,0', rest: 'на Авито — 40 оценок' },
 ]
 
 export default function SectionHero() {
