@@ -31,8 +31,23 @@ export default function SectionComparison() {
           видите, — ваше пространство.
         </p>
 
-        <ul className="mt-14 grid list-none items-start gap-x-12 gap-y-10 p-0 md:mt-20 md:grid-cols-2">
-          <AdvantageItem title={'Ширина 2,4 метра, пол — 2 метра'}>
+        {/* Четыре блока: от 1024 px сетка 2 × 2 по верхнему краю, до 1023 px одна колонка.
+            Порядок в каждом: заголовок → схема → текст → фото → подпись. */}
+        <ul className="mt-14 grid list-none items-start gap-x-12 gap-y-10 p-0 md:mt-20 lg:grid-cols-2">
+          <AdvantageItem
+            title={'Ширина 2,4 метра, пол — 2 метра'}
+            photo={
+              <PhotoSlot
+                src="photos/shirina-parnaya.webp"
+                width={1120}
+                height={1120}
+                aspect="1 / 1"
+                className="rounded-md"
+                alt="Парная бани-Подковы изнутри"
+                caption="Парная изнутри: прямой пол от стены до стены"
+              />
+            }
+          >
             У бочки корпус 2 метра и узкий трапик. Паритесь семьёй, не задевая друг друга.
           </AdvantageItem>
 
@@ -41,14 +56,17 @@ export default function SectionComparison() {
             diagram={<FrameJointDiagram />}
             photo={
               <PhotoSlot
-                src=""
-                alt="Обвязка Подковы на производстве: стены-дуги закреплены в силовой раме"
-                caption="Обвязка на производстве, пока не зашита: стены-дуги закреплены в силовой раме"
+                src="photos/obvyazka.webp"
+                width={1120}
+                height={840}
+                className="rounded-md"
+                alt="Обвязка бани-Подковы на производстве"
+                caption="Обвязка на производстве: силовая рама из бруса с двойной пропиткой. На неё встают стены-дуги."
               />
             }
           >
             У бань-бочек стяжки надо периодически подтягивать, пружинные лопаются. Подкова стоит
-            на обвязке — стены-дуги закреплены в силовой раме. Подтягивать нечего и лопаться
+            на обвязке — стены-дуги закреплены в силовой раме. Подтягивать нечего и лопаться
             нечему, геометрия держится сама.
           </AdvantageItem>
 
@@ -56,27 +74,44 @@ export default function SectionComparison() {
             title="Двойной проливной пол"
             diagram={<DrainFloorDiagram />}
             photo={
-              <PhotoSlot
-                src=""
-                alt="Двойной проливной пол: верхний настил с зазорами над утеплённым полом"
-                caption="Проливной пол в круглогодичной комплектации: настил с зазорами над утеплённым полом"
-              />
+              <>
+                {/* Пара: слева вид сверху, справа макет в разрезе. До 600 px — друг под другом. */}
+                <div className="grid gap-3 min-[600px]:grid-cols-2">
+                  <PhotoSlot
+                    src="photos/prolivnoy-pol-sverhu.webp"
+                    width={600}
+                    height={450}
+                    className="rounded-md"
+                    captionClass="text-[13px]"
+                    alt="Верхний настил проливного пола"
+                    caption="Сверху: настил с зазорами 4–5 мм"
+                  />
+                  <PhotoSlot
+                    src="photos/prolivnoy-pol-razrez.webp"
+                    width={600}
+                    height={450}
+                    className="rounded-md"
+                    captionClass="text-[13px]"
+                    alt="Макет проливного пола в разрезе"
+                    caption="В разрезе: под настилом — нижний утеплённый пол с уклоном к сливу"
+                  />
+                </div>
+                <p className="mt-4 max-w-measure text-label text-muted-on-dark">
+                  Двойной проливной пол — в круглогодичных комплектациях. В готовом решении пол
+                  одинарный, с разуклонкой под слив.
+                </p>
+              </>
             }
           >
-            Верхний настил с зазорами 4–5 мм, вода уходит на нижний утеплённый. Доски съёмные:
-            устала через годы — открутил и заменил за вечер. В бочке ради одной доски пола
+            Верхний настил с зазорами 4–5 мм, вода уходит на нижний утеплённый. Доски съёмные:
+            устала через годы — открутил и заменил за вечер. В бочке ради одной доски пола
             вскрывают полстены.
           </AdvantageItem>
 
           <AdvantageItem title="Дуга стен по форме тела" diagram={<BodyCurveDiagram />}>
-            Спинка обнимает — сидите долго, спина не затекает.
+            Спинка обнимает — сидите долго, спина не затекает.
           </AdvantageItem>
         </ul>
-
-        <p className="mt-10 max-w-measure text-label text-muted-on-dark md:mt-12">
-          Двойной проливной пол — в круглогодичных комплектациях. В готовом решении пол
-          одинарный, с разуклонкой под слив.
-        </p>
       </div>
     </section>
   )
