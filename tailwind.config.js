@@ -5,6 +5,7 @@ export default {
     extend: {
       colors: {
         ink: 'var(--color-ink)',
+        forest: 'var(--color-forest)',
         surface: 'var(--color-surface)',
         'surface-2': 'var(--color-surface-2)',
         accent: 'var(--color-accent)',

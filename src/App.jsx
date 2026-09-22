@@ -5,6 +5,7 @@ import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionInside from './components/SectionInside.jsx'
 import SectionProcess from './components/SectionProcess.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
+import SectionFaq from './components/SectionFaq.jsx'
 import Footer from './components/Footer.jsx'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <SectionInside />
         <SectionProcess />
         <SectionReviews />
+        <SectionFaq />
       </main>
       <Footer />
     </div>
