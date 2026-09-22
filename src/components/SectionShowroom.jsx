@@ -1,11 +1,11 @@
 import VisitCard from './showroom/VisitCard.jsx'
-import { VISIT_TITLE, VISIT_SUBTITLE, SHOWROOM } from '../data/visit.js'
+import { VISIT_TITLE, VISIT_SUBTITLE, SHOWROOM, PRODUCTION } from '../data/visit.js'
 
 /**
  * Экран «Посмотрите баню до покупки» (#showroom, сюда ведёт кнопка из «Что
  * внутри»). Светлый фон surface, заголовок и подзаголовок по центру, ниже
- * карточки способов: шоурум (готово), производство и видеозвонок (следующие
- * задания), под ними общая форма записи.
+ * карточки способов: шоурум, производство (зеркально: текст слева, фото
+ * справа), видеозвонок (следующее задание), под ними общая форма записи.
  */
 export default function SectionShowroom() {
   return (
@@ -18,6 +18,7 @@ export default function SectionShowroom() {
 
         <div className="mt-12 flex flex-col gap-8 md:mt-16">
           <VisitCard card={SHOWROOM} />
+          <VisitCard card={PRODUCTION} reverse numbered />
         </div>
       </div>
     </section>

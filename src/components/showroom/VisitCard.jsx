@@ -29,7 +29,7 @@ export default function VisitCard({ card, reverse = false, numbered = false, onV
           <button
             type="button"
             onClick={onVisit ? () => onVisit(card.id) : undefined}
-            className="mt-6 inline-flex h-14 w-full items-center justify-center rounded bg-accent px-8 text-body font-bold text-ink lg:w-auto"
+            className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded bg-accent px-6 py-3 text-center text-body font-bold text-ink lg:w-auto lg:px-8"
           >
             {card.button}
           </button>
