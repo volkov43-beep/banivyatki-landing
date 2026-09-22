@@ -40,6 +40,7 @@ src/
     SourceIcon.jsx                — иконка площадки отзывов
     RatingStars.jsx               — звёзды рейтинга (инлайн-SVG)
     SectionFaq.jsx                — экран «Частые вопросы»: аккордеон, JSON-LD
+    FaqQuestionForm.jsx           — форма вопроса под FAQ
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
     PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой

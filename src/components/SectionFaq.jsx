@@ -1,5 +1,5 @@
 import { FAQ, plainAnswer } from '../data/faq.js'
-import { PHONE } from '../data/calculator.js'
+import FaqQuestionForm from './FaqQuestionForm.jsx'
 import { track } from '../lib/track.js'
 
 /**
@@ -9,6 +9,7 @@ import { track } from '../lib/track.js'
  * Один список без подзаголовков групп (на телефоне подзаголовки удлиняют блок).
  * Разметка FAQPage в JSON-LD — для поисковой выдачи.
  * Цель Метрики faq_open с номером вопроса — при каждом раскрытии.
+ * Под списком — карточка с формой вопроса (FaqQuestionForm).
  */
 
 /** Текст с ссылками вида [текст](#id) → React-узлы. */
@@ -87,21 +88,9 @@ export default function SectionFaq() {
           ))}
         </div>
 
-        {/* Не нашли ответ — телефон и кнопка к форме калькулятора */}
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-x-12 gap-y-6">
-          <p className="max-w-measure text-lead">
-            Не нашли ответ? Позвоните:{' '}
-            <a href={`tel:${PHONE.tel}`} className="whitespace-nowrap font-bold no-underline">
-              {PHONE.display}
-            </a>{' '}
-            или напишите в MAX.
-          </p>
-          <a
-            href="#calculator"
-            className="inline-flex h-14 w-full items-center justify-center rounded bg-accent px-8 text-body font-bold text-ink no-underline lg:w-auto"
-          >
-            Рассчитать стоимость
-          </a>
+        {/* Не нашли ответ — форма вопроса на фоне forest, ширина как у списка */}
+        <div className="mt-10">
+          <FaqQuestionForm />
         </div>
       </div>
 

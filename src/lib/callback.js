@@ -26,16 +26,22 @@ function moscowParts(date) {
   return { day: DAY[get('weekday')], hour: Number(get('hour')) % 24, minute: Number(get('minute')) }
 }
 
-export function callbackPromise(date = getNow()) {
+/** Когда ответим: «в течение 15 минут» / «завтра с 9:00» / «в понедельник с 9:00». */
+export function callbackWhen(date = getNow()) {
   const { day, hour, minute } = moscowParts(date)
   const t = hour * 60 + minute
   const workStart = 9 * 60
   const workEnd = 17 * 60 + 45 // не включительно
 
-  if (day <= 5 && t >= workStart && t < workEnd) return 'Перезвоним в течение 15 минут'
-  if (day <= 4 && t >= workEnd) return 'Перезвоним завтра с 9:00'
-  if (day >= 2 && day <= 5 && t < workStart) return 'Перезвоним завтра с 9:00'
-  return 'Перезвоним в понедельник с 9:00'
+  if (day <= 5 && t >= workStart && t < workEnd) return 'в течение 15 минут'
+  if (day <= 4 && t >= workEnd) return 'завтра с 9:00'
+  if (day >= 2 && day <= 5 && t < workStart) return 'завтра с 9:00'
+  return 'в понедельник с 9:00'
+}
+
+/** Обещание для форм заявки: «Перезвоним …». */
+export function callbackPromise(date = getNow()) {
+  return `Перезвоним ${callbackWhen(date)}`
 }
 
 /** Текущее время или подмена из ?now=… для проверки. */
