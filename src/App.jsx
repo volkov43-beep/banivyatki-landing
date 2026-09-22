@@ -6,6 +6,7 @@ import SectionInside from './components/SectionInside.jsx'
 import SectionMap from './components/SectionMap.jsx'
 import SectionProcess from './components/SectionProcess.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
+import SectionShowroom from './components/SectionShowroom.jsx'
 import SectionFaq from './components/SectionFaq.jsx'
 import Footer from './components/Footer.jsx'
 
@@ -21,6 +22,7 @@ export default function App() {
         <SectionMap />
         <SectionProcess />
         <SectionReviews />
+        <SectionShowroom />
         <SectionFaq />
       </main>
       <Footer />
