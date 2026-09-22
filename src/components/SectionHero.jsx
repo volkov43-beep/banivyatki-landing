@@ -24,11 +24,7 @@ const PHOTO = {
 const FACTS = [
   { strong: '1000+', rest: 'бань с 2012 года' },
   { strong: 'Гарантия', rest: '5 лет' },
-  {
-    strong: '5,0',
-    rest: 'на Авито — 25 отзывов о банях',
-    href: 'https://www.avito.ru/brands/36cc84c3d198c57e876595ba59d31c61',
-  },
+  { strong: '5,0', rest: 'на Авито — 25 отзывов о банях' },
 ]
 
 export default function SectionHero() {
@@ -122,13 +118,7 @@ export default function SectionHero() {
                 /* Точка и пункт не разрываются переносом: перенос идёт целым пунктом */
                 <li key={fact.strong} className="flex items-start whitespace-nowrap">
                   <span aria-hidden="true" className="mr-3 mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  {fact.href ? (
-                    <a href={fact.href} target="_blank" rel="noopener noreferrer" className="text-surface no-underline">
-                      {inner}
-                    </a>
-                  ) : (
-                    <span>{inner}</span>
-                  )}
+                  <span>{inner}</span>
                 </li>
               )
             })}

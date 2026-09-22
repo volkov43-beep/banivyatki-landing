@@ -1,22 +1,22 @@
 /**
  * Отзывы. Каждый — настоящий и проверяемый: имя как на площадке, дата,
- * источник и ссылка на оригинал. Тексты не переписывать: допустимо только
- * сокращать через «…» и исправлять явные опечатки.
+ * источник. Тексты не переписывать: допустимо только сокращать через «…»
+ * и исправлять явные опечатки. Ссылок на площадки на странице нет.
  */
 export const SOURCES = {
   avito: {
     id: 'avito',
     name: 'Авито',
     rating: '5,0',
-    url: 'https://www.avito.ru/brands/36cc84c3d198c57e876595ba59d31c61',
-    readLabel: 'Читать на Авито',
+    count: '25 отзывов о банях',
+    icon: 'review-avito', // public/photos/review-avito-112.webp и -56.webp
   },
   yandex: {
     id: 'yandex',
     name: 'Яндекс Карты',
     rating: '4,5',
-    url: 'https://yandex.ru/maps/org/bani_vyatki/33310738988/reviews/',
-    readLabel: 'Читать на Яндекс Картах',
+    count: '14 оценок',
+    icon: 'review-yandex-maps',
   },
 }
 
