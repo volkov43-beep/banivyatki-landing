@@ -9,7 +9,8 @@ export const SOURCES = {
     name: 'Авито',
     rating: '5,0',
     count: '25 отзывов о банях',
-    icon: 'review-avito', // public/photos/review-avito-112.webp и -56.webp
+    icon: 'review-avito', // круглая: public/photos/review-avito-{112,80,56}.webp
+    ratingIcon: 'rating-avito', // квадратная: public/photos/rating-avito-128.webp
   },
   yandex: {
     id: 'yandex',
@@ -17,6 +18,7 @@ export const SOURCES = {
     rating: '4,5',
     count: '14 оценок',
     icon: 'review-yandex-maps',
+    ratingIcon: 'rating-yandex-maps',
   },
 }
 

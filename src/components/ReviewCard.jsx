@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import SourceIcon from './SourceIcon.jsx'
-import { SOURCES } from '../data/reviews.js'
 
 /**
- * Карточка отзыва: метка-заголовок, текст, подпись «иконка · имя · площадка · дата».
+ * Карточка отзыва: метка-заголовок, круглая иконка площадки 40 px в правом
+ * верхнем углу на одной линии с заголовком, текст, подпись «Имя · дата».
  * Подложка surface-2, скругление 6 px, поля 24 px, линия 3 px accent слева.
  * Без звёзд, аватаров, кавычек-иконок и ссылок на площадки.
  *
@@ -12,7 +12,6 @@ import { SOURCES } from '../data/reviews.js'
  * повторное нажатие — «Свернуть». Никуда не переходит.
  */
 export default function ReviewCard({ review, as: Tag = 'li', className = '', expanded: expandedProp, onToggle }) {
-  const source = SOURCES[review.source]
   const textRef = useRef(null)
   // Состояние «раскрыто» можно держать снаружи (блок «Отзывы» хранит его, чтобы
   // не терять при смене раскладки), иначе карточка хранит его сама.
@@ -36,8 +35,10 @@ export default function ReviewCard({ review, as: Tag = 'li', className = '', exp
   const textId = `review-text-${review.id}`
 
   return (
-    <Tag className={`rounded-md border-l-[3px] border-accent bg-surface-2 p-6 ${className}`}>
-      <p className="text-[20px] font-bold leading-[1.2]">{review.label}</p>
+    <Tag className={`relative rounded-md border-l-[3px] border-accent bg-surface-2 p-6 ${className}`}>
+      {/* Иконка площадки в правом верхнем углу; у заголовка справа отступ под неё */}
+      <SourceIcon source={review.source} size={40} className="absolute right-6 top-6" />
+      <p className="min-h-[40px] pr-14 text-[20px] font-bold leading-[1.2]">{review.label}</p>
       <p
         id={textId}
         ref={textRef}
@@ -56,12 +57,8 @@ export default function ReviewCard({ review, as: Tag = 'li', className = '', exp
           {expanded ? 'Свернуть' : 'Читать полностью'}
         </button>
       )}
-      <p className="mt-4 flex items-center gap-3 text-label text-muted">
-        <SourceIcon source={review.source} size={28} />
-        <span>
-          {review.author} · {source.name} ·{' '}
-          <time dateTime={review.date}>{review.dateText}</time>
-        </span>
+      <p className="mt-4 text-label text-muted">
+        {review.author} · <time dateTime={review.date}>{review.dateText}</time>
       </p>
     </Tag>
   )

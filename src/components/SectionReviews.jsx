@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import ReviewCard from './ReviewCard.jsx'
 import SourceIcon from './SourceIcon.jsx'
+import RatingStars from './RatingStars.jsx'
 import { REVIEWS, SOURCES, MOBILE_VISIBLE } from '../data/reviews.js'
 import { track } from '../lib/track.js'
 
@@ -75,13 +76,16 @@ export default function SectionReviews() {
           Что говорят владельцы бань
         </h2>
 
-        {/* Рейтинги плашками: иконка площадки, оценка, число отзывов. Без ссылок. */}
+        {/* Рейтинги плашками: квадратная иконка площадки, оценка со звёздами, число отзывов. Без ссылок. */}
         <ul className="mt-8 flex list-none flex-col gap-4 p-0 md:flex-row md:gap-6">
           {[SOURCES.avito, SOURCES.yandex].map((source) => (
-            <li key={source.id} className="flex items-center gap-4 rounded-md bg-surface-2 px-5 py-4 md:min-w-[280px]">
-              <SourceIcon source={source.id} size={56} />
+            <li key={source.id} className="flex items-center gap-4 rounded-md bg-surface-2 px-5 py-4 md:min-w-[300px]">
+              <SourceIcon source={source.id} size={64} shape="square" />
               <div>
-                <p className="text-[28px] font-bold leading-none">{source.rating}</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[28px] font-bold leading-none">{source.rating}</p>
+                  <RatingStars rating={source.rating} id={`rating-${source.id}`} />
+                </div>
                 <p className="mt-1.5 text-label text-muted">
                   {source.name} · {source.count}
                 </p>

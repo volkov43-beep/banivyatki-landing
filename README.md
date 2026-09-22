@@ -37,6 +37,7 @@ src/
     SectionReviews.jsx            — экран «Отзывы»: семь настоящих отзывов
     ReviewCard.jsx                — карточка отзыва
     SourceIcon.jsx                — иконка площадки отзывов
+    RatingStars.jsx               — звёзды рейтинга (инлайн-SVG)
     CrossSectionDiagram.jsx       — SVG-схема: два сечения в одном масштабе, силуэты
     AdvantageItem.jsx             — один из четырёх блоков под схемой
     PhotoSlot.jsx                 — место под фото 4:3 с рамкой-заглушкой
