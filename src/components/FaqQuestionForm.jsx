@@ -13,13 +13,14 @@ const CONTACT = [
 ]
 const MIN_FILL_MS = 3000
 
-/** Поле на тёмном фоне: прозрачное, рамка чуть светлее фона, текст surface, плейсхолдер muted-on-dark. */
-const fieldClass =
-  'w-full rounded border border-[rgba(244,234,223,0.28)] bg-transparent px-4 py-3 text-body text-surface placeholder:text-muted-on-dark'
+/** Поле на светлой карточке — как в форме калькулятора: фон surface, рамка muted, плейсхолдер muted. */
+const fieldClass = 'w-full rounded border border-muted bg-surface px-4 py-3 text-body text-ink placeholder:text-muted'
 
 /**
- * Карточка «Не нашли ответ?» под списком вопросов: форма вопроса на фоне forest.
- * Заголовок и подзаголовок по центру, поля и кнопка на всю ширину карточки.
+ * Карточка «Не нашли ответ?» под списком вопросов: светлая карточка на
+ * surface-2 с тонкой рамкой, читается как часть блока FAQ, а не отдельный
+ * тёмный экран. Заголовок и подзаголовок по центру, поля и кнопка на всю
+ * ширину карточки, переключатель «Звонок / MAX» со схемой accent.
  * Обещание по московскому времени — общая callbackWhen() из lib/callback.js.
  *
  * Защита как в калькуляторе: скрытое поле-ловушка и минимум 3 секунды на заполнение.
@@ -79,10 +80,10 @@ export default function FaqQuestionForm() {
     }
   }
 
-  const error = (text) => <span className="mt-1 block text-label text-alert-on-dark">{text}</span>
+  const error = (text) => <span className="mt-1 block text-label text-alert">{text}</span>
 
   return (
-    <div className="rounded-md bg-forest p-5 text-surface md:p-8">
+    <div className="rounded-md border border-[rgba(26,21,18,0.12)] bg-surface-2 p-5 text-ink md:p-8">
       {status === 'done' ? (
         <p role="status" className="text-center text-title">
           Вопрос отправлен. Менеджер ответит {when}.
@@ -90,7 +91,7 @@ export default function FaqQuestionForm() {
       ) : (
         <>
           <h3 className="text-center text-[24px] font-bold leading-[1.2]">Не нашли ответ?</h3>
-          <p className="mt-2 text-center text-body text-muted-on-dark">Напишите вопрос — менеджер ответит {when}</p>
+          <p className="mt-2 text-center text-body text-muted">Напишите вопрос — менеджер ответит {when}</p>
 
           <form onSubmit={handleSubmit} noValidate className="mt-6">
             <div className="flex flex-col gap-4">
@@ -131,7 +132,7 @@ export default function FaqQuestionForm() {
                 </label>
               </div>
 
-              <Segmented label="Как связаться" options={CONTACT} value={contact} onChange={setContact} size="sm" full scheme="dark" />
+              <Segmented label="Как связаться" options={CONTACT} value={contact} onChange={setContact} size="sm" full scheme="accent" />
 
               {/* Ловушка для ботов: людям не видна */}
               <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
@@ -151,12 +152,12 @@ export default function FaqQuestionForm() {
             </button>
 
             {status === 'error' && (
-              <p role="alert" className="mt-3 text-body text-alert-on-dark">
+              <p role="alert" className="mt-3 text-body text-alert">
                 Вопрос не отправился. Попробуйте ещё раз или позвоните нам.
               </p>
             )}
 
-            <label className="mt-4 flex items-start gap-3 text-[15px] text-muted-on-dark">
+            <label className="mt-4 flex items-start gap-3 text-[15px] text-muted">
               <input
                 type="checkbox"
                 required

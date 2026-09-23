@@ -9,9 +9,10 @@ const linkClass = 'text-surface no-underline transition-colors duration-150 hove
 
 /**
  * Подвал на ink, текст muted-on-dark, ссылки surface → accent при наведении.
- * От 1024 px три колонки: логотип и строка о компании / телефон крупно и
- * часы / адрес и ВКонтакте. До 1023 px одна колонка по центру в том же
- * порядке. Внизу над тонкой линией — копирайт, оператор, ИНН, политика.
+ * От 1024 px три колонки: логотип 64 px и строка о компании в одну строку /
+ * телефон крупно и часы / адрес и ВКонтакте. До 1023 px одна колонка по
+ * центру в том же порядке; логотип и текст остаются в строку, а если текст
+ * не помещается рядом — переносится под логотип. Внизу над тонкой линией — копирайт, оператор, ИНН, политика.
  *
  * Без почты, счёта, юридического адреса, адреса производства, карты,
  * кнопок и форм. Клик по телефону — общая цель phone_click (слушатель
@@ -22,21 +23,21 @@ export default function Footer() {
     <footer className="bg-ink py-12 text-[15px] leading-normal text-muted-on-dark md:py-16">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
         <div className="grid gap-10 text-center lg:grid-cols-3 lg:gap-12 lg:text-left">
-          <div className="flex flex-col items-center gap-3 lg:items-start">
-            <a href="#top" className="block no-underline" aria-label="Бани Вятки, в начало страницы">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 lg:justify-start">
+            <a href="#top" className="block shrink-0 no-underline" aria-label="Бани Вятки, в начало страницы">
               <img
                 src={`${BASE}photos/logo-128.webp`}
                 srcSet={`${BASE}photos/logo-128.webp 128w, ${BASE}photos/logo-256.webp 256w`}
-                sizes="40px"
-                width="40"
-                height="40"
+                sizes="64px"
+                width="64"
+                height="64"
                 alt="Бани Вятки"
                 loading="lazy"
                 decoding="async"
-                className="block h-10 w-10 rounded-full"
+                className="block h-16 w-16 rounded-full"
               />
             </a>
-            <p className="max-w-[300px]">Бани-Подковы собственного производства. Киров, с 2012 года</p>
+            <p className="max-w-[240px] grow basis-[180px] text-left">Бани собственного производства, с 2012 года</p>
           </div>
 
           <div>
