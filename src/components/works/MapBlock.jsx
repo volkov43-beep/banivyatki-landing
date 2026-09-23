@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { OBJECTS, KIROV_LABEL } from '../data/objects.js'
-import { loadYmaps } from '../lib/ymaps.js'
-import { track } from '../lib/track.js'
+import { OBJECTS, KIROV_LABEL } from '../../data/objects.js'
+import { loadYmaps } from '../../lib/ymaps.js'
+import { track } from '../../lib/track.js'
 
 /**
- * Экран «Где стоят наши бани». Светлый фон surface.
+ * Карта «Где стоят наши бани» — нижняя часть блока «Наши работы»
+ * (SectionWorks): маленький заголовок, подзаголовок, карта, список мест.
+ * Раньше была отдельным экраном; карта, данные, поведение и цели те же.
  *
  * Карта — Яндекс Карты, JavaScript API v3. Ключ из VITE_YMAPS_KEY (сборка);
  * без ключа, без сети или при ошибке API карты нет: остаются заголовок,
@@ -23,9 +25,6 @@ import { track } from '../lib/track.js'
  * на телефоне одним пальцем прокручивается страница, карту двигают двумя
  * пальцами или кнопками +/−. Других элементов управления нет; копирайт
  * и логотип Яндекса остаются — это условие API.
- *
- * Позже над картой появятся карточки «Наши работы» — место под них
- * оставлено (слот WORKS_SLOT).
  */
 const KEY = import.meta.env.VITE_YMAPS_KEY || ''
 
@@ -93,7 +92,7 @@ function makePoint(place, isKirov) {
   return el
 }
 
-export default function SectionMap() {
+export default function MapBlock() {
   const wrapRef = useRef(null)
   const mapEl = useRef(null)
   const mapRef = useRef(null)
@@ -212,63 +211,59 @@ export default function SectionMap() {
   const showMap = status !== 'nokey' && status !== 'failed'
 
   return (
-    <section id="map" aria-labelledby="map-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
-      <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="map-title" className="text-center text-heading">
-          Где стоят наши бани
-        </h2>
-        <p className="mx-auto mt-4 max-w-measure text-center text-lead">
-          От Кирово-Чепецка до Нарьян-Мара — больше 300 Подков с 2019 года. На карте — места, где мы ставили бани
-          в последние два года.
-        </p>
+    <div id="map" aria-labelledby="map-title">
+      <h3 id="map-title" className="text-center text-[22px] font-bold leading-[1.2]">
+        Где стоят наши бани
+      </h3>
+      <p className="mx-auto mt-3 max-w-measure text-center text-body">
+        От Кирово-Чепецка до Нарьян-Мара — больше 300 Подков с 2019 года. На карте — места, где мы ставили бани
+        в последние два года.
+      </p>
 
-        {/* WORKS_SLOT: сюда позже встанут карточки «Наши работы», над картой */}
+      <div ref={wrapRef} className="mt-8 md:mt-10">
+        {showMap && (
+          <>
+            {/* До загрузки — плашка того же размера цветом surface-2, без спиннера */}
+            <div
+              ref={mapEl}
+              className="h-[360px] overflow-hidden rounded-md bg-surface-2 lg:h-[480px]"
+              aria-label="Карта: где стоят наши бани"
+              role={status === 'ready' ? undefined : 'img'}
+            />
+            {status === 'ready' && (
+              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-body">
+                <p>
+                  <span className="text-muted">А ещё: </span>
+                  {FAR.map((place, i) => (
+                    <span key={place.name}>
+                      {i > 0 && ', '}
+                      <button type="button" onClick={() => flyTo(place)} className="underline decoration-muted underline-offset-4">
+                        {place.name}
+                      </button>
+                    </span>
+                  ))}
+                </p>
+                <button type="button" onClick={goHome} className="text-label text-muted underline underline-offset-4">
+                  Вся Кировская область
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
-        <div ref={wrapRef} className="mt-12 md:mt-16">
-          {showMap && (
-            <>
-              {/* До загрузки — плашка того же размера цветом surface-2, без спиннера */}
-              <div
-                ref={mapEl}
-                className="h-[360px] overflow-hidden rounded-md bg-surface-2 lg:h-[480px]"
-                aria-label="Карта: где стоят наши бани"
-                role={status === 'ready' ? undefined : 'img'}
-              />
-              {status === 'ready' && (
-                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-body">
-                  <p>
-                    <span className="text-muted">А ещё: </span>
-                    {FAR.map((place, i) => (
-                      <span key={place.name}>
-                        {i > 0 && ', '}
-                        <button type="button" onClick={() => flyTo(place)} className="underline decoration-muted underline-offset-4">
-                          {place.name}
-                        </button>
-                      </span>
-                    ))}
-                  </p>
-                  <button type="button" onClick={goHome} className="text-label text-muted underline underline-offset-4">
-                    Вся Кировская область
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Все места текстом: для поиска и как запасной вариант без карты */}
-          <ul className={`list-none columns-2 gap-x-8 p-0 text-label leading-[1.6] text-muted md:columns-3 ${showMap ? 'mt-8' : ''}`}>
-            <li>{KIROV_LABEL}</li>
-            {OBLAST.map((place) => (
-              <li key={place.name}>{place.name}</li>
-            ))}
-            {FAR.map((place) => (
-              <li key={place.name}>
-                {place.name} ({place.region === 'Республика Коми' ? 'Коми' : place.region})
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Все места текстом: для поиска и как запасной вариант без карты */}
+        <ul className={`list-none columns-2 gap-x-8 p-0 text-label leading-[1.6] text-muted md:columns-3 ${showMap ? 'mt-8' : ''}`}>
+          <li>{KIROV_LABEL}</li>
+          {OBLAST.map((place) => (
+            <li key={place.name}>{place.name}</li>
+          ))}
+          {FAR.map((place) => (
+            <li key={place.name}>
+              {place.name} ({place.region === 'Республика Коми' ? 'Коми' : place.region})
+            </li>
+          ))}
+        </ul>
       </div>
-    </section>
+    </div>
   )
 }
