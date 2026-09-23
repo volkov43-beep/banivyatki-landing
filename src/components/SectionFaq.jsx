@@ -71,7 +71,7 @@ export default function SectionFaq() {
   }
 
   return (
-    <section id="faq" aria-labelledby="faq-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
+    <section id="faq" aria-labelledby="faq-title" className="bg-surface-2 py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
         <h2 id="faq-title" className="text-center text-heading">
           Частые вопросы
@@ -102,7 +102,7 @@ export default function SectionFaq() {
           ))}
         </div>
 
-        {/* Не нашли ответ — форма вопроса на фоне forest, ширина как у списка */}
+        {/* Не нашли ответ — карточка с формой вопроса на surface, ширина как у списка */}
         <div className="mt-10">
           <FaqQuestionForm />
         </div>

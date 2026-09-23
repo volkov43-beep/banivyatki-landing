@@ -37,7 +37,7 @@ export default function SectionBenefits() {
         </ul>
 
         <div className="mt-12 text-center md:mt-16">
-          <Button onClick={open} fullMobile>
+          <Button onClick={open} arrow fullMobile>
             {BENEFITS_BUTTON}
           </Button>
         </div>

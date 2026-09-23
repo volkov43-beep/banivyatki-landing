@@ -5,8 +5,9 @@ import { track } from '../../lib/track.js'
 import Button from '../Button.jsx'
 
 /**
- * Карта «Где стоят наши бани» — нижняя часть блока «Наши работы»
- * (SectionWorks): маленький заголовок, подзаголовок, карта, список мест.
+ * Карта «Где стоят наши бани» — нижняя, тёмная (ink) часть блока «Наши
+ * работы» (SectionWorks): маленький заголовок, подзаголовок, карта, список
+ * мест. Текст surface, второстепенный muted-on-dark.
  * Раньше была отдельным экраном; карта, данные, поведение и цели те же.
  *
  * Карта — Яндекс Карты, JavaScript API v3. Ключ из VITE_YMAPS_KEY (сборка);
@@ -224,17 +225,17 @@ export default function MapBlock() {
       <div ref={wrapRef} className="mt-8 md:mt-10">
         {showMap && (
           <>
-            {/* До загрузки — плашка того же размера цветом surface-2, без спиннера */}
+            {/* До загрузки — чуть светлее фона плашка того же размера, без спиннера */}
             <div
               ref={mapEl}
-              className="h-[360px] overflow-hidden rounded-md bg-surface-2 lg:h-[480px]"
+              className="h-[360px] overflow-hidden rounded-md bg-[rgba(244,234,223,0.06)] lg:h-[480px]"
               aria-label="Карта: где стоят наши бани"
               role={status === 'ready' ? undefined : 'img'}
             />
             {status === 'ready' && (
               <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-body">
                 <p>
-                  <span className="text-muted">А ещё: </span>
+                  <span className="text-muted-on-dark">А ещё: </span>
                   {FAR.map((place, i) => (
                     <span key={place.name}>
                       {i > 0 && ', '}
@@ -253,7 +254,7 @@ export default function MapBlock() {
         )}
 
         {/* Все места текстом: для поиска и как запасной вариант без карты */}
-        <ul className={`list-none columns-2 gap-x-8 p-0 text-label leading-[1.6] text-muted md:columns-3 ${showMap ? 'mt-8' : ''}`}>
+        <ul className={`list-none columns-2 gap-x-8 p-0 text-label leading-[1.6] text-muted-on-dark md:columns-3 ${showMap ? 'mt-8' : ''}`}>
           <li>{KIROV_LABEL}</li>
           {OBLAST.map((place) => (
             <li key={place.name}>{place.name}</li>

@@ -108,11 +108,11 @@ export default function SectionInside() {
         </ul>
 
         {/* Приглашение проверить — единственная кнопка на экране */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-x-12 gap-y-6 border-t-2 border-accent pt-8">
+        <div className="mt-6 flex flex-col items-center border-t-2 border-accent pt-8 text-center">
           <p className="max-w-measure text-lead">
             Всё, что здесь написано, можно проверить: приезжайте в шоурум и посмотрите вживую.
           </p>
-          <Button as="a" href="#showroom" fullMobile>
+          <Button as="a" href="#showroom" arrow fullMobile className="mt-8">
             Посмотреть баню вживую
           </Button>
         </div>

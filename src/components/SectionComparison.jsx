@@ -1,6 +1,9 @@
 import CrossSectionDiagram from './CrossSectionDiagram.jsx'
 import AdvantageItem from './AdvantageItem.jsx'
 import PhotoSlot from './PhotoSlot.jsx'
+import Button from './Button.jsx'
+import { requestCalcOpen } from '../lib/calc.js'
+import { track } from '../lib/track.js'
 import LabeledDrawing from './diagrams/LabeledDrawing.jsx'
 import DrainFloorDiagram from './diagrams/DrainFloorDiagram.jsx'
 
@@ -180,6 +183,22 @@ export default function SectionComparison() {
             Спинка обнимает — сидите долго, спина не затекает.
           </AdvantageItem>
         </ul>
+
+        {/* Подводка и главная кнопка по центру — в калькулятор без выбора сезона и размера */}
+        <div className="mt-12 flex flex-col items-center text-center md:mt-16">
+          <p className="max-w-measure text-lead">Посчитаем стоимость под ваш участок и комплектацию.</p>
+          <Button
+            arrow
+            fullMobile
+            className="mt-8"
+            onClick={() => {
+              track('compare_cta')
+              requestCalcOpen()
+            }}
+          >
+            Узнать цену Подковы
+          </Button>
+        </div>
       </div>
     </section>
   )

@@ -51,7 +51,7 @@ const SUMMARY = 'Ваша часть — оставить телефон, выб
 
 export default function SectionProcess() {
   return (
-    <section id="process" aria-labelledby="process-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
+    <section id="process" aria-labelledby="process-title" className="bg-forest py-section-y text-surface md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
         <h2 id="process-title" className="text-center text-heading">
           Как проходит заказ
@@ -64,7 +64,7 @@ export default function SectionProcess() {
           {STEPS.map((step, index) => (
             <li
               key={step.title}
-              className="grid grid-cols-[2rem_1fr] gap-x-3 border-t border-muted py-8 lg:grid-cols-[6rem_1fr] lg:gap-x-8 lg:py-10"
+              className="grid grid-cols-[2rem_1fr] gap-x-3 border-t border-muted-on-dark py-8 lg:grid-cols-[6rem_1fr] lg:gap-x-8 lg:py-10"
             >
               {/* Номер: нумерация есть в <ol>, цифра только для глаз */}
               <span aria-hidden="true" className="text-title tabular-nums lg:text-[40px] lg:leading-none">
@@ -74,7 +74,7 @@ export default function SectionProcess() {
               <div>
                 <h3 className="text-[22px] font-bold leading-[1.2]">{step.title}</h3>
                 <p className="mt-1 text-[16px] leading-[1.5]">
-                  <span className="text-muted">Срок: </span>
+                  <span className="text-muted-on-dark">Срок: </span>
                   <b className="font-bold text-accent">{step.term}</b>
                 </p>
               </div>
@@ -84,7 +84,7 @@ export default function SectionProcess() {
                   <p className="mb-1.5 text-[14px] font-bold leading-[1.2]">Делаем мы</p>
                   <p className="text-[16px] leading-[1.5]">{step.we}</p>
                 </div>
-                <div className="rounded-md border-l-[3px] border-accent bg-surface-2 p-4">
+                <div className="rounded-md border-l-[3px] border-accent bg-surface-2 p-4 text-ink">
                   <p className="mb-1.5 text-[14px] font-bold leading-[1.2]">Делаете вы</p>
                   {step.you ? (
                     <p className="text-[16px] leading-[1.5]">{step.you}</p>
@@ -101,9 +101,9 @@ export default function SectionProcess() {
         </ol>
 
         {/* Итог и единственная кнопка на экране — к калькулятору */}
-        <div className="border-t border-muted pt-8">
+        <div className="flex flex-col items-center border-t border-muted-on-dark pt-8 text-center">
           <p className="max-w-measure text-[22px] font-bold leading-[1.2]">{SUMMARY}</p>
-          <Button as="a" href="#calculator" onClick={() => track('process_cta_click')} fullMobile className="mt-8">
+          <Button as="a" href="#calculator" onClick={() => track('process_cta_click')} arrow fullMobile className="mt-8">
             Рассчитать стоимость
           </Button>
         </div>

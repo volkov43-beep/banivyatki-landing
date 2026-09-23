@@ -12,6 +12,7 @@
  * кадра уходит в чёрный, а не в ink, поэтому нижние 22 % картинки сведены
  * с фоном коротким переходом в ink.
  */
+import { useEffect, useRef, useState } from 'react'
 import { MIN_PRICE, formatPrice } from '../data/calculator.js'
 import Button from './Button.jsx'
 
@@ -29,6 +30,29 @@ const FACTS = [
 ]
 
 export default function SectionHero() {
+  // «Дыхание» кнопки: один раз, когда она впервые попала в поле зрения;
+  // не запускается, если до этого навели или нажали, и при reduced-motion.
+  const ctaRef = useRef(null)
+  const [breathe, setBreathe] = useState(false)
+  const done = useRef(false)
+  const cancelBreathe = () => {
+    done.current = true
+  }
+  useEffect(() => {
+    const el = ctaRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      observer.disconnect()
+      if (done.current) return
+      done.current = true
+      setBreathe(true)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <section id="top" aria-labelledby="hero-title" className="relative bg-ink text-surface">
       {/* Картинка */}
@@ -99,7 +123,17 @@ export default function SectionHero() {
             <span className="text-[20px]">под ключ</span>
           </p>
 
-          <Button as="a" href="#calculator" fullMobile className="mt-8">
+          <Button
+            as="a"
+            href="#calculator"
+            arrow
+            fullMobile
+            ref={ctaRef}
+            onMouseEnter={cancelBreathe}
+            onPointerDown={cancelBreathe}
+            onFocus={cancelBreathe}
+            className={`mt-8${breathe ? ' bv-breathe' : ''}`}
+          >
             Рассчитать стоимость
           </Button>
 

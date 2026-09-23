@@ -14,13 +14,13 @@ const CONTACT = [
 ]
 const MIN_FILL_MS = 3000
 
-/** Поле на светлой карточке — как в форме калькулятора: фон surface, рамка muted, плейсхолдер muted. */
-const fieldClass = 'w-full rounded border border-muted bg-surface px-4 py-3 text-body text-ink placeholder:text-muted'
+/** Поле на карточке surface: фон surface-2, рамка muted, плейсхолдер muted (как в калькуляторе, но наоборот). */
+const fieldClass = 'w-full rounded border border-muted bg-surface-2 px-4 py-3 text-body text-ink placeholder:text-muted'
 
 /**
  * Карточка «Не нашли ответ?» под списком вопросов: светлая карточка на
- * surface-2 с тонкой рамкой, читается как часть блока FAQ, а не отдельный
- * тёмный экран. Заголовок и подзаголовок по центру, поля и кнопка на всю
+ * surface (блок FAQ — на surface-2) с тонкой рамкой, читается как часть
+ * блока FAQ, а не отдельный тёмный экран. Заголовок и подзаголовок по центру, поля и кнопка на всю
  * ширину карточки, переключатель «Звонок / MAX» со схемой accent.
  * Обещание по московскому времени — общая callbackWhen() из lib/callback.js.
  *
@@ -84,7 +84,7 @@ export default function FaqQuestionForm() {
   const error = (text) => <span className="mt-1 block text-label text-alert">{text}</span>
 
   return (
-    <div className="rounded-md border border-[rgba(26,21,18,0.12)] bg-surface-2 p-5 text-ink md:p-8">
+    <div className="rounded-md border border-[rgba(26,21,18,0.12)] bg-surface p-5 text-ink md:p-8">
       {status === 'done' ? (
         <p role="status" className="text-center text-title">
           Вопрос отправлен. Менеджер ответит {when}.
