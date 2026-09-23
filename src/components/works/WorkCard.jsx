@@ -22,7 +22,7 @@ export default function WorkCard({ work, onOpen, onCalc }) {
         <button
           type="button"
           onClick={() => onCalc(work)}
-          className="mt-2 inline-block p-0 text-body font-bold text-accent underline-offset-4 hover:underline"
+          className="mt-2 inline-block p-0 text-left text-body font-bold text-accent underline-offset-4 hover:underline"
         >
           Рассчитать такую
         </button>

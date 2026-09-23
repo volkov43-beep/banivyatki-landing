@@ -60,7 +60,7 @@ export default function Lightbox({ work, onClose }) {
   }
 
   const photo = photos[index]
-  const arrow = 'absolute top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-ink/70 text-surface'
+  const arrow = 'absolute top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(26,21,18,0.7)] text-surface'
 
   return (
     <div
@@ -68,14 +68,14 @@ export default function Lightbox({ work, onClose }) {
       aria-modal="true"
       aria-label={`Фото: ${work.caption}`}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4 md:p-10"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(26,21,18,0.92)] p-4 md:p-10"
     >
       <button
         ref={closeRef}
         type="button"
         onClick={onClose}
         aria-label="Закрыть"
-        className="absolute right-3 top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-ink/70 text-[28px] leading-none text-surface md:right-6 md:top-6"
+        className="absolute right-3 top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(26,21,18,0.7)] text-[28px] leading-none text-surface md:right-6 md:top-6"
       >
         ×
       </button>
