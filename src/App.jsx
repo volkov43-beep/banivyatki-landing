@@ -8,6 +8,7 @@ import SectionProcess from './components/SectionProcess.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
 import SectionShowroom from './components/SectionShowroom.jsx'
 import SectionFaq from './components/SectionFaq.jsx'
+import SectionFinal from './components/SectionFinal.jsx'
 import Footer from './components/Footer.jsx'
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
         <SectionReviews />
         <SectionShowroom />
         <SectionFaq />
+        <SectionFinal />
       </main>
       <Footer />
     </div>
