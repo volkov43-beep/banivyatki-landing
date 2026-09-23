@@ -49,9 +49,6 @@ src/
     diagrams/
       Diagram.jsx                 — общий каркас схем: тёмная/светлая схема, масштаб
       MicroDiagram.jsx            — микро-схемы 240×150 для тёмного экрана
-      VentilationDiagram.jsx      — вентиляция: сечение бани сбоку
-      WallSectionDiagram.jsx      — утепление: сечение стены
-      RoofDiagram.jsx             — кровельный пирог
       FrameJointDiagram.jsx       — узел обвязки и стяжка бочки
       DrainFloorDiagram.jsx       — сечение двойного проливного пола
       BodyCurveDiagram.jsx        — спина по дуге стены
