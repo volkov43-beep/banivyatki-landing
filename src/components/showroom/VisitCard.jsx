@@ -29,7 +29,7 @@ export default function VisitCard({ card, reverse = false, numbered = false, com
           </h3>
           {card.address && <p className="mt-2 text-body font-bold text-accent">{card.address}</p>}
           <p className="mt-4 max-w-measure text-body">{card.text}</p>
-          <Button onClick={onVisit ? () => onVisit(card.id) : undefined} fullMobile className="mt-6">
+          <Button onClick={onVisit ? () => onVisit(card.id) : undefined} arrow fullMobile className="mt-6">
             {card.button}
           </Button>
         </div>

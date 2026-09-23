@@ -5,14 +5,16 @@ import Button from './Button.jsx'
 /**
  * Карточка отзыва: метка-заголовок, круглая иконка площадки 40 px в правом
  * верхнем углу на одной линии с заголовком, текст, подпись «Имя · дата».
- * Подложка surface-2, скругление 6 px, поля 24 px, линия 3 px accent слева.
+ * Подложка surface-2 (на светлом surface — вкладка «Для бизнеса») или surface
+ * (tone="surface" — блок «Отзывы» на surface-2), скругление 6 px, поля 24 px,
+ * линия 3 px accent слева.
  * Без звёзд, аватаров, кавычек-иконок и ссылок на площадки.
  *
  * Текст обрезан до пяти строк с многоточием (line-clamp-5). Если он длиннее — под ним
  * кнопка «Читать полностью», раскрывает текст в той же карточке,
  * повторное нажатие — «Свернуть». Никуда не переходит.
  */
-export default function ReviewCard({ review, as: Tag = 'li', className = '', expanded: expandedProp, onToggle }) {
+export default function ReviewCard({ review, as: Tag = 'li', tone = 'surface-2', className = '', expanded: expandedProp, onToggle }) {
   const textRef = useRef(null)
   // Состояние «раскрыто» можно держать снаружи (блок «Отзывы» хранит его, чтобы
   // не терять при смене раскладки), иначе карточка хранит его сама.
@@ -36,7 +38,7 @@ export default function ReviewCard({ review, as: Tag = 'li', className = '', exp
   const textId = `review-text-${review.id}`
 
   return (
-    <Tag className={`relative rounded-md border-l-[3px] border-accent bg-surface-2 p-6 ${className}`}>
+    <Tag className={`relative rounded-md border-l-[3px] border-accent p-6 ${tone === 'surface' ? 'bg-surface' : 'bg-surface-2'} ${className}`}>
       {/* Иконка площадки в правом верхнем углу; у заголовка справа отступ под неё */}
       <SourceIcon source={review.source} size={40} className="absolute right-6 top-6" />
       <p className="min-h-[40px] pr-14 text-[20px] font-bold leading-[1.2]">{review.label}</p>

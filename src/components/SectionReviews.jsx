@@ -59,7 +59,7 @@ export default function SectionReviews() {
       return next
     })
   const card = (review) => (
-    <ReviewCard key={review.id} review={review} expanded={openIds.has(review.id)} onToggle={() => toggleOpen(review.id)} />
+    <ReviewCard tone="surface" key={review.id} review={review} expanded={openIds.has(review.id)} onToggle={() => toggleOpen(review.id)} />
   )
 
   function showMore() {
@@ -71,7 +71,7 @@ export default function SectionReviews() {
   const hiddenCount = REVIEWS.length - MOBILE_VISIBLE
 
   return (
-    <section id="reviews" aria-labelledby="reviews-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
+    <section id="reviews" aria-labelledby="reviews-title" className="bg-surface-2 py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
         <h2 id="reviews-title" className="text-center text-heading">
           Что говорят владельцы бань
@@ -80,7 +80,7 @@ export default function SectionReviews() {
         {/* Рейтинги плашками: квадратная иконка площадки, оценка со звёздами, число отзывов. Без ссылок. */}
         <ul className="mt-8 flex list-none flex-col gap-4 p-0 md:flex-row md:gap-6">
           {[SOURCES.avito, SOURCES.yandex].map((source) => (
-            <li key={source.id} className="flex items-center gap-4 rounded-md bg-surface-2 px-5 py-4 md:min-w-[300px]">
+            <li key={source.id} className="flex items-center gap-4 rounded-md bg-surface px-5 py-4 md:min-w-[300px]">
               <SourceIcon source={source.id} size={64} shape="square" />
               <div>
                 <div className="flex items-center gap-3">

@@ -21,9 +21,33 @@
  *
  * as — 'button' (по умолчанию) или 'a'; full — на всю ширину (fullMobile —
  * на всю ширину до 1023 px, от 1024 по содержимому).
+ *
+ * arrow — тонкий шеврон в конце текста у главных кнопок-переходов к другому
+ * блоку (калькулятор, форма записи, блок показа): линия 1,5 px, цвет от
+ * текста кнопки; при наведении сдвигается вправо на 3 px за 150 мс; при
+ * prefers-reduced-motion не двигается. У кнопок отправки форм стрелки нет.
+ * ref пробрасывается на элемент (React 19) — нужен «дыханию» на первом экране.
  */
+function Chevron() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="-mr-1 ml-2 shrink-0 transition-transform duration-150 group-hover:translate-x-[3px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+    >
+      <path d="m7.5 4.5 5.5 5.5-5.5 5.5" />
+    </svg>
+  )
+}
 const BASE =
-  'inline-flex items-center justify-center text-center font-bold no-underline transition-[background-color,color,border-color,box-shadow,text-decoration-color] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-accent disabled:cursor-default disabled:opacity-60'
+  'group inline-flex items-center justify-center text-center font-bold no-underline transition-[background-color,color,border-color,box-shadow,text-decoration-color] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-accent disabled:cursor-default disabled:opacity-60'
 
 const VARIANT = {
   primary:
@@ -55,6 +79,8 @@ export default function Button({
   fullMobile = false,
   className = '',
   type,
+  arrow = false,
+  ref,
   children,
   ...rest
 }) {
@@ -70,16 +96,22 @@ export default function Button({
     .filter(Boolean)
     .join(' ')
 
+  const content = (
+    <>
+      {children}
+      {arrow && <Chevron />}
+    </>
+  )
   if (as === 'a') {
     return (
-      <a className={classes} {...rest}>
-        {children}
+      <a ref={ref} className={classes} {...rest}>
+        {content}
       </a>
     )
   }
   return (
-    <button type={type || 'button'} className={classes} {...rest}>
-      {children}
+    <button ref={ref} type={type || 'button'} className={classes} {...rest}>
+      {content}
     </button>
   )
 }

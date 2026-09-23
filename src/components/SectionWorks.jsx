@@ -7,8 +7,9 @@ import { requestCalc } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 
 /**
- * Экран «Наши работы» (#works). Светлый фон surface, заголовок и подзаголовок
- * по центру. Сверху шесть карточек объектов (от 1024 px три в ряд, ниже две),
+ * Экран «Наши работы» (#works): карточки объектов на surface-2, карта ниже
+ * на ink (две части одного блока, стык без зазора и линии). Заголовок и
+ * подзаголовок по центру. Сверху шесть карточек объектов (от 1024 px три в ряд, ниже две),
  * под ними карта «Где стоят наши бани» (works/MapBlock) со своим маленьким
  * заголовком — прежний экран карты стал частью этого блока.
  *
@@ -30,8 +31,8 @@ export default function SectionWorks() {
   }
 
   return (
-    <section id="works" aria-labelledby="works-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
-      <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
+    <section id="works" aria-labelledby="works-title" className="bg-surface-2 text-ink">
+      <div className="mx-auto max-w-container px-gutter py-section-y md:px-gutter-lg md:py-section-y-lg">
         <h2 id="works-title" className="text-center text-heading">
           {WORKS_TITLE}
         </h2>
@@ -43,7 +44,11 @@ export default function SectionWorks() {
           ))}
         </ul>
 
-        <div className="mt-16 md:mt-20">
+      </div>
+
+      {/* Карта — тёмная часть блока, стык без зазора и линии */}
+      <div className="bg-ink text-surface">
+        <div className="mx-auto max-w-container px-gutter py-section-y md:px-gutter-lg md:py-section-y-lg">
           <MapBlock />
         </div>
       </div>
