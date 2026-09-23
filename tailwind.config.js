@@ -9,6 +9,8 @@ export default {
         surface: 'var(--color-surface)',
         'surface-2': 'var(--color-surface-2)',
         accent: 'var(--color-accent)',
+        'accent-hover': 'var(--color-accent-hover)',
+        'accent-active': 'var(--color-accent-active)',
         muted: 'var(--color-muted)',
         alert: 'var(--color-alert)',
         'muted-on-dark': 'var(--color-muted-on-dark)',

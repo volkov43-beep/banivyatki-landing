@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Segmented from './calculator/Segmented.jsx'
+import Button from './Button.jsx'
 import { submitLead } from '../lib/submitLead.js'
 import { track } from '../lib/track.js'
 import { getUtm } from '../lib/utm.js'
@@ -143,13 +144,9 @@ export default function FaqQuestionForm() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={status === 'sending'}
-              className="mt-6 inline-flex h-14 w-full items-center justify-center rounded bg-accent px-8 text-body font-bold text-ink"
-            >
+            <Button type="submit" disabled={status === 'sending'} full className="mt-6">
               Задать вопрос
-            </button>
+            </Button>
 
             {status === 'error' && (
               <p role="alert" className="mt-3 text-body text-alert">

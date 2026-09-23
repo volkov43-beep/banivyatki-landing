@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { OBJECTS, KIROV_LABEL } from '../../data/objects.js'
 import { loadYmaps } from '../../lib/ymaps.js'
 import { track } from '../../lib/track.js'
+import Button from '../Button.jsx'
 
 /**
  * Карта «Где стоят наши бани» — нижняя часть блока «Наши работы»
@@ -237,15 +238,15 @@ export default function MapBlock() {
                   {FAR.map((place, i) => (
                     <span key={place.name}>
                       {i > 0 && ', '}
-                      <button type="button" onClick={() => flyTo(place)} className="underline decoration-muted underline-offset-4">
+                      <Button variant="link" size="md" onClick={() => flyTo(place)} className="font-normal">
                         {place.name}
-                      </button>
+                      </Button>
                     </span>
                   ))}
                 </p>
-                <button type="button" onClick={goHome} className="text-label text-muted underline underline-offset-4">
+                <Button variant="link" size="sm" onClick={goHome}>
                   Вся Кировская область
-                </button>
+                </Button>
               </div>
             )}
           </>

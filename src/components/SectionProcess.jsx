@@ -1,4 +1,5 @@
 import { track } from '../lib/track.js'
+import Button from './Button.jsx'
 
 /**
  * Экран «Как проходит заказ». Светлый фон surface, тёмный текст.
@@ -52,10 +53,10 @@ export default function SectionProcess() {
   return (
     <section id="process" aria-labelledby="process-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="process-title" className="text-heading">
+        <h2 id="process-title" className="text-center text-heading">
           Как проходит заказ
         </h2>
-        <p className="mt-4 max-w-measure text-lead">
+        <p className="mx-auto mt-4 max-w-measure text-center text-lead">
           От вас — только участок и пара решений. Остальное делаем мы.
         </p>
 
@@ -102,13 +103,9 @@ export default function SectionProcess() {
         {/* Итог и единственная кнопка на экране — к калькулятору */}
         <div className="border-t border-muted pt-8">
           <p className="max-w-measure text-[22px] font-bold leading-[1.2]">{SUMMARY}</p>
-          <a
-            href="#calculator"
-            onClick={() => track('process_cta_click')}
-            className="mt-8 inline-flex h-14 w-full items-center justify-center rounded bg-accent px-8 text-body font-bold text-ink no-underline lg:w-auto"
-          >
+          <Button as="a" href="#calculator" onClick={() => track('process_cta_click')} fullMobile className="mt-8">
             Рассчитать стоимость
-          </a>
+          </Button>
         </div>
       </div>
     </section>

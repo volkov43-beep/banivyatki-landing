@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import SourceIcon from './SourceIcon.jsx'
+import Button from './Button.jsx'
 
 /**
  * Карточка отзыва: метка-заголовок, круглая иконка площадки 40 px в правом
@@ -47,15 +48,9 @@ export default function ReviewCard({ review, as: Tag = 'li', className = '', exp
         {review.text}
       </p>
       {(overflows || expanded) && (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={expanded}
-          aria-controls={textId}
-          className="mt-2 text-label underline"
-        >
+        <Button variant="link" size="sm" onClick={toggle} aria-expanded={expanded} aria-controls={textId} className="mt-2">
           {expanded ? 'Свернуть' : 'Читать полностью'}
-        </button>
+        </Button>
       )}
       <p className="mt-4 text-label text-muted">
         {review.author} · <time dateTime={review.date}>{review.dateText}</time>

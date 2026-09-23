@@ -3,6 +3,7 @@ import Segmented from './calculator/Segmented.jsx'
 import CalculatorCard from './calculator/CalculatorCard.jsx'
 import LeadForm from './calculator/LeadForm.jsx'
 import ReviewCard from './ReviewCard.jsx'
+import Button from './Button.jsx'
 import { SEASONS, CARDS, WARM_NOTES, QUOTE, BUSINESS, formatPrice } from '../data/calculator.js'
 import { BUSINESS_REVIEW } from '../data/reviews.js'
 import { track } from '../lib/track.js'
@@ -56,6 +57,7 @@ export default function SectionCalculator() {
   const [highlight, setHighlight] = useState(false)
   const [formVisible, setFormVisible] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const sectionRef = useRef(null)
   const panelRef = useRef(null)
   const cardsRef = useRef(null)
   const cardRefs = useRef([])
@@ -126,6 +128,12 @@ export default function SectionCalculator() {
   useEffect(
     () =>
       onCalcRequest((nextSeason, cardId) => {
+        if (!nextSeason && !cardId) {
+          // Запрос без выбора («Собрать свою баню»): вкладка «Себе» и к началу блока
+          changeTab('self')
+          if (sectionRef.current) scrollToElement(sectionRef.current)
+          return
+        }
         const card = CARDS[nextSeason]?.find((c) => c.id === cardId)
         if (!card) return
         changeTab('self')
@@ -159,9 +167,9 @@ export default function SectionCalculator() {
   const showBar = tab === 'self' && selected && !formVisible && !submitted
 
   return (
-    <section id="calculator" aria-labelledby="calculator-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
+    <section ref={sectionRef} id="calculator" aria-labelledby="calculator-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="calculator-title" className="text-heading">
+        <h2 id="calculator-title" className="text-center text-heading">
           Сколько стоит
         </h2>
 
@@ -224,13 +232,9 @@ export default function SectionCalculator() {
                     <h3 className="text-[22px] font-bold leading-tight">Последний шаг — куда прислать расчёт</h3>
                     <p className="mt-2 text-body">
                       Вы выбрали: <b className="font-bold">{summary}</b>{' '}
-                      <button
-                        type="button"
-                        onClick={() => cardsRef.current && scrollToElement(cardsRef.current)}
-                        className="text-muted underline"
-                      >
+                      <Button variant="link" size="sm" onClick={() => cardsRef.current && scrollToElement(cardsRef.current)}>
                         изменить
-                      </button>
+                      </Button>
                     </p>
                   </>
                 )}
@@ -283,13 +287,9 @@ export default function SectionCalculator() {
               <span className="block truncate">{selected.size}, </span>
               <b className="block truncate font-bold text-accent">{formatPrice(selected.price)}</b>
             </p>
-            <button
-              type="button"
-              onClick={goToForm}
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded bg-accent px-5 text-[15px] font-bold text-ink"
-            >
+            <Button size="md" onClick={goToForm} className="shrink-0">
               Получить расчёт
-            </button>
+            </Button>
           </div>
         </div>
       )}

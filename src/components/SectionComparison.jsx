@@ -15,7 +15,7 @@ export default function SectionComparison() {
       className="bg-ink py-section-y text-surface md:py-section-y-lg"
     >
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="comparison-title" className="max-w-[24ch] text-heading">
+        <h2 id="comparison-title" className="mx-auto max-w-[24ch] text-center text-heading">
           Чем Подкова отличается от бани‑бочки
         </h2>
 

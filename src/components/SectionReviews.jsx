@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import ReviewCard from './ReviewCard.jsx'
 import SourceIcon from './SourceIcon.jsx'
 import RatingStars from './RatingStars.jsx'
+import Button from './Button.jsx'
 import { REVIEWS, SOURCES, MOBILE_VISIBLE } from '../data/reviews.js'
 import { track } from '../lib/track.js'
 
@@ -72,7 +73,7 @@ export default function SectionReviews() {
   return (
     <section id="reviews" aria-labelledby="reviews-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="reviews-title" className="text-heading">
+        <h2 id="reviews-title" className="text-center text-heading">
           Что говорят владельцы бань
         </h2>
 
@@ -108,13 +109,9 @@ export default function SectionReviews() {
               {mobileList.map(card)}
             </ul>
             {!expanded && hiddenCount > 0 && (
-              <button
-                type="button"
-                onClick={showMore}
-                className="mt-6 inline-flex h-14 w-full items-center justify-center rounded border border-ink px-8 text-body font-bold text-ink"
-              >
+              <Button variant="secondary" onClick={showMore} full className="mt-6">
                 Показать ещё отзывы
-              </button>
+              </Button>
             )}
           </>
         )}

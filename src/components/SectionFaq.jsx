@@ -73,7 +73,7 @@ export default function SectionFaq() {
   return (
     <section id="faq" aria-labelledby="faq-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="faq-title" className="text-heading">
+        <h2 id="faq-title" className="text-center text-heading">
           Частые вопросы
         </h2>
 
