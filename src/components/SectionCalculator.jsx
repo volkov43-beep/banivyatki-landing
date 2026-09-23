@@ -6,6 +6,7 @@ import ReviewCard from './ReviewCard.jsx'
 import { SEASONS, CARDS, WARM_NOTES, QUOTE, BUSINESS, formatPrice } from '../data/calculator.js'
 import { BUSINESS_REVIEW } from '../data/reviews.js'
 import { track } from '../lib/track.js'
+import { onCalcRequest } from '../lib/calc.js'
 
 const TABS = [
   { id: 'self', label: 'Себе' },
@@ -39,12 +40,19 @@ function isInView(el) {
  * После выбора карточки — пауза 250 мс и прокрутка к форме (если она не видна),
  * панель формы на 1,2 с подсвечивается рамкой accent. На телефоне, пока форма
  * за экраном, снизу закреплена полоска с итогом и кнопкой.
+ *
+ * Запрос снаружи (lib/calc.js, кнопка «Рассчитать такую» в «Наших работах»):
+ * вкладка «Себе», сезон и карточка ставятся теми же обработчиками и с теми же
+ * целями, что при ручном выборе, но прокрутка идёт к сетке карточек — человек
+ * видит цену выбранного размера и соседние варианты; форма остаётся ниже,
+ * без автопрокрутки и подсветки.
  */
 export default function SectionCalculator() {
   const [tab, setTab] = useState('self')
   const [season, setSeason] = useState('warm')
   const [selectedId, setSelectedId] = useState(null)
   const [selectionTick, setSelectionTick] = useState(0)
+  const [cardsScrollTick, setCardsScrollTick] = useState(0)
   const [highlight, setHighlight] = useState(false)
   const [formVisible, setFormVisible] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -112,6 +120,25 @@ export default function SectionCalculator() {
   }, [selectedId])
 
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+  // Запрос «рассчитать такую» из блока «Наши работы»: выбор без selectionTick,
+  // чтобы не сработала прокрутка к форме; к карточкам прокручиваем после рендера
+  useEffect(
+    () =>
+      onCalcRequest((nextSeason, cardId) => {
+        const card = CARDS[nextSeason]?.find((c) => c.id === cardId)
+        if (!card) return
+        changeTab('self')
+        changeSeason(nextSeason)
+        if (card.id !== selectedId) track('calc_card_select', { card_id: card.id })
+        setSelectedId(card.id)
+        setCardsScrollTick((t) => t + 1)
+      }),
+  )
+
+  useEffect(() => {
+    if (cardsScrollTick && cardsRef.current) scrollToElement(cardsRef.current)
+  }, [cardsScrollTick])
 
   function onGroupKeyDown(e) {
     const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }

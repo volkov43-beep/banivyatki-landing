@@ -1,4 +1,4 @@
-import VisitPhoto from './VisitPhoto.jsx'
+import ResponsivePhoto from '../ResponsivePhoto.jsx'
 
 /**
  * Карточка одного способа посмотреть баню. Подложка surface-2, скругление 6 px.
@@ -20,7 +20,7 @@ export default function VisitCard({ card, reverse = false, numbered = false, com
     <article className="rounded-md bg-surface-2 p-5 md:p-8 lg:p-10" aria-labelledby={`visit-${card.id}-title`}>
       <div className={`grid gap-8 lg:items-center lg:gap-12 ${compact ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         <div className={reverse ? 'lg:order-2' : ''}>
-          <VisitPhoto name={card.photo.name} alt={card.photo.alt} sizes={compact ? '(min-width: 1024px) 340px, 100vw' : '(min-width: 1024px) 520px, 100vw'} />
+          <ResponsivePhoto name={card.photo.name} alt={card.photo.alt} sizes={compact ? '(min-width: 1024px) 340px, 100vw' : '(min-width: 1024px) 520px, 100vw'} />
         </div>
         <div className={`${reverse ? 'lg:order-1' : ''} ${compact ? 'lg:col-span-2' : ''}`}>
           <h3 id={`visit-${card.id}-title`} className="text-[22px] font-bold leading-[1.2]">
@@ -45,7 +45,7 @@ export default function VisitCard({ card, reverse = false, numbered = false, com
             {card.gallery.map((item, i) => (
               <li key={item.name} className={item.wide ? 'col-span-2 lg:col-span-1' : ''}>
                 <figure className="m-0">
-                  <VisitPhoto
+                  <ResponsivePhoto
                     name={item.name}
                     alt={item.alt}
                     sizes={`(min-width: 1024px) ${Math.round(1120 / cols)}px, ${item.wide ? '100vw' : '50vw'}`}

@@ -3,7 +3,7 @@ import SectionHero from './components/SectionHero.jsx'
 import SectionComparison from './components/SectionComparison.jsx'
 import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionInside from './components/SectionInside.jsx'
-import SectionMap from './components/SectionMap.jsx'
+import SectionWorks from './components/SectionWorks.jsx'
 import SectionProcess from './components/SectionProcess.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
 import SectionShowroom from './components/SectionShowroom.jsx'
@@ -19,7 +19,7 @@ export default function App() {
         <SectionComparison />
         <SectionCalculator />
         <SectionInside />
-        <SectionMap />
+        <SectionWorks />
         <SectionProcess />
         <SectionReviews />
         <SectionShowroom />
