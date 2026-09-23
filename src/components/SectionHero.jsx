@@ -13,6 +13,7 @@
  * с фоном коротким переходом в ink.
  */
 import { MIN_PRICE, formatPrice } from '../data/calculator.js'
+import Button from './Button.jsx'
 
 const BASE = import.meta.env.BASE_URL
 const PHOTO = {
@@ -98,13 +99,9 @@ export default function SectionHero() {
             <span className="text-[20px]">под ключ</span>
           </p>
 
-          <a
-            href="#calculator"
-            className="mt-8 inline-flex h-14 w-full items-center justify-center rounded px-8 text-body font-bold text-ink no-underline lg:w-auto"
-            style={{ backgroundColor: 'var(--color-accent)' }}
-          >
+          <Button as="a" href="#calculator" fullMobile className="mt-8">
             Рассчитать стоимость
-          </a>
+          </Button>
 
           <ul className="mt-10 flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:flex-col lg:gap-2 lg:text-[16px]">
             {FACTS.map((fact) => {

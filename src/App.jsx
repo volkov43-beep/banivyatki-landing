@@ -1,5 +1,6 @@
 import Header from './components/Header.jsx'
 import SectionHero from './components/SectionHero.jsx'
+import SectionBenefits from './components/SectionBenefits.jsx'
 import SectionComparison from './components/SectionComparison.jsx'
 import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionInside from './components/SectionInside.jsx'
@@ -17,10 +18,11 @@ export default function App() {
       <Header />
       <main>
         <SectionHero />
+        <SectionBenefits />
         <SectionComparison />
-        <SectionCalculator />
         <SectionInside />
         <SectionWorks />
+        <SectionCalculator />
         <SectionProcess />
         <SectionReviews />
         <SectionShowroom />

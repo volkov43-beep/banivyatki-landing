@@ -1,4 +1,5 @@
 import ResponsivePhoto from '../ResponsivePhoto.jsx'
+import Button from '../Button.jsx'
 
 /**
  * Карточка одного способа посмотреть баню. Подложка surface-2, скругление 6 px.
@@ -28,13 +29,9 @@ export default function VisitCard({ card, reverse = false, numbered = false, com
           </h3>
           {card.address && <p className="mt-2 text-body font-bold text-accent">{card.address}</p>}
           <p className="mt-4 max-w-measure text-body">{card.text}</p>
-          <button
-            type="button"
-            onClick={onVisit ? () => onVisit(card.id) : undefined}
-            className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded bg-accent px-6 py-3 text-center text-body font-bold text-ink lg:w-auto lg:px-8"
-          >
+          <Button onClick={onVisit ? () => onVisit(card.id) : undefined} fullMobile className="mt-6">
             {card.button}
-          </button>
+          </Button>
         </div>
       </div>
 

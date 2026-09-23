@@ -1,9 +1,10 @@
 import ResponsivePhoto from '../ResponsivePhoto.jsx'
+import Button from '../Button.jsx'
 
 /**
  * Карточка объекта: главное фото 4:3 (кнопка — открывает увеличение),
- * подпись обычным текстом цветом ink, текстовая кнопка «Рассчитать такую»
- * цветом accent. У объекта без `calc` кнопки нет.
+ * подпись обычным текстом цветом ink, ссылка-кнопка «Рассчитать такую»
+ * (Button variant="link"). У объекта без `calc` кнопки нет.
  */
 export default function WorkCard({ work, onOpen, onCalc }) {
   const [photo] = work.photos
@@ -19,13 +20,9 @@ export default function WorkCard({ work, onOpen, onCalc }) {
       </button>
       <p className="mt-3 text-body text-ink">{work.caption}</p>
       {work.calc && (
-        <button
-          type="button"
-          onClick={() => onCalc(work)}
-          className="mt-2 inline-block p-0 text-left text-body font-bold text-accent underline-offset-4 hover:underline"
-        >
+        <Button variant="link" size="lg" onClick={() => onCalc(work)} className="mt-2">
           Рассчитать такую
-        </button>
+        </Button>
       )}
     </li>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Segmented from './Segmented.jsx'
+import Button from '../Button.jsx'
 import { PHONE } from '../../data/calculator.js'
 import { submitLead } from '../../lib/submitLead.js'
 import { track } from '../../lib/track.js'
@@ -178,14 +179,9 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={status === 'sending'}
-        aria-disabled={!canSubmit}
-        className="mt-6 inline-flex h-14 w-full items-center justify-center rounded bg-accent px-8 text-body font-bold text-ink lg:w-auto"
-      >
+      <Button type="submit" disabled={status === 'sending'} aria-disabled={!canSubmit} fullMobile className="mt-6">
         {submitLabel}
-      </button>
+      </Button>
       <p className="mt-3 text-label text-muted">{promise}</p>
     </form>
   )

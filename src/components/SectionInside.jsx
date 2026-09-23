@@ -1,4 +1,5 @@
 import PhotoSlot from './PhotoSlot.jsx'
+import Button from './Button.jsx'
 import VentilationDiagram from './diagrams/VentilationDiagram.jsx'
 import WallSectionDiagram from './diagrams/WallSectionDiagram.jsx'
 import RoofDiagram from './diagrams/RoofDiagram.jsx'
@@ -74,10 +75,10 @@ export default function SectionInside() {
   return (
     <section aria-labelledby="inside-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
-        <h2 id="inside-title" className="text-heading">
+        <h2 id="inside-title" className="text-center text-heading">
           Что внутри
         </h2>
-        <p className="mt-4 max-w-measure text-lead">
+        <p className="mx-auto mt-4 max-w-measure text-center text-lead">
           Всё, что влияет на пар, тепло и срок службы — с цифрами.
         </p>
 
@@ -111,12 +112,9 @@ export default function SectionInside() {
           <p className="max-w-measure text-lead">
             Всё, что здесь написано, можно проверить: приезжайте в шоурум и посмотрите вживую.
           </p>
-          <a
-            href="#showroom"
-            className="inline-block bg-ink px-6 py-3 text-body font-bold text-surface no-underline"
-          >
+          <Button as="a" href="#showroom" fullMobile>
             Посмотреть баню вживую
-          </a>
+          </Button>
         </div>
       </div>
     </section>
