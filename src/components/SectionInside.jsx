@@ -1,5 +1,6 @@
 import PhotoSlot from './PhotoSlot.jsx'
 import ResponsivePhoto from './ResponsivePhoto.jsx'
+import AnnotatedPhoto from './AnnotatedPhoto.jsx'
 import Button from './Button.jsx'
 
 /**
@@ -14,6 +15,11 @@ import Button from './Button.jsx'
  *
  * Фото тем — ResponsivePhoto (1280/640, 4:3 или 3/4 для вертикальных).
  * vnutri-uteplenie пришло только в 684 px, поэтому у него одна ширина 640.
+ * Фото слива — AnnotatedPhoto: крышку люка на снимке почти не видно,
+ * поверх — рамка и подпись «крышка люка».
+ *
+ * Разделы открываются разделителем SectionDivider: капсула с названием
+ * по центру и тонкие линии до краёв; отступ над ним больше, чем между темами.
  */
 const PHOTO_SIZES = '(min-width: 768px) 552px, 100vw'
 
@@ -95,9 +101,10 @@ const SECTIONS = [
         title: 'Кровля',
         visual: photo('vnutri-krovlya', 'Мягкая черепица на бане-Подкове'),
         paragraphs: [
-          'Мягкая черепица Технониколь. Бренд открытый — характеристики можно проверить на сайте производителя.',
+          'Мягкая черепица Технониколь Shinglas. Кровельщики ставят её массово, и в отзывах чаще всего отмечают одно и то же: не течёт, держит ветер, со временем не трескается и не осыпается.',
+          'Мы не экономим на том, что скрыто под черепицей. В комплектации Люкс укладываем подкладочный ковёр — второй слой гидроизоляции, как на жилых домах. В Комфорте под черепицей изолон.',
+          'Крыша — первое, что начинает течь у дешёвых бань. Поэтому материал берём у проверенных поставщиков и не меняем на то, что подешевле.',
         ],
-        footnote: 'Подкладочный ковёр под черепицей — в верхней комплектации. В средней — изолон.',
       },
     ],
   },
@@ -107,16 +114,70 @@ const SECTIONS = [
 const DETAILS_TITLE = 'Мелочи, которые замечаешь потом'
 const DETAILS = [
   {
-    title: 'Резная ручка',
-    photo: { name: 'vnutri-ruchka-dveri', alt: 'Резная деревянная ручка двери бани-Подковы' },
-    text: 'К мелочам относимся так же внимательно, как к печи и полкам: ручку подбираем под баню, а не ставим первую попавшуюся. Такие детали замечаешь каждый раз, когда открываешь дверь.',
+    title: 'Фурнитура',
+    visual: photo('vnutri-ruchka-dveri', 'Резная деревянная ручка двери бани-Подковы'),
+    text: 'К мелочам относимся так же внимательно, как к печи и полкам: фурнитуру подбираем под баню, а не ставим первую попавшуюся. Такие детали замечаешь каждый раз, когда открываешь дверь.',
   },
   {
     title: 'Слив под рукой',
-    photo: { name: 'vnutri-sliv', alt: 'Слив в полу бани-Подковы', ratio: '3/4' },
+    visual: <DrainPhoto />,
     text: 'Слив открывается рукой: поднял крышку, убрал листья, закрыл. Не нужно вскрывать пол и искать, где засорилось.',
   },
 ]
+
+/**
+ * Фото слива с пометкой. Координаты — в пикселях файла 1280 × 960: крышка
+ * люка по швам занимает x 395–890, y 468–570; подпись — на светлой стене
+ * между стойками полка (x 390–890, y 200–400), крышку не перекрывает.
+ */
+function DrainPhoto() {
+  return (
+    <AnnotatedPhoto name="vnutri-sliv" alt="Крышка люка в настиле бани-Подковы">
+      <rect
+        x="380"
+        y="454"
+        width="524"
+        height="130"
+        rx="22"
+        fill="none"
+        className="stroke-accent"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
+      <line
+        x1="642"
+        y1="376"
+        x2="642"
+        y2="454"
+        className="stroke-accent"
+        strokeWidth="2"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <text x="642" y="358" textAnchor="middle" className="dg-label fill-accent" style={{ fontWeight: 700 }}>
+        крышка люка
+      </text>
+    </AnnotatedPhoto>
+  )
+}
+
+/**
+ * Разделитель раздела: капсула с названием по центру, линии до краёв.
+ * Текст не переносится, поэтому на узких телефонах капсула компактнее:
+ * «Мелочи, которые замечаешь потом» при 13 px не оставляет места линиям
+ * уже 480 px (до 479 — 12 px, до 379 — 11 px).
+ */
+function SectionDivider({ children }) {
+  return (
+    <div className="flex items-center gap-3 max-[479px]:gap-2 md:gap-4">
+      <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-muted" />
+      <h3 className="whitespace-nowrap rounded-full border-[1.5px] border-accent px-[18px] py-[7px] text-[13px] font-bold uppercase leading-none tracking-[0.08em] text-accent max-[479px]:px-[14px] max-[479px]:text-[12px] max-[479px]:tracking-[0.06em] max-[379px]:text-[11px]">
+        {children}
+      </h3>
+      <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-muted" />
+    </div>
+  )
+}
 
 export default function SectionInside() {
   let row = 0
@@ -130,16 +191,16 @@ export default function SectionInside() {
           Всё, что влияет на пар, тепло и срок службы — с цифрами.
         </p>
 
-        {SECTIONS.map((section) => (
-          <div key={section.title} className="mt-16 md:mt-24">
-            <h3 className="text-center text-[22px] font-bold leading-[1.2]">{section.title}</h3>
-            <ul className="mt-6 list-none p-0 md:mt-8">
+        {SECTIONS.map((section, i) => (
+          <div key={section.title} className={i === 0 ? 'mt-28 md:mt-40' : 'mt-20 md:mt-28'}>
+            <SectionDivider>{section.title}</SectionDivider>
+            <ul className="list-none p-0">
               {section.items.map((block) => {
                 const visualRight = row++ % 2 === 1
                 return (
                   <li
                     key={block.title}
-                    className="grid items-center gap-x-12 gap-y-6 border-t border-muted py-10 md:grid-cols-2 md:py-14"
+                    className="grid items-center gap-x-12 gap-y-6 border-t border-muted py-10 first:border-t-0 md:grid-cols-2 md:py-14"
                   >
                     <div className={visualRight ? 'md:order-2' : ''}>
                       {block.visual}
@@ -152,7 +213,6 @@ export default function SectionInside() {
                           {text}
                         </p>
                       ))}
-                      {block.footnote && <p className="mt-4 max-w-measure text-label text-muted">{block.footnote}</p>}
                     </div>
                   </li>
                 )
@@ -161,12 +221,12 @@ export default function SectionInside() {
           </div>
         ))}
 
-        <div className="mt-16 border-t border-muted pt-10 md:mt-24 md:pt-14">
-          <h3 className="text-center text-[22px] font-bold leading-[1.2]">{DETAILS_TITLE}</h3>
-          <ul className="mt-8 grid list-none gap-8 p-0 md:grid-cols-2 md:gap-12">
+        <div className="mt-20 md:mt-28">
+          <SectionDivider>{DETAILS_TITLE}</SectionDivider>
+          <ul className="mt-10 grid list-none gap-8 p-0 md:mt-14 md:grid-cols-2 md:gap-12">
             {DETAILS.map((item) => (
               <li key={item.title}>
-                <ResponsivePhoto name={item.photo.name} alt={item.photo.alt} ratio={item.photo.ratio} sizes={PHOTO_SIZES} />
+                {item.visual}
                 <h4 className="mt-5 text-title">{item.title}</h4>
                 <p className="mt-3 max-w-measure text-body">{item.text}</p>
               </li>
