@@ -5,7 +5,7 @@
  * Иконки по правилам иконок: только линии 1,5 px (толщина держится на любом
  * размере через non-scaling-stroke), скруглённые концы и стыки, без заливок,
  * цвет currentColor, aria-hidden — смысл несёт слово рядом.
- * Размеры: 18 в начале зоны карточки, 16 в легенде, 14 в метках под картинками.
+ * Размеры: 18 в начале зоны карточки, 16 в легенде, 14 в подписях под чертежом с обеими банями.
  */
 const KINDS = {
   barrel: {
@@ -76,7 +76,7 @@ const STRIPS = {
  * Зона карточки: всё, что относится к одной бане, на общей подложке с линией
  * 3 px слева (фон rgba и линия цвета бани, скругление 4 px). В начале —
  * единственная метка зоны (иконка 18 px + название, 12 px 700 капсом), дальше
- * текст, схемы, фото, подписи и сноски во всю ширину зоны.
+ * текст, схемы, фото, подписи и сноски во всю ширину зоны — без повторных меток.
  */
 export function Zone({ kind, children }) {
   const s = STRIPS[kind]
@@ -105,19 +105,7 @@ export function ZoneText({ kind, children }) {
   )
 }
 
-/** Картинка внутри зоны и метка по центру под ней (под подписью к фото). */
-export function ZoneFigure({ kind = 'podkova', children }) {
-  return (
-    <div>
-      {children}
-      <div className="mt-2.5 flex justify-center">
-        <BathMark kind={kind} />
-      </div>
-    </div>
-  )
-}
-
-/** Метка-чип одной из бань: иконка 14 px и название, 12 px 700 капсом. */
+/** Подпись одной из бань: иконка 14 px и название, 12 px 700 капсом. */
 export function BathMark({ kind, className = '', style }) {
   return (
     <span
@@ -127,24 +115,6 @@ export function BathMark({ kind, className = '', style }) {
       <BathIcon kind={kind} size={14} />
       {STRIPS[kind].title}
     </span>
-  )
-}
-
-/**
- * Метка поверх чертежа (например, над лупой): x — центр, y — нижний край
- * метки, в долях ширины и высоты картинки (по пикселям файла). Только от
- * 600 px: ниже на чертеже номера вместо подписей, а под чертежом уже стоят
- * метки «Баня-бочка» и «Подкова».
- */
-export function BathMarkAt({ kind = 'podkova', x, y }) {
-  return (
-    <div className="hidden min-[600px]:block">
-      <BathMark
-        kind={kind}
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-full"
-        style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
-      />
-    </div>
   )
 }
 

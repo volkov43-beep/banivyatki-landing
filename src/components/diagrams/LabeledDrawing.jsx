@@ -22,10 +22,9 @@ const BADGE_R = 46 // кружок с номером на телефоне (≈1
  * labels: [{ n, x, y, lines, anchor, leader: { from: [x, y], to: [x, y] }, badge: [x, y] }]
  *   x, y — начало первой строки (baseline); lines — строки текста;
  *   leader — выноска от подписи к точке на рисунке; badge — центр кружка с номером.
- * footer — необязательная строка сразу под картинкой (метки «бочка / Подкова»);
- * overlay — HTML поверх картинки (абсолютное позиционирование в долях размера).
+ * footer — необязательная строка сразу под картинкой (подписи «бочка / Подкова»).
  */
-export default function LabeledDrawing({ src, width, height, label, labels, footer, overlay }) {
+export default function LabeledDrawing({ src, width, height, label, labels, footer }) {
   const ref = useRef(null)
   useUnitScale(ref, width)
 
@@ -51,68 +50,65 @@ export default function LabeledDrawing({ src, width, height, label, labels, foot
 
   return (
     <figure className="m-0">
-      <div className="relative">
-        <svg
-          ref={ref}
-          viewBox={`0 0 ${width} ${height}`}
-          role="img"
-          aria-label={label}
-          className="block h-auto w-full"
-        >
-          <image href={near ? `${BASE}${src}` : undefined} x="0" y="0" width={width} height={height} />
+      <svg
+        ref={ref}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={label}
+        className="block h-auto w-full"
+      >
+        <image href={near ? `${BASE}${src}` : undefined} x="0" y="0" width={width} height={height} />
 
-          {labels.map((item) => (
-            <g key={item.n}>
-              {item.leader && (
-                <>
-                  <line
-                    x1={item.leader.from[0]}
-                    y1={item.leader.from[1]}
-                    x2={item.leader.to[0]}
-                    y2={item.leader.to[1]}
-                    className="stroke-accent"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <circle cx={item.leader.to[0]} cy={item.leader.to[1]} r={DOT_R} className="fill-accent" />
-                </>
-              )}
+        {labels.map((item) => (
+          <g key={item.n}>
+            {item.leader && (
+              <>
+                <line
+                  x1={item.leader.from[0]}
+                  y1={item.leader.from[1]}
+                  x2={item.leader.to[0]}
+                  y2={item.leader.to[1]}
+                  className="stroke-accent"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <circle cx={item.leader.to[0]} cy={item.leader.to[1]} r={DOT_R} className="fill-accent" />
+              </>
+            )}
 
-              {/* Подписи текстом — от 600 px */}
-              <g className="hidden min-[600px]:block">
-                {item.lines.map((line, i) => (
-                  <text
-                    key={line}
-                    x={item.x}
-                    y={item.y + i * LINE}
-                    textAnchor={item.anchor || 'start'}
-                    className="dg-label fill-muted-on-dark"
-                  >
-                    {line}
-                  </text>
-                ))}
-              </g>
-
-              {/* Номера в кружках — до 600 px */}
-              <g className="min-[600px]:hidden">
-                <circle cx={item.badge[0]} cy={item.badge[1]} r={BADGE_R} className="fill-accent" />
+            {/* Подписи текстом — от 600 px */}
+            <g className="hidden min-[600px]:block">
+              {item.lines.map((line, i) => (
                 <text
-                  x={item.badge[0]}
-                  y={item.badge[1]}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  className="dg-label fill-ink"
-                  style={{ fontSize: 'calc(12px / var(--s, 1))', fontWeight: 700 }}
+                  key={line}
+                  x={item.x}
+                  y={item.y + i * LINE}
+                  textAnchor={item.anchor || 'start'}
+                  className="dg-label fill-muted-on-dark"
                 >
-                  {item.n}
+                  {line}
                 </text>
-              </g>
+              ))}
             </g>
-          ))}
-        </svg>
-        {overlay}
-      </div>
+
+            {/* Номера в кружках — до 600 px */}
+            <g className="min-[600px]:hidden">
+              <circle cx={item.badge[0]} cy={item.badge[1]} r={BADGE_R} className="fill-accent" />
+              <text
+                x={item.badge[0]}
+                y={item.badge[1]}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="dg-label fill-ink"
+                style={{ fontSize: 'calc(12px / var(--s, 1))', fontWeight: 700 }}
+              >
+                {item.n}
+              </text>
+            </g>
+          </g>
+        ))}
+      </svg>
 
       {footer}
 
