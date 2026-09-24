@@ -6,14 +6,13 @@ import { requestCalcOpen } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 import LabeledDrawing from './diagrams/LabeledDrawing.jsx'
 import DrainFloorDiagram from './diagrams/DrainFloorDiagram.jsx'
-import { BathLegend, BathMarksRow, Zone, ZoneText } from './comparison/BathMarks.jsx'
+import { BathMarksRow, Zone, ZoneText } from './comparison/BathMarks.jsx'
 
 /**
  * Экран «Чем Подкова отличается от бани-бочки».
  * Тёмный фон ink, светлый текст — отдельная глава страницы.
  *
- * Чтобы было видно, где бочка, а где Подкова: легенда под схемой, в каждой
- * карточке две зоны — «Баня-бочка» (alert-on-dark, круг) и «Подкова» (podkova,
+ * Чтобы было видно, где бочка, а где Подкова: в каждой карточке две зоны — «Баня-бочка» (alert-on-dark, круг) и «Подкова» (podkova,
  * арка). Зелёная зона продолжается на всё, что относится к Подкове: текст,
  * схемы, фото, подписи и сноски. Метка у зоны одна — в её начале, внутри зон
  * меток больше нет. Чертёж с обеими банями стоит перед зонами, под ним
@@ -33,8 +32,6 @@ export default function SectionComparison() {
         <div className="mt-12 md:mt-16">
           <CrossSectionDiagram />
         </div>
-
-        <BathLegend className="mt-6" />
 
         <p className="mt-12 max-w-measure border-l-2 border-accent pl-6 text-lead md:mt-16">
           В бочке пол круглый, поэтому внутрь кладут трапик. Сделаете его широким — он
@@ -204,7 +201,9 @@ export default function SectionComparison() {
                   },
                 ]}
               />
-              <ZoneText kind="podkova">Спинка обнимает — сидите долго, спина не затекает.</ZoneText>
+              <ZoneText kind="podkova">
+                Спина лежит на дуге целиком, от поясницы до лопаток, а не упирается в одну точку. Сидите весь вечер, разговариваете, не ёрзаете и не ищете, куда прислониться, — и не подкладываете под поясницу свёрнутое полотенце, как в круглой бочке.
+              </ZoneText>
             </Zone>
           </AdvantageItem>
         </ul>
