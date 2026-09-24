@@ -1,6 +1,6 @@
 import PhotoSlot from './PhotoSlot.jsx'
 import ResponsivePhoto from './ResponsivePhoto.jsx'
-import AnnotatedPhoto from './AnnotatedPhoto.jsx'
+import AnnotatedPhoto, { PhotoTag } from './AnnotatedPhoto.jsx'
 import Button from './Button.jsx'
 
 /**
@@ -127,8 +127,10 @@ const DETAILS = [
 
 /**
  * Фото слива с пометкой. Координаты — в пикселях файла 1280 × 960: крышка
- * люка по швам занимает x 395–890, y 468–570; подпись — на светлой стене
- * между стойками полка (x 390–890, y 200–400), крышку не перекрывает.
+ * люка по швам занимает x 395–890, y 468–570. Рамка и выноска forest 2 px:
+ * на светлом дереве тёмно-зелёный читается, accent сливается с досками.
+ * Плашка «крышка люка» — на светлой стене между стойками полка
+ * (x 390–890, y 200–400), крышку не перекрывает; выноска от плашки к рамке.
  */
 function DrainPhoto() {
   return (
@@ -140,23 +142,22 @@ function DrainPhoto() {
         height="130"
         rx="22"
         fill="none"
-        className="stroke-accent"
+        className="stroke-forest"
         strokeWidth="2"
         vectorEffect="non-scaling-stroke"
       />
       <line
         x1="642"
-        y1="376"
+        y1="390"
         x2="642"
         y2="454"
-        className="stroke-accent"
+        className="stroke-forest"
         strokeWidth="2"
-        strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       />
-      <text x="642" y="358" textAnchor="middle" className="dg-label fill-accent" style={{ fontWeight: 700 }}>
+      <PhotoTag x={642} y={390}>
         крышка люка
-      </text>
+      </PhotoTag>
     </AnnotatedPhoto>
   )
 }
@@ -165,13 +166,13 @@ function DrainPhoto() {
  * Разделитель раздела: капсула с названием по центру, линии до краёв.
  * Текст не переносится, поэтому на узких телефонах капсула компактнее:
  * «Мелочи, которые замечаешь потом» при 13 px не оставляет места линиям
- * уже 480 px (до 479 — 12 px, до 379 — 11 px).
+ * уже 480 px (до 479 — 12 px, до 379 — 11 px, до 359 — 10 px).
  */
 function SectionDivider({ children }) {
   return (
-    <div className="flex items-center gap-3 max-[479px]:gap-2 md:gap-4">
+    <div className="flex items-center gap-3 max-[479px]:gap-2 max-[359px]:gap-1.5 md:gap-4">
       <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-muted" />
-      <h3 className="whitespace-nowrap rounded-full border-[1.5px] border-accent px-[18px] py-[7px] text-[13px] font-bold uppercase leading-none tracking-[0.08em] text-accent max-[479px]:px-[14px] max-[479px]:text-[12px] max-[479px]:tracking-[0.06em] max-[379px]:text-[11px]">
+      <h3 className="whitespace-nowrap rounded-full border-[1.5px] border-accent px-[18px] py-[7px] text-[13px] font-bold uppercase leading-none tracking-[0.08em] text-accent max-[479px]:px-[14px] max-[479px]:text-[12px] max-[479px]:tracking-[0.06em] max-[379px]:text-[11px] max-[359px]:px-[10px] max-[359px]:text-[10px] max-[359px]:tracking-[0.04em]">
         {children}
       </h3>
       <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-muted" />
