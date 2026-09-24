@@ -72,15 +72,21 @@ const STRIPS = {
   },
 }
 
+/** Текст полосы — строка или список абзацев. */
 function Strip({ kind, children }) {
   const s = STRIPS[kind]
+  const paragraphs = Array.isArray(children) ? children : [children]
   return (
     <div className={`rounded-[4px] border-l-[3px] px-4 py-[14px] ${s.box}`}>
       <p className={`flex items-center gap-2 text-[12px] font-bold uppercase leading-[18px] tracking-[0.06em] ${s.head}`}>
         <BathIcon kind={kind} size={18} />
         {s.title}
       </p>
-      <p className={`mt-1.5 text-[14px] leading-[1.45] ${s.text}`}>{children}</p>
+      {paragraphs.map((text, i) => (
+        <p key={text} className={`${i === 0 ? 'mt-1.5' : 'mt-2'} text-[14px] leading-[1.45] ${s.text}`}>
+          {text}
+        </p>
+      ))}
     </div>
   )
 }
@@ -95,7 +101,7 @@ export function CompareStrips({ barrel, podkova }) {
   )
 }
 
-/** Метка под изображением одной из бань: иконка 14 px и название. */
+/** Метка-чип одной из бань: иконка 14 px и название, 12 px 700 капсом. */
 export function BathMark({ kind, className = '', style }) {
   return (
     <span
@@ -105,6 +111,33 @@ export function BathMark({ kind, className = '', style }) {
       <BathIcon kind={kind} size={14} />
       {STRIPS[kind].title}
     </span>
+  )
+}
+
+/** Метка над картинкой или подписью: вплотную к ней, отдельной строкой. */
+export function BathChip({ kind = 'podkova', className = 'mb-2' }) {
+  return (
+    <div className={`flex ${className}`}>
+      <BathMark kind={kind} />
+    </div>
+  )
+}
+
+/**
+ * Метка поверх чертежа (например, над лупой): x — центр, y — нижний край
+ * метки, в долях ширины и высоты картинки (по пикселям файла). Только от
+ * 600 px: ниже на чертеже номера вместо подписей, и метка ставится в список
+ * под картинкой (поле note у подписи LabeledDrawing).
+ */
+export function BathMarkAt({ kind = 'podkova', x, y }) {
+  return (
+    <div className="hidden min-[600px]:block">
+      <BathMark
+        kind={kind}
+        className="pointer-events-none absolute -translate-x-1/2 -translate-y-full"
+        style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
+      />
+    </div>
   )
 }
 

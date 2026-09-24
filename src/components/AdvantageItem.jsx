@@ -10,7 +10,7 @@ export default function AdvantageItem({ title, strips, diagram, photo, children 
       <h3 className="text-title">{title}</h3>
       {strips && <div className="mt-4">{strips}</div>}
       {diagram && <div className="mt-5">{diagram}</div>}
-      {typeof children === 'string' ? (
+      {!children ? null : typeof children === 'string' ? (
         <p className="mt-4 max-w-measure text-body">{children}</p>
       ) : (
         <div className="mt-4 max-w-measure text-body [&>p+p]:mt-3">{children}</div>

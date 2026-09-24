@@ -6,7 +6,7 @@ import { requestCalcOpen } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 import LabeledDrawing from './diagrams/LabeledDrawing.jsx'
 import DrainFloorDiagram from './diagrams/DrainFloorDiagram.jsx'
-import { BathLegend, BathMarksRow, CompareStrips } from './comparison/BathMarks.jsx'
+import { BathChip, BathLegend, BathMark, BathMarkAt, BathMarksRow, CompareStrips } from './comparison/BathMarks.jsx'
 
 /**
  * Экран «Чем Подкова отличается от бани-бочки».
@@ -14,7 +14,9 @@ import { BathLegend, BathMarksRow, CompareStrips } from './comparison/BathMarks.
  *
  * Чтобы было видно, где бочка, а где Подкова: легенда под схемой, в каждой
  * карточке полосы «Баня-бочка» (alert-on-dark, круг) и «Подкова» (podkova,
- * арка), метки с иконками под чертежом, где нарисованы обе бани.
+ * арка), метки с иконками под чертежом, где нарисованы обе бани. Правило:
+ * ни одной картинки или подписи, про которую непонятно, чья она, — всё про
+ * нашу баню помечено чипом «Подкова» вплотную к картинке или подписи.
  */
 export default function SectionComparison() {
   return (
@@ -47,31 +49,38 @@ export default function SectionComparison() {
             title={'Ширина 2,4 метра, пол — 2 метра'}
             strips={
               <CompareStrips
-                barrel="Круглый пол, внутри кладут трапик 40 см. Шире — поднимается вверх, ниже — ходишь пригнувшись."
+                barrel={[
+                  'Круглый пол, внутри кладут трапик 40 см. Шире — поднимается вверх, ниже — ходишь пригнувшись.',
+                  'У бочки корпус 2 метра и узкий трапик, париться сложно, не задевая друг друга.',
+                ]}
                 podkova="Прямой пол два метра шириной, от стены до стены. Паритесь втроём, не задевая друг друга."
               />
             }
             photo={
-              <PhotoSlot
-                src="photos/shirina-parnaya.webp"
-                width={1120}
-                height={1120}
-                aspect="1 / 1"
-                className="rounded-md"
-                alt="Парная бани-Подковы изнутри"
-                caption="Парная изнутри: прямой пол от стены до стены"
-              />
+              <>
+                <BathChip />
+                <PhotoSlot
+                  src="photos/shirina-parnaya.webp"
+                  width={1120}
+                  height={1120}
+                  aspect="1 / 1"
+                  className="rounded-md"
+                  alt="Парная бани-Подковы изнутри"
+                  caption="Парная изнутри: прямой пол от стены до стены"
+                />
+              </>
             }
-          >
-            У бочки корпус 2 метра и узкий трапик.
-          </AdvantageItem>
+          />
 
           <AdvantageItem
             title="Без стяжек, на обвязке"
             strips={
               <CompareStrips
                 barrel="Стены держит стальная стяжка: её нужно периодически подтягивать, а пружинные лопаются."
-                podkova="Стены-дуги закреплены в силовой раме — обвязке. Подтягивать нечего и лопаться нечему."
+                podkova={[
+                  'Стены-дуги закреплены в силовой раме — обвязке. Подтягивать нечего и лопаться нечему, геометрия держится сама.',
+                  'Стены собраны из доски с лунным пазом: каждая доска входит в соседнюю плотно, как в замок. Стыки без щелей, доски не расходятся, конопатить ничего не нужно. Паз смотрит вниз — вода стекает по стене и не попадает в стык.',
+                ]}
               />
             }
             diagram={
@@ -105,30 +114,29 @@ export default function SectionComparison() {
                     lines: ['Лунный паз:', 'вода стекает,', 'в стык не попадает'],
                     leader: { from: [1190, 436], to: [1190, 391] },
                     badge: [1112, 500],
+                    note: <BathMark kind="podkova" />,
                   },
                 ]}
                 // Центры бань по пикселям файла: бочка x 383, Подкова x 1092 из 1440
                 footer={<BathMarksRow centers={{ barrel: 383 / 1440, podkova: 1092 / 1440 }} />}
+                // Над лупой с лунным пазом: центр кольца x 1113, верх y 203 из 1440 × 850
+                overlay={<BathMarkAt x={1113 / 1440} y={190 / 850} />}
               />
             }
             photo={
-              <PhotoSlot
-                src="photos/obvyazka.webp"
-                width={1120}
-                height={840}
-                className="rounded-md"
-                alt="Обвязка бани-Подковы на производстве"
-                caption="Обвязка на производстве: силовая рама из бруса с двойной пропиткой. На неё встают стены-дуги."
-              />
+              <>
+                <BathChip />
+                <PhotoSlot
+                  src="photos/obvyazka.webp"
+                  width={1120}
+                  height={840}
+                  className="rounded-md"
+                  alt="Обвязка бани-Подковы на производстве"
+                  caption="Обвязка на производстве: силовая рама из бруса с двойной пропиткой. На неё встают стены-дуги."
+                />
+              </>
             }
-          >
-            <p>Геометрия держится сама.</p>
-            <p>
-              Стены Подковы собраны из доски с лунным пазом: каждая доска входит в соседнюю плотно,
-              как в замок. Стыки без щелей, доски не расходятся, конопатить ничего не нужно. Паз
-              смотрит вниз — вода стекает по стене и не попадает в стык.
-            </p>
-          </AdvantageItem>
+          />
 
           <AdvantageItem
             title="Двойной проливной пол"
@@ -138,31 +146,44 @@ export default function SectionComparison() {
                 podkova="Верхний настил с зазорами, под ним второй утеплённый пол с уклоном. Доски настила съёмные."
               />
             }
-            diagram={<DrainFloorDiagram />}
+            diagram={
+              <>
+                <BathChip />
+                <DrainFloorDiagram />
+              </>
+            }
             photo={
               <>
                 {/* Пара: слева вид сверху, справа макет в разрезе. До 600 px — друг под другом. */}
                 <div className="grid gap-3 min-[600px]:grid-cols-2">
-                  <PhotoSlot
-                    src="photos/prolivnoy-pol-sverhu.webp"
-                    width={600}
-                    height={450}
-                    className="rounded-md"
-                    captionClass="text-[13px]"
-                    alt="Верхний настил проливного пола"
-                    caption="Сверху: настил с зазорами 4–5 мм"
-                  />
-                  <PhotoSlot
-                    src="photos/prolivnoy-pol-razrez.webp"
-                    width={600}
-                    height={450}
-                    className="rounded-md"
-                    captionClass="text-[13px]"
-                    alt="Макет проливного пола в разрезе"
-                    caption="В разрезе: под настилом — нижний утеплённый пол с уклоном к сливу"
-                  />
+                  <div>
+                    <BathChip />
+                    <PhotoSlot
+                      src="photos/prolivnoy-pol-sverhu.webp"
+                      width={600}
+                      height={450}
+                      className="rounded-md"
+                      captionClass="text-[13px]"
+                      alt="Верхний настил проливного пола"
+                      caption="Сверху: настил с зазорами 4–5 мм"
+                    />
+                  </div>
+                  <div>
+                    <BathChip />
+                    <PhotoSlot
+                      src="photos/prolivnoy-pol-razrez.webp"
+                      width={600}
+                      height={450}
+                      className="rounded-md"
+                      captionClass="text-[13px]"
+                      alt="Макет проливного пола в разрезе"
+                      caption="В разрезе: под настилом — нижний утеплённый пол с уклоном к сливу"
+                    />
+                  </div>
                 </div>
-                <p className="mt-4 max-w-measure text-label text-muted-on-dark">
+                {/* Сноска про комплектации Подковы: «пол одинарный» без метки читался бы как про бочку */}
+                <BathChip className="mb-2 mt-4" />
+                <p className="max-w-measure text-label text-muted-on-dark">
                   Двойной проливной пол — в круглогодичных комплектациях. В готовом решении пол
                   одинарный, с разуклонкой под слив.
                 </p>
@@ -183,33 +204,37 @@ export default function SectionComparison() {
               />
             }
             diagram={
-              <LabeledDrawing
-                src="photos/diagram-duga.webp"
-                width={1440}
-                height={1362}
-                label="Человек сидит в бане-Подкове, спина опирается на изогнутую стену"
-                labels={[
-                  {
-                    n: 1,
-                    x: 560,
-                    y: 660,
-                    lines: ['Спина лежит', 'на дуге стены'],
-                    leader: { from: [548, 648], to: [178, 610] },
-                    badge: [600, 650],
-                  },
-                  {
-                    n: 2,
-                    x: 560,
-                    y: 800,
-                    lines: ['Стена поддерживает', 'всю спину, от поясницы', 'до лопаток'],
-                    leader: { from: [548, 788], to: [161, 751] },
-                    badge: [600, 800],
-                  },
-                ]}
-              />
+              <>
+                <BathChip />
+                <LabeledDrawing
+                  src="photos/diagram-duga.webp"
+                  width={1440}
+                  height={1362}
+                  label="Человек сидит в бане-Подкове, спина опирается на изогнутую стену"
+                  labels={[
+                    {
+                      n: 1,
+                      x: 560,
+                      y: 660,
+                      lines: ['Спина лежит', 'на дуге стены'],
+                      leader: { from: [548, 648], to: [178, 610] },
+                      badge: [600, 650],
+                    },
+                    {
+                      n: 2,
+                      x: 560,
+                      y: 800,
+                      lines: ['Стена поддерживает', 'всю спину, от поясницы', 'до лопаток'],
+                      leader: { from: [548, 788], to: [161, 751] },
+                      badge: [600, 800],
+                    },
+                  ]}
+                />
+              </>
             }
           >
-            Спинка обнимает — сидите долго, спина не затекает.
+            <BathChip className="mb-2" />
+            <p>Спинка обнимает — сидите долго, спина не затекает.</p>
           </AdvantageItem>
         </ul>
 
