@@ -6,10 +6,15 @@ import { requestCalcOpen } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 import LabeledDrawing from './diagrams/LabeledDrawing.jsx'
 import DrainFloorDiagram from './diagrams/DrainFloorDiagram.jsx'
+import { BathLegend, BathMarksRow, CompareStrips } from './comparison/BathMarks.jsx'
 
 /**
  * Экран «Чем Подкова отличается от бани-бочки».
  * Тёмный фон ink, светлый текст — отдельная глава страницы.
+ *
+ * Чтобы было видно, где бочка, а где Подкова: легенда под схемой, в каждой
+ * карточке полосы «Баня-бочка» (alert-on-dark, круг) и «Подкова» (podkova,
+ * арка), метки с иконками под чертежом, где нарисованы обе бани.
  */
 export default function SectionComparison() {
   return (
@@ -26,6 +31,8 @@ export default function SectionComparison() {
           <CrossSectionDiagram />
         </div>
 
+        <BathLegend className="mt-6" />
+
         <p className="mt-12 max-w-measure border-l-2 border-accent pl-6 text-lead md:mt-16">
           В бочке пол круглый, поэтому внутрь кладут трапик. Сделаете его широким — он
           поднимется вверх, и вы ходите пригнувшись. Сделаете низким — он шириной
@@ -38,6 +45,12 @@ export default function SectionComparison() {
         <ul className="mt-14 grid list-none items-start gap-x-12 gap-y-10 p-0 md:mt-20 lg:grid-cols-2">
           <AdvantageItem
             title={'Ширина 2,4 метра, пол — 2 метра'}
+            strips={
+              <CompareStrips
+                barrel="Круглый пол, внутри кладут трапик 40 см. Шире — поднимается вверх, ниже — ходишь пригнувшись."
+                podkova="Прямой пол два метра шириной, от стены до стены. Паритесь втроём, не задевая друг друга."
+              />
+            }
             photo={
               <PhotoSlot
                 src="photos/shirina-parnaya.webp"
@@ -50,11 +63,17 @@ export default function SectionComparison() {
               />
             }
           >
-            У бочки корпус 2 метра и узкий трапик. Паритесь семьёй, не задевая друг друга.
+            У бочки корпус 2 метра и узкий трапик.
           </AdvantageItem>
 
           <AdvantageItem
             title="Без стяжек, на обвязке"
+            strips={
+              <CompareStrips
+                barrel="Стены держит стальная стяжка: её нужно периодически подтягивать, а пружинные лопаются."
+                podkova="Стены-дуги закреплены в силовой раме — обвязке. Подтягивать нечего и лопаться нечему."
+              />
+            }
             diagram={
               <LabeledDrawing
                 src="photos/diagram-obvyazka.webp"
@@ -88,6 +107,8 @@ export default function SectionComparison() {
                     badge: [1112, 500],
                   },
                 ]}
+                // Центры бань по пикселям файла: бочка x 383, Подкова x 1092 из 1440
+                footer={<BathMarksRow centers={{ barrel: 383 / 1440, podkova: 1092 / 1440 }} />}
               />
             }
             photo={
@@ -101,11 +122,7 @@ export default function SectionComparison() {
               />
             }
           >
-            <p>
-              У бань-бочек стены держит стальная стяжка: её надо периодически подтягивать, а
-              пружинные лопаются. Подкова стоит на обвязке — стены-дуги закреплены в силовой раме.
-              Подтягивать нечего и лопаться нечему, геометрия держится сама.
-            </p>
+            <p>Геометрия держится сама.</p>
             <p>
               Стены Подковы собраны из доски с лунным пазом: каждая доска входит в соседнюю плотно,
               как в замок. Стыки без щелей, доски не расходятся, конопатить ничего не нужно. Паз
@@ -115,6 +132,12 @@ export default function SectionComparison() {
 
           <AdvantageItem
             title="Двойной проливной пол"
+            strips={
+              <CompareStrips
+                barrel="Пол одинарный, вода уходит через щели между досками прямо под баню."
+                podkova="Верхний настил с зазорами, под ним второй утеплённый пол с уклоном. Доски настила съёмные."
+              />
+            }
             diagram={<DrainFloorDiagram />}
             photo={
               <>
@@ -153,6 +176,12 @@ export default function SectionComparison() {
 
           <AdvantageItem
             title="Дуга стен по форме тела"
+            strips={
+              <CompareStrips
+                barrel="Стена круглая: спина упирается в дугу только в одной точке."
+                podkova="Стена идёт дугой по форме спины — опора от поясницы до лопаток."
+              />
+            }
             diagram={
               <LabeledDrawing
                 src="photos/diagram-duga.webp"
