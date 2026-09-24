@@ -21,8 +21,7 @@ const BADGE_R = 46 // кружок с номером на телефоне (≈1
  *
  * labels: [{ n, x, y, lines, anchor, leader: { from: [x, y], to: [x, y] }, badge: [x, y] }]
  *   x, y — начало первой строки (baseline); lines — строки текста;
- *   leader — выноска от подписи к точке на рисунке; badge — центр кружка с номером;
- *   note — необязательная метка перед текстом в списке под картинкой (до 600 px).
+ *   leader — выноска от подписи к точке на рисунке; badge — центр кружка с номером.
  * footer — необязательная строка сразу под картинкой (метки «бочка / Подкова»);
  * overlay — HTML поверх картинки (абсолютное позиционирование в долях размера).
  */
@@ -127,10 +126,7 @@ export default function LabeledDrawing({ src, width, height, label, labels, foot
             >
               {item.n}
             </span>
-            <span>
-              {item.note && <span className="mr-1.5 inline-block align-[1px]">{item.note}</span>}
-              {item.lines.join(' ')}
-            </span>
+            <span>{item.lines.join(' ')}</span>
           </li>
         ))}
       </ol>

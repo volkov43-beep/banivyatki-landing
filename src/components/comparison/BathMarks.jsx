@@ -5,7 +5,7 @@
  * Иконки по правилам иконок: только линии 1,5 px (толщина держится на любом
  * размере через non-scaling-stroke), скруглённые концы и стыки, без заливок,
  * цвет currentColor, aria-hidden — смысл несёт слово рядом.
- * Размеры: 18 в полосах карточек, 16 в легенде, 14 в метках под картинками.
+ * Размеры: 18 в начале зоны карточки, 16 в легенде, 14 в метках под картинками.
  */
 const KINDS = {
   barrel: {
@@ -72,18 +72,32 @@ const STRIPS = {
   },
 }
 
-/** Текст полосы — строка или список абзацев. */
-function Strip({ kind, children }) {
+/**
+ * Зона карточки: всё, что относится к одной бане, на общей подложке с линией
+ * 3 px слева (фон rgba и линия цвета бани, скругление 4 px). В начале —
+ * единственная метка зоны (иконка 18 px + название, 12 px 700 капсом), дальше
+ * текст, схемы, фото, подписи и сноски во всю ширину зоны.
+ */
+export function Zone({ kind, children }) {
   const s = STRIPS[kind]
-  const paragraphs = Array.isArray(children) ? children : [children]
   return (
     <div className={`rounded-[4px] border-l-[3px] px-4 py-[14px] ${s.box}`}>
       <p className={`flex items-center gap-2 text-[12px] font-bold uppercase leading-[18px] tracking-[0.06em] ${s.head}`}>
         <BathIcon kind={kind} size={18} />
         {s.title}
       </p>
-      {paragraphs.map((text, i) => (
-        <p key={text} className={`${i === 0 ? 'mt-1.5' : 'mt-2'} text-[14px] leading-[1.45] ${s.text}`}>
+      <div className="mt-1.5 [&>*+*]:mt-5">{children}</div>
+    </div>
+  )
+}
+
+/** Текст зоны: абзацы 14 px, у Подковы surface, у бочки muted-on-dark. */
+export function ZoneText({ kind, children }) {
+  const paragraphs = Array.isArray(children) ? children : [children]
+  return (
+    <div className="[&>p+p]:mt-2">
+      {paragraphs.map((text) => (
+        <p key={text} className={`text-[14px] leading-[1.45] ${STRIPS[kind].text}`}>
           {text}
         </p>
       ))}
@@ -91,12 +105,14 @@ function Strip({ kind, children }) {
   )
 }
 
-/** Две полосы под заголовком карточки: сначала бочка, потом Подкова. */
-export function CompareStrips({ barrel, podkova }) {
+/** Картинка внутри зоны и метка по центру под ней (под подписью к фото). */
+export function ZoneFigure({ kind = 'podkova', children }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Strip kind="barrel">{barrel}</Strip>
-      <Strip kind="podkova">{podkova}</Strip>
+    <div>
+      {children}
+      <div className="mt-2.5 flex justify-center">
+        <BathMark kind={kind} />
+      </div>
     </div>
   )
 }
@@ -114,20 +130,11 @@ export function BathMark({ kind, className = '', style }) {
   )
 }
 
-/** Метка над картинкой или подписью: вплотную к ней, отдельной строкой. */
-export function BathChip({ kind = 'podkova', className = 'mb-2' }) {
-  return (
-    <div className={`flex ${className}`}>
-      <BathMark kind={kind} />
-    </div>
-  )
-}
-
 /**
  * Метка поверх чертежа (например, над лупой): x — центр, y — нижний край
  * метки, в долях ширины и высоты картинки (по пикселям файла). Только от
- * 600 px: ниже на чертеже номера вместо подписей, и метка ставится в список
- * под картинкой (поле note у подписи LabeledDrawing).
+ * 600 px: ниже на чертеже номера вместо подписей, а под чертежом уже стоят
+ * метки «Баня-бочка» и «Подкова».
  */
 export function BathMarkAt({ kind = 'podkova', x, y }) {
   return (
