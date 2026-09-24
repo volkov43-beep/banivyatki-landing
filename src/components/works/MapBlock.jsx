@@ -27,10 +27,20 @@ import Button from '../Button.jsx'
  *   «Карта: скрипт Яндекса не загрузился …»
  *   «Карта: ошибка API — <текст ошибки>»
  *
- * Поведение: колесо мыши не масштабирует карту (страница прокручивается),
- * на телефоне одним пальцем прокручивается страница, карту двигают двумя
- * пальцами или кнопками +/−. Других элементов управления нет; копирайт
- * и логотип Яндекса остаются — это условие API.
+ * Начальный вид (START_BOUNDS) — рамка по Кирову, Кирово-Чепецку,
+ * Слободскому, Кумёнам и Нолинску: примерно вдвое крупнее общего вида
+ * (в 2,07 раза на любой ширине), центр на ~50 км южнее Кирова —
+ * иначе Нолинск не помещается. «Вся Кировская область» возвращает общий
+ * вид по всем точкам области (HOME_BOUNDS).
+ *
+ * Поведение: колесо мыши не масштабирует карту (страница прокручивается).
+ * На телефоне до первого касания карта не двигается одним пальцем — палец
+ * прокручивает страницу, — а поверх лежит полупрозрачная подложка с
+ * подсказкой «Нажмите, чтобы двигать карту». После касания (тап, не
+ * прокрутка) подложка исчезает и карта двигается одним пальцем. Подсказка
+ * один раз за визит (sessionStorage): при повторном показе в том же визите
+ * карта сразу двигается. На компьютере подложки нет. Из элементов
+ * управления только +/−; копирайт и логотип Яндекса остаются — условие API.
  */
 const KEY = import.meta.env.VITE_YMAPS_KEY || ''
 
@@ -38,7 +48,7 @@ const KIROV = OBJECTS.find((p) => p.group === 'kirov')
 const OBLAST = OBJECTS.filter((p) => p.group === 'oblast')
 const FAR = OBJECTS.filter((p) => p.group === 'far')
 
-/** Начальный вид — вся Кировская область по точкам kirov и oblast, с запасом. */
+/** Общий вид («Вся Кировская область») — все точки kirov и oblast, с запасом. */
 const HOME_BOUNDS = (() => {
   const pts = [KIROV, ...OBLAST]
   const lats = pts.map((p) => p.lat)
@@ -70,6 +80,55 @@ const MAP_STYLE = [
 ]
 
 const CONTROLS_MODULE = '@yandex/ymaps3-controls@0.0.1'
+
+const MAP_MARGIN = 24 // поля карты, как в опции margin YMap
+
+/** Меркатор: вертикальная координата широты. */
+const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))
+
+/** Начальный вид: Киров и ближайшие ориентиры, с запасом от краёв. */
+const START_BOUNDS = (() => {
+  const names = ['Киров и пригороды', 'Кирово-Чепецк', 'Слободской', 'Кумёны', 'Нолинск']
+  const pts = names.map((name) => OBJECTS.find((p) => p.name === name))
+  const lats = pts.map((p) => p.lat)
+  const lons = pts.map((p) => p.lon)
+  return [
+    [Math.min(...lons) - 0.2, Math.max(...lats) + 0.12],
+    [Math.max(...lons) + 0.2, Math.min(...lats) - 0.12],
+  ]
+})()
+
+/**
+ * Подсказка — по центру по горизонтали, по высоте на свободной полосе между
+ * Кумёнами (58,11°) и Нолинском (57,56°): в центре кадра стоят Кумёны. В рамке
+ * START_BOUNDS карта вписывается по высоте (на 1440 и на телефоне), поэтому
+ * доля высоты считается от её севера и юга.
+ */
+const HINT_LAT = 57.84
+const HINT_TOP = (() => {
+  const [[, north], [, south]] = START_BOUNDS
+  const frac = (mercY(north) - mercY(HINT_LAT)) / (mercY(north) - mercY(south))
+  return `calc(${MAP_MARGIN}px + (100% - ${2 * MAP_MARGIN}px) * ${frac.toFixed(3)})`
+})()
+
+/** Подсказка «Нажмите, чтобы двигать карту» — один раз за визит. */
+const HINT_KEY = 'bv_map_hint_seen'
+function hintSeen() {
+  try {
+    return sessionStorage.getItem(HINT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+function rememberHint() {
+  try {
+    sessionStorage.setItem(HINT_KEY, '1')
+  } catch {
+    /* хранилище недоступно — подсказка просто покажется снова */
+  }
+}
+
+const DRAG_BEHAVIORS = ['drag', 'pinchZoom', 'dblClick']
 
 /** Сообщение в консоль о том, почему карты нет. Ключ в сообщение не попадает. */
 function reportMapError(err) {
@@ -106,6 +165,9 @@ export default function MapBlock() {
   // Флаг «пора грузить» переключается один раз; инициализация привязана к нему,
   // а не к status — иначе смена статуса перезапускала бы эффект и уничтожала карту.
   const [shouldLoad, setShouldLoad] = useState(false)
+  // Подложка с подсказкой на телефоне, пока карта не двигается одним пальцем
+  const [hint, setHint] = useState(false)
+  const tapRef = useRef(null)
 
   // Загрузка API, когда блок подходит к экрану
   useEffect(() => {
@@ -154,12 +216,14 @@ export default function MapBlock() {
       if (cancelled || !mapEl.current) return
 
       const coarse = window.matchMedia('(pointer: coarse)').matches
+      // На телефоне до первого касания без drag: одним пальцем прокручивается страница
+      const waitTap = coarse && !hintSeen()
       const map = new YMap(mapEl.current, {
-        location: { bounds: HOME_BOUNDS },
-        // Без scrollZoom: колесо прокручивает страницу. На телефоне без drag:
-        // одним пальцем прокручивается страница, двумя — двигают и масштабируют карту.
-        behaviors: coarse ? ['pinchZoom', 'dblClick'] : ['drag', 'dblClick'],
-        margin: [24, 24, 24, 24],
+        location: { bounds: START_BOUNDS },
+        zoomRounding: 'smooth',
+        // Без scrollZoom: колесо прокручивает страницу
+        behaviors: !coarse ? ['drag', 'dblClick'] : waitTap ? ['pinchZoom', 'dblClick'] : DRAG_BEHAVIORS,
+        margin: [MAP_MARGIN, MAP_MARGIN, MAP_MARGIN, MAP_MARGIN],
         copyrightsPosition: 'bottom right',
       })
       // Подложка (тайлы схемы) обязательна — без неё будут только точки на пустом поле
@@ -189,6 +253,7 @@ export default function MapBlock() {
       }
 
       mapRef.current = map
+      if (waitTap) setHint(true)
       setStatus('ready')
       track('map_view')
     }
@@ -214,6 +279,35 @@ export default function MapBlock() {
     mapRef.current?.setLocation({ bounds: HOME_BOUNDS, duration: 700 })
   }
 
+  // Касание карты (тап, а не начало прокрутки) снимает подложку и включает drag.
+  // Прокрутку страницы браузер начинает с pointercancel — такое касание не считается.
+  function unlockDrag() {
+    const map = mapRef.current
+    if (map) {
+      if (typeof map.setBehaviors === 'function') map.setBehaviors(DRAG_BEHAVIORS)
+      else map.update({ behaviors: DRAG_BEHAVIORS })
+    }
+    rememberHint()
+    setHint(false)
+  }
+  const tapHandlers = hint
+    ? {
+        onPointerDownCapture: (e) => {
+          tapRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
+        },
+        onPointerCancelCapture: () => {
+          tapRef.current = null
+        },
+        onPointerUpCapture: (e) => {
+          const start = tapRef.current
+          tapRef.current = null
+          if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 10 && Date.now() - start.t < 700) {
+            unlockDrag()
+          }
+        },
+      }
+    : {}
+
   function fallbackCta() {
     track('map_fallback_cta')
     requestCalcOpen()
@@ -235,13 +329,28 @@ export default function MapBlock() {
           </p>
 
           <div ref={wrapRef} className="mt-8 md:mt-10">
-            {/* До загрузки — чуть светлее фона плашка того же размера, без спиннера */}
-            <div
-              ref={mapEl}
-              className="h-[360px] overflow-hidden rounded-md bg-[rgba(244,234,223,0.06)] lg:h-[480px]"
-              aria-label="Карта: где стоят наши бани"
-              role={status === 'ready' ? undefined : 'img'}
-            />
+            <div className="relative" {...tapHandlers}>
+              {/* До загрузки — чуть светлее фона плашка того же размера, без спиннера */}
+              <div
+                ref={mapEl}
+                className="h-[360px] overflow-hidden rounded-md bg-[rgba(244,234,223,0.06)] lg:h-[480px]"
+                aria-label="Карта: где стоят наши бани"
+                role={status === 'ready' ? undefined : 'img'}
+              />
+              {/* Подложка с подсказкой (только телефон, до первого касания). Касания проходят
+                  сквозь неё: страница прокручивается, кнопки +/− и точки нажимаются.
+                  Подсказка по центру, на свободной полосе между Кумёнами и Нолинском. */}
+              {hint && (
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-md bg-[rgba(26,21,18,0.3)]">
+                  <span
+                    className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[rgba(26,21,18,0.88)] px-4 py-2 text-label text-surface"
+                    style={{ top: HINT_TOP }}
+                  >
+                    Нажмите, чтобы двигать карту
+                  </span>
+                </div>
+              )}
+            </div>
             {status === 'ready' && (
               <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-body">
                 <p>
