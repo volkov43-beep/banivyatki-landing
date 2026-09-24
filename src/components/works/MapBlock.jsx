@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { OBJECTS, KIROV_LABEL } from '../../data/objects.js'
+import { OBJECTS, KIROV_LABEL, PLACES_LINE } from '../../data/objects.js'
 import { loadYmaps } from '../../lib/ymaps.js'
 import { track } from '../../lib/track.js'
+import { requestCalcOpen } from '../../lib/calc.js'
 import Button from '../Button.jsx'
 
 /**
  * Карта «Где стоят наши бани» — нижняя, тёмная (ink) часть блока «Наши
- * работы» (SectionWorks): маленький заголовок, подзаголовок, карта, список
- * мест. Текст surface, второстепенный muted-on-dark.
+ * работы» (SectionWorks): маленький заголовок, подзаголовок, карта, строка
+ * «А ещё» и одна строка главных мест мелким шрифтом. Текст surface,
+ * второстепенный muted-on-dark.
  * Раньше была отдельным экраном; карта, данные, поведение и цели те же.
  *
- * Карта — Яндекс Карты, JavaScript API v3. Ключ из VITE_YMAPS_KEY (сборка);
- * без ключа, без сети или при ошибке API карты нет: остаются заголовок,
- * подзаголовок и текстовый список мест — без пустого прямоугольника.
+ * Карта — Яндекс Карты, JavaScript API v3. Ключ из VITE_YMAPS_KEY (сборка).
+ * Без ключа, без сети, при исчерпанном лимите или ошибке API карты нет:
+ * вместо подзаголовка и карты — текст о том, где стоят бани, и главная
+ * кнопка «Рассчитать доставку» в калькулятор (цель map_fallback_cta). Что
+ * карта не загрузилась, человеку не пишем.
  *
  * Скрипт API грузится только когда блок подходит к экрану (запас 300 px)
  * и один раз за визит: тариф бесплатный, лимит загрузок в сутки небольшой.
@@ -108,7 +112,7 @@ export default function MapBlock() {
     if (!KEY) {
       if (!warnedNoKey) {
         warnedNoKey = true
-        console.warn('Карта: ключ не передан в сборку (VITE_YMAPS_KEY пуст) — показан только список мест')
+        console.warn('Карта: ключ не передан в сборку (VITE_YMAPS_KEY пуст) — показан текст вместо карты')
       }
       return undefined
     }
@@ -210,6 +214,11 @@ export default function MapBlock() {
     mapRef.current?.setLocation({ bounds: HOME_BOUNDS, duration: 700 })
   }
 
+  function fallbackCta() {
+    track('map_fallback_cta')
+    requestCalcOpen()
+  }
+
   const showMap = status !== 'nokey' && status !== 'failed'
 
   return (
@@ -217,14 +226,15 @@ export default function MapBlock() {
       <h3 id="map-title" className="text-center text-[22px] font-bold leading-[1.2]">
         Где стоят наши бани
       </h3>
-      <p className="mx-auto mt-3 max-w-measure text-center text-body">
-        От Кирово-Чепецка до Нарьян-Мара — больше 300 Подков с 2019 года. На карте — места, где мы ставили бани
-        в последние два года.
-      </p>
 
-      <div ref={wrapRef} className="mt-8 md:mt-10">
-        {showMap && (
-          <>
+      {showMap ? (
+        <>
+          <p className="mx-auto mt-3 max-w-measure text-center text-body">
+            Возим и ставим бани по Кировской области, в Коми и дальше — от Краснодара до Нарьян-Мара. На карте —
+            места, где стоят наши бани.
+          </p>
+
+          <div ref={wrapRef} className="mt-8 md:mt-10">
             {/* До загрузки — чуть светлее фона плашка того же размера, без спиннера */}
             <div
               ref={mapEl}
@@ -236,12 +246,15 @@ export default function MapBlock() {
               <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-body">
                 <p>
                   <span className="text-muted-on-dark">А ещё: </span>
+                  {/* Запятая приклеена к месту, чтобы при переносе не начинать с неё строку */}
                   {FAR.map((place, i) => (
                     <span key={place.name}>
-                      {i > 0 && ', '}
-                      <Button variant="link" size="md" onClick={() => flyTo(place)} className="font-normal">
-                        {place.name}
-                      </Button>
+                      <span className="whitespace-nowrap">
+                        <Button variant="link" size="md" onClick={() => flyTo(place)} className="font-normal">
+                          {place.name}
+                        </Button>
+                        {i < FAR.length - 1 && ','}
+                      </span>{' '}
                     </span>
                   ))}
                 </p>
@@ -250,22 +263,24 @@ export default function MapBlock() {
                 </Button>
               </div>
             )}
-          </>
-        )}
 
-        {/* Все места текстом: для поиска и как запасной вариант без карты */}
-        <ul className={`list-none columns-2 gap-x-8 p-0 text-label leading-[1.6] text-muted-on-dark md:columns-3 ${showMap ? 'mt-8' : ''}`}>
-          <li>{KIROV_LABEL}</li>
-          {OBLAST.map((place) => (
-            <li key={place.name}>{place.name}</li>
-          ))}
-          {FAR.map((place) => (
-            <li key={place.name}>
-              {place.name} ({place.region === 'Республика Коми' ? 'Коми' : place.region})
-            </li>
-          ))}
-        </ul>
-      </div>
+            {/* Главные места одной строкой; остальные — только точками на карте.
+                Точка-разделитель приклеена к предыдущему месту неразрывным пробелом. */}
+            <p className="mt-6 max-w-measure text-label leading-[1.6] text-muted-on-dark">{PLACES_LINE.join('\u00a0· ')}</p>
+          </div>
+        </>
+      ) : (
+        // Запасной вариант без карты: текст и кнопка в калькулятор, о карте ни слова
+        <div className="mx-auto mt-4 flex max-w-measure flex-col items-center text-center">
+          <p className="text-body">
+            С 2012 года мы поставили больше 1000 бань. Больше всего — в Кирове и Кировской области, а ещё в Коми
+            и Ненецком округе, в Москве, Казани и Краснодаре. Скажите, где ваш участок, — посчитаем доставку.
+          </p>
+          <Button arrow fullMobile className="mt-8" onClick={fallbackCta}>
+            Рассчитать доставку
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
