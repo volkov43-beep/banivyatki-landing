@@ -5,7 +5,7 @@
  * Иконки по правилам иконок: только линии 1,5 px (толщина держится на любом
  * размере через non-scaling-stroke), скруглённые концы и стыки, без заливок,
  * цвет currentColor, aria-hidden — смысл несёт слово рядом.
- * Размеры: 18 в начале зоны карточки, 16 в легенде, 14 в подписях под чертежом с обеими банями.
+ * Размеры: 18 в начале зоны карточки, 14 в подписях под чертежом с обеими банями.
  */
 const KINDS = {
   barrel: {
@@ -36,24 +36,6 @@ export function BathIcon({ kind, size = 18, className = '' }) {
     >
       {KINDS[kind].shape}
     </svg>
-  )
-}
-
-/** Легенда под большой схемой: в строку от 600 px, ниже — в две строки. */
-export function BathLegend({ className = '' }) {
-  return (
-    <ul
-      className={`flex list-none flex-col items-center gap-2 p-0 text-[13px] leading-[1.3] text-muted-on-dark min-[600px]:flex-row min-[600px]:justify-center min-[600px]:gap-8 ${className}`}
-    >
-      <li className="flex items-center gap-2">
-        <BathIcon kind="barrel" size={16} />
-        обычная баня-бочка
-      </li>
-      <li className="flex items-center gap-2">
-        <BathIcon kind="podkova" size={16} />
-        Подкова
-      </li>
-    </ul>
   )
 }
 
