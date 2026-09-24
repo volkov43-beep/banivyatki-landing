@@ -22,8 +22,9 @@ const BADGE_R = 46 // кружок с номером на телефоне (≈1
  * labels: [{ n, x, y, lines, anchor, leader: { from: [x, y], to: [x, y] }, badge: [x, y] }]
  *   x, y — начало первой строки (baseline); lines — строки текста;
  *   leader — выноска от подписи к точке на рисунке; badge — центр кружка с номером.
+ * footer — необязательная строка сразу под картинкой (подписи «бочка / Подкова»).
  */
-export default function LabeledDrawing({ src, width, height, label, labels }) {
+export default function LabeledDrawing({ src, width, height, label, labels, footer }) {
   const ref = useRef(null)
   useUnitScale(ref, width)
 
@@ -108,6 +109,8 @@ export default function LabeledDrawing({ src, width, height, label, labels }) {
           </g>
         ))}
       </svg>
+
+      {footer}
 
       {/* Список подписей под картинкой — до 600 px */}
       <ol className="mt-3 flex list-none flex-col gap-1.5 p-0 text-label text-muted-on-dark min-[600px]:hidden">

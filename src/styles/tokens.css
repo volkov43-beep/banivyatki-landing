@@ -19,6 +19,7 @@
      и на фоне ink не дотягивают до AA. На тёмном фоне использовать только их. */
   --color-muted-on-dark: #9aa396; /* подписи, второстепенный текст, линии на фоне ink */
   --color-alert-on-dark: #d9663a; /* проблемные места на схеме на фоне ink */
+  --color-podkova: #7fb069;       /* «это Подкова» на тёмном фоне, пара к alert-on-dark («это бочка») в блоке сравнения */
 
   /* Типографика — одна гарнитура, веса 400 и 700 */
   --font-family-sans: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

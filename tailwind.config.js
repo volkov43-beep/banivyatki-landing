@@ -15,6 +15,7 @@ export default {
         alert: 'var(--color-alert)',
         'muted-on-dark': 'var(--color-muted-on-dark)',
         'alert-on-dark': 'var(--color-alert-on-dark)',
+        podkova: 'var(--color-podkova)',
       },
       fontFamily: {
         sans: 'var(--font-family-sans)',
