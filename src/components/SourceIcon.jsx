@@ -4,16 +4,21 @@ const BASE = import.meta.env.BASE_URL
 
 /**
  * Иконка площадки (Авито, Яндекс Карты) из официальных файлов.
- * shape="round" — круглая, для карточек (показ 40 → файл 80, 28 → 56, 56 → 112);
- * shape="square" — квадратная со скруглением, для плашек рейтинга (показ 64 → файл 128).
- * Файлы в public/photos/ лежат в двойной плотности. Тень как у логотипа в шапке, но мягче.
+ * shape="round" — круглая, для карточек (файлы 56 / 80 / 112: берётся
+ * наименьший не меньше двойной плотности показа — 18 → 56, 40 → 80);
+ * shape="square" — квадратная со скруглением, для плашек рейтинга (файл 128).
+ * Тень как у логотипа в шапке, но мягче.
  */
+const FILES = { round: [56, 80, 112], square: [128] }
+
 export default function SourceIcon({ source, size, shape = 'round', className = '' }) {
   const { icon, ratingIcon, name } = SOURCES[source]
   const file = shape === 'square' ? ratingIcon : icon
+  const sizes = FILES[shape]
+  const px = sizes.find((s) => s >= size * 2) ?? sizes[sizes.length - 1]
   return (
     <img
-      src={`${BASE}photos/${file}-${size * 2}.webp`}
+      src={`${BASE}photos/${file}-${px}.webp`}
       width={size}
       height={size}
       alt={name}
