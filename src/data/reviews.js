@@ -36,7 +36,7 @@ export const SOURCES = {
 }
 
 export const REVIEWS_TITLE = 'Что говорят владельцы бань'
-export const REVIEWS_SUBTITLE = 'Отзывы с Яндекс Карт и Авито. Тексты приводим как есть, сокращаем только длинные.'
+export const REVIEWS_SUBTITLE = 'Отзывы с Яндекс Карт и Авито.'
 
 /** Сколько карточек видно до кнопки «Показать ещё N отзывов» (на всех ширинах). */
 export const VISIBLE = 6
