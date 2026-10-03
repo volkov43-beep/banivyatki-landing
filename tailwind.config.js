@@ -13,6 +13,7 @@ export default {
         'accent-active': 'var(--color-accent-active)',
         muted: 'var(--color-muted)',
         alert: 'var(--color-alert)',
+        price: 'var(--color-price)',
         'muted-on-dark': 'var(--color-muted-on-dark)',
         'alert-on-dark': 'var(--color-alert-on-dark)',
         podkova: 'var(--color-podkova)',
