@@ -1,121 +1,90 @@
-import { useEffect, useState } from 'react'
-import ReviewCard from './ReviewCard.jsx'
-import SourceIcon from './SourceIcon.jsx'
-import RatingStars from './RatingStars.jsx'
+import { useState } from 'react'
+import OwnerReviewCard from './reviews/OwnerReviewCard.jsx'
+import PhotoViewer from './reviews/PhotoViewer.jsx'
 import Button from './Button.jsx'
-import { REVIEWS, SOURCES, MOBILE_VISIBLE } from '../data/reviews.js'
+import { REVIEWS, REVIEWS_TITLE, REVIEWS_SUBTITLE, SOURCES, VISIBLE } from '../data/reviews.js'
 import { track } from '../lib/track.js'
 
-const DESKTOP = '(min-width: 1024px)'
-
-function useDesktop() {
-  const [desktop, setDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia(DESKTOP).matches)
-  useEffect(() => {
-    const mq = window.matchMedia(DESKTOP)
-    const onChange = (e) => setDesktop(e.matches)
-    mq.addEventListener('change', onChange)
-    setDesktop(mq.matches)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return desktop
-}
-
 /**
- * Каскад в две колонки без дыр: первые два отзыва открывают обе колонки,
- * остальные по очереди уходят в ту колонку, что пока короче. Высота
- * оценивается по длине текста плюс постоянная часть карточки (метка, подпись,
- * ссылка, поля) — этого достаточно, чтобы колонки заканчивались вровень.
- */
-const CARD_OVERHEAD = 160
-
-function splitColumns(reviews) {
-  const columns = [[], []]
-  const weight = [0, 0]
-  reviews.forEach((review, index) => {
-    const col = index < 2 ? index : weight[0] <= weight[1] ? 0 : 1
-    columns[col].push(review)
-    weight[col] += review.text.length + CARD_OVERHEAD
-  })
-  return columns
-}
-
-/**
- * Экран «Отзывы». Светлый фон surface. Каждый отзыв настоящий и проверяемый:
- * имя как на площадке, дата, источник. Ссылок на площадки нет.
- * От 1024 px — две колонки каскадом; до 1023 px — одна колонка, сначала
- * три отзыва и кнопка «Показать ещё отзывы». Без карусели.
+ * Экран «Отзывы» (#reviews) на surface-2: заголовок и строка-подзаголовок
+ * по центру, десять карточек (reviews/OwnerReviewCard, данные data/reviews.js).
+ * От 1024 px три в ряд, от 768 px две, ниже одна; в ряду карточки одной
+ * высоты. Сначала видны шесть, под ними второстепенная кнопка по центру
+ * «Показать ещё N отзывов» — раскрывает остальные на месте, затем
+ * «Свернуть». Без карусели, без плашек рейтинга и без ссылок на площадки.
+ *
+ * Цели: review_expand (раскрыли текст, label — тезис), review_photo_open
+ * (открыли фото, label), reviews_show_more (раскрыли остальные карточки).
  */
 export default function SectionReviews() {
-  const desktop = useDesktop()
-  const [expanded, setExpanded] = useState(false)
-  // Раскрытые отзывы храним здесь, а не в карточке: при смене раскладки
-  // (две колонки ↔ одна) карточки перемонтируются, а раскрытие остаётся.
+  const [showAll, setShowAll] = useState(false)
+  // Раскрытые тексты храним здесь, чтобы не терять при «Свернуть» списка
   const [openIds, setOpenIds] = useState(() => new Set())
-  const toggleOpen = (id) =>
+  const [viewer, setViewer] = useState(null) // { review, index }
+
+  function toggleText(review) {
     setOpenIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(review.id)) next.delete(review.id)
+      else {
+        next.add(review.id)
+        track('review_expand', { label: review.label })
+      }
       return next
     })
-  const card = (review) => (
-    <ReviewCard tone="surface" key={review.id} review={review} expanded={openIds.has(review.id)} onToggle={() => toggleOpen(review.id)} />
-  )
-
-  function showMore() {
-    setExpanded(true)
-    track('reviews_show_more')
   }
 
-  const mobileList = expanded ? REVIEWS : REVIEWS.slice(0, MOBILE_VISIBLE)
-  const hiddenCount = REVIEWS.length - MOBILE_VISIBLE
+  function openPhoto(review, index) {
+    track('review_photo_open', { label: review.label })
+    setViewer({ review, index })
+  }
+
+  function toggleAll() {
+    if (!showAll) track('reviews_show_more')
+    setShowAll((v) => !v)
+  }
+
+  const list = showAll ? REVIEWS : REVIEWS.slice(0, VISIBLE)
+  const hidden = REVIEWS.length - VISIBLE
 
   return (
     <section id="reviews" aria-labelledby="reviews-title" className="bg-surface-2 py-section-y text-ink md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
         <h2 id="reviews-title" className="text-center text-heading">
-          Что говорят владельцы бань
+          {REVIEWS_TITLE}
         </h2>
+        <p className="mx-auto mt-4 max-w-measure text-center text-body text-muted">{REVIEWS_SUBTITLE}</p>
 
-        {/* Рейтинги плашками: квадратная иконка площадки, оценка со звёздами, число отзывов. Без ссылок. */}
-        <ul className="mt-8 flex list-none flex-col gap-4 p-0 md:flex-row md:gap-6">
-          {[SOURCES.avito, SOURCES.yandex].map((source) => (
-            <li key={source.id} className="flex items-center gap-4 rounded-md bg-surface px-5 py-4 md:min-w-[300px]">
-              <SourceIcon source={source.id} size={64} shape="square" />
-              <div>
-                <div className="flex items-center gap-3">
-                  <p className="text-[28px] font-bold leading-none">{source.rating}</p>
-                  <RatingStars rating={source.rating} id={`rating-${source.id}`} />
-                </div>
-                <p className="mt-1.5 text-label text-muted">
-                  {source.name} · {source.count}
-                </p>
-              </div>
-            </li>
+        <ul className="mt-12 grid list-none grid-cols-1 gap-6 p-0 md:mt-16 md:grid-cols-2 lg:grid-cols-3">
+          {list.map((review, i) => (
+            <OwnerReviewCard
+              key={review.id}
+              review={review}
+              index={i}
+              expanded={openIds.has(review.id)}
+              onToggle={() => toggleText(review)}
+              onOpenPhoto={(index) => openPhoto(review, index)}
+            />
           ))}
         </ul>
 
-        {desktop ? (
-          <div className="mt-12 grid grid-cols-2 gap-6 md:mt-16">
-            {splitColumns(REVIEWS).map((column, i) => (
-              <ul key={i} className="flex list-none flex-col gap-6 p-0">
-                {column.map(card)}
-              </ul>
-            ))}
+        {hidden > 0 && (
+          <div className="mt-10 text-center md:mt-12">
+            <Button variant="secondary" scheme="light" onClick={toggleAll} aria-expanded={showAll} fullMobile>
+              {showAll ? 'Свернуть' : `Показать ещё ${hidden} отзыва`}
+            </Button>
           </div>
-        ) : (
-          <>
-            <ul className="mt-12 flex list-none flex-col gap-6 p-0 md:mt-16">
-              {mobileList.map(card)}
-            </ul>
-            {!expanded && hiddenCount > 0 && (
-              <Button variant="secondary" onClick={showMore} full className="mt-6">
-                Показать ещё отзывы
-              </Button>
-            )}
-          </>
         )}
       </div>
+
+      {viewer && (
+        <PhotoViewer
+          review={viewer.review}
+          sourceName={SOURCES[viewer.review.source].name}
+          start={viewer.index}
+          onClose={() => setViewer(null)}
+        />
+      )}
     </section>
   )
 }
