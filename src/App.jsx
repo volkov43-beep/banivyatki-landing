@@ -1,12 +1,13 @@
 import Header from './components/Header.jsx'
 import SectionHero from './components/SectionHero.jsx'
+import SectionProjects from './components/SectionProjects.jsx'
+import SectionWorks from './components/SectionWorks.jsx'
+import SectionReviews from './components/SectionReviews.jsx'
+import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionBenefits from './components/SectionBenefits.jsx'
 import SectionComparison from './components/SectionComparison.jsx'
-import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionInside from './components/SectionInside.jsx'
-import SectionWorks from './components/SectionWorks.jsx'
 import SectionProcess from './components/SectionProcess.jsx'
-import SectionReviews from './components/SectionReviews.jsx'
 import SectionShowroom from './components/SectionShowroom.jsx'
 import SectionFaq from './components/SectionFaq.jsx'
 import SectionFinal from './components/SectionFinal.jsx'
@@ -18,13 +19,14 @@ export default function App() {
       <Header />
       <main>
         <SectionHero />
+        <SectionProjects />
+        <SectionWorks />
+        <SectionReviews />
+        <SectionCalculator />
         <SectionBenefits />
         <SectionComparison />
         <SectionInside />
-        <SectionWorks />
-        <SectionCalculator />
         <SectionProcess />
-        <SectionReviews />
         <SectionShowroom />
         <SectionFaq />
         <SectionFinal />

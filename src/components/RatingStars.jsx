@@ -11,8 +11,12 @@ const STAR_PATH =
  * полных и половина пятой (левая половина accent, правая пустая).
  * Пустая звезда — muted с непрозрачностью 35 %.
  * `rating` — строка как на площадке («4,5») или число.
+ *
+ * `outline` — вариант для тёмного фона (плашка на первом экране) по правилам
+ * иконок: контур accent 1,5 px со скруглёнными стыками у каждой звезды,
+ * пустая звезда без заливки, заполненная доля — заливка accent.
  */
-export default function RatingStars({ rating, id }) {
+export default function RatingStars({ rating, id, outline = false }) {
   const value = typeof rating === 'number' ? rating : parseFloat(String(rating).replace(',', '.'))
   const label = `Рейтинг ${String(rating).replace('.', ',')} из 5`
   const width = COUNT * STAR + (COUNT - 1) * GAP
@@ -32,7 +36,17 @@ export default function RatingStars({ rating, id }) {
         const clipId = `${id}-star-${i}`
         return (
           <g key={i} transform={`translate(${x} 0)`}>
-            <path d={STAR_PATH} fill="var(--color-muted)" fillOpacity="0.35" />
+            {outline ? (
+              <path
+                d={STAR_PATH}
+                fill="none"
+                stroke="var(--color-accent)"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            ) : (
+              <path d={STAR_PATH} fill="var(--color-muted)" fillOpacity="0.35" />
+            )}
             {fill > 0 && (
               <>
                 {fill < 1 && (
