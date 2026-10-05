@@ -2,6 +2,12 @@
  * Данные калькулятора. Цены правятся только здесь.
  * Минимальная цена (293 000 ₽) обязана совпадать с ценой на первом экране —
  * SectionHero берёт её из MIN_PRICE.
+ *
+ * photo: строка — один файл из фотобанка (тёплый сезон, летние кадры
+ * size-*.webp, 800 × 600); объект { name, alt } — две ширины
+ * public/photos/<name>-1280.webp и -640.webp (круглый год — зимние кадры
+ * kalkulyator-zima-*, 4:3): та же баня в снегу, разница между вкладками
+ * видна сразу.
  */
 
 export const SEASONS = [
@@ -72,7 +78,7 @@ export const CARDS = {
       title: 'Попариться и переодеться',
       size: '3 м',
       layout: 3,
-      photo: 'photos/size-3m.webp',
+      photo: { name: 'kalkulyator-zima-3m', alt: 'Баня-Подкова 3 метра зимой на участке' },
       price: 333000,
       inside: 'Парная и раздевалка. Утеплённая парная, двойной проливной пол, вентиляция, электрика',
       delivery: DELIVERY_BY_ADDRESS,
@@ -82,7 +88,7 @@ export const CARDS = {
       title: 'Попариться и посидеть после',
       size: '3,5–4,5 м',
       layout: 4.5,
-      photo: 'photos/size-4-5m.webp',
+      photo: { name: 'kalkulyator-zima-45m', alt: 'Баня-Подкова 4,5 метра зимой на участке' },
       price: 363000,
       inside: 'Парная и комната отдыха. Утеплённая парная, двойной проливной пол, вентиляция, электрика',
       delivery: DELIVERY_BY_ADDRESS,
@@ -92,7 +98,7 @@ export const CARDS = {
       title: 'Помыться и остаться на вечер',
       size: '6 м',
       layout: 6,
-      photo: 'photos/size-6m.webp',
+      photo: { name: 'kalkulyator-zima-6m', alt: 'Баня-Подкова 6 метров зимой на участке' },
       price: 515000,
       inside:
         'Парная, моечная и комната отдыха. Утеплённая парная, двойной проливной пол, вентиляция, электрика',
