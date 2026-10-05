@@ -97,11 +97,18 @@ npx -y sharp-cli -i PROZ6025_HDR.jpg -o public/photos/pech.webp resize 1200 -f w
 Координаты мест: `VITE_YMAPS_KEY=… node scripts/geocode.mjs` — скрипт
 спрашивает HTTP Геокодер и переписывает `src/data/objects.js`.
 
-## ⚠️ Формы пока никуда не отправляют заявки
+## Заявки → Битрикс24
 
-**Не запускать рекламу до подключения Битрикс24.** Вся отправка идёт через
-одну функцию `submitLead(payload)` в `src/lib/submitLead.js`; сейчас она
-только пишет заявку в `console.log` и возвращает успех.
+Вся отправка идёт через одну функцию `submitLead(payload)` в
+`src/lib/submitLead.js`: POST с JSON на `/api/lead.php`. Обработчик
+`public/api/lead.php` (на сервере `public_html/api/lead.php`) ищет контакт
+по телефону, создаёт его при отсутствии и создаёт сделку. Логика — в
+`server/lib.php` (на сервере `private/lib.php`), повторная отправка из
+очереди — `server/retry.php` (`private/retry.php`, планировщик раз в 5
+минут), секреты — только в `private/config.php` на сервере (образец
+`server/config.sample.php`). Папка `server/` в сборку не попадает.
+Тесты: `php server/tests/phone.test.php`, `php server/tests/handler.test.php`.
+Подробности — в `CLAUDE.md`, раздел «Формы и заявки».
 
 ## Калькулятор
 
@@ -111,15 +118,17 @@ npx -y sharp-cli -i PROZ6025_HDR.jpg -o public/photos/pech.webp resize 1200 -f w
 строкой: «Доставка — рассчитаем по адресу», кроме вариантов, где входит в цену.
 
 Состав `payload` заявки: `form`, `season`, `card_id`, `card_title`, `size`,
-`price_shown`, `phone`, `name`, `company`/`comment` (только для бизнеса),
-`contact_method`, `utm_*`, `page_url`, `submitted_at`. UTM-метки сохраняются
+`option_shown`, `price_shown`, `phone`, `name`, `company`/`comment` (только
+для бизнеса), `contact_method`, `utm_*`, `page_url`, `referrer`,
+`submitted_at`, `elapsed_ms`, `website` (ловушка). UTM-метки сохраняются
 в `sessionStorage` при первом заходе (`src/lib/utm.js`).
 
 Обещание перезвонить считается по московскому времени (`src/lib/callback.js`);
 для проверки время подменяется параметром `?now=2026-09-26T20:00`.
 
-Цели Яндекс.Метрики — `track(goal)` в `src/lib/track.js`; номер счётчика
-`YM_COUNTER_ID` пока `null`, без счётчика функция ничего не делает.
+Цели Яндекс.Метрики — `track(goal)` в `src/lib/track.js`, счётчик
+113423850 подключён в `index.html`; цели отправки форм уходят только при
+успешном ответе обработчика.
 
 Страница политики конфиденциальности — `/privacy/` (`privacy/index.html`,
 `src/pages/PrivacyPage.jsx`), собирается как вторая страница Vite.

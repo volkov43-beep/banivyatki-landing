@@ -76,6 +76,8 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
       ...getUtm(),
       page_url: window.location.href,
       submitted_at: new Date().toISOString(),
+      elapsed_ms: Date.now() - mountedAt.current,
+      website: trap,
     }
 
     setStatus('sending')
@@ -172,7 +174,7 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
 
       {status === 'error' && (
         <p role="alert" className="mt-5 text-body text-alert">
-          Заявка не отправилась. Позвоните нам:{' '}
+          Не удалось отправить заявку. Позвоните нам или попробуйте ещё раз:{' '}
           <a href={`tel:${PHONE.tel}`} className="font-bold text-ink no-underline">
             {PHONE.display}
           </a>
@@ -180,7 +182,7 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
       )}
 
       <Button type="submit" disabled={status === 'sending'} aria-disabled={!canSubmit} fullMobile className="mt-6">
-        {submitLabel}
+        {status === 'sending' ? 'Отправляем…' : submitLabel}
       </Button>
       <p className="mt-3 text-label text-muted">{promise}</p>
     </form>
