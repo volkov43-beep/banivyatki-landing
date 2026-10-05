@@ -7,8 +7,9 @@ import { EQUIPMENT_VISIBLE, formatWorkPrice } from '../../data/works.js'
  * Карточка объекта: главное фото 4:3 (кнопка — открывает увеличение),
  * под ним подпись из трёх частей: строка объекта (text-body, ink),
  * комплектация через запятую (15 px, muted), цена отдельной строкой
- * (text-title, price — тёмно-зелёный для светлого фона); ниже ссылка-кнопка
- * «Рассчитать такую» (Button variant="link"). У объекта без `equipment`,
+ * (text-title, price — тёмно-зелёный для светлого фона); ниже второстепенная
+ * кнопка «Рассчитать такую» (Button secondary md: рамка accent, прозрачный фон,
+ * ширина по содержимому, по левому краю). У объекта без `equipment`,
  * `price` и `calc` («Доставка и установка») — только строка объекта.
  *
  * Комплектация: видны первые EQUIPMENT_VISIBLE пунктов, остальные за
@@ -63,7 +64,7 @@ export default function WorkCard({ work, onOpen, onCalc }) {
         <div className="mt-auto pt-2">
           {work.price != null && <p className="text-title text-price">{formatWorkPrice(work.price)}</p>}
           {work.calc && (
-            <Button variant="link" size="lg" onClick={() => onCalc(work)} className="mt-2 self-start">
+            <Button variant="secondary" scheme="light" size="md" onClick={() => onCalc(work)} className="mt-3">
               Рассчитать такую
             </Button>
           )}
