@@ -66,7 +66,7 @@ async function geocode(query) {
   url.searchParams.set('lang', 'ru_RU')
   url.searchParams.set('results', '5')
   url.searchParams.set('geocode', query)
-  const res = await fetch(url, { headers: { Referer: 'https://volkov43-beep.github.io/' } })
+  const res = await fetch(url, { headers: { Referer: 'https://banivyatki.ru/' } })
   if (!res.ok) throw new Error(`HTTP ${res.status} для «${query}»`)
   const json = await res.json()
   const members = json.response?.GeoObjectCollection?.featureMember || []

@@ -6,15 +6,20 @@
 Каждый блок заканчивается числом или проверяемым фактом.
 
 Репозиторий публичный: https://github.com/volkov43-beep/banivyatki-landing
-Сайт: https://volkov43-beep.github.io/banivyatki-landing/ (позже — banivyatki.ru).
+Сайт: https://banivyatki.ru — хостинг Beget, в корне домена, выкладка по FTP
+из GitHub Actions. Старый адрес volkov43-beep.github.io/banivyatki-landing/
+отдаёт только страницу-переадресацию.
 
 ## Правила безопасности (читать первыми)
 
 - Репозиторий публичный: никаких ключей, вебхуков, токенов и паролей в коде
   и в истории коммитов. Ключи только через переменные окружения (`.env`,
   в `.gitignore`) и секреты GitHub Actions: ключ Яндекс Карт — только через
-  секрет `VITE_YMAPS_KEY`, его значение не печатать ни в чат, ни в консоль,
-  ни в логи сборки. Проверять `git log -p -S` перед пушем.
+  секрет `VITE_YMAPS_KEY`, доступ к FTP Beget — только через секреты
+  `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`; их значения не печатать ни
+  в чат, ни в консоль, ни в логи сборки (GitHub маскирует секреты в журнале,
+  но `echo` и отладочный вывод действий всё равно не включать). Проверять
+  `git log -p -S` перед пушем.
 - Никаких персональных данных клиентов: имён, телефонов, адресов, ссылок на
   их страницы. В данные сайта попадают только населённые пункты
   (`src/data/objects.js`). Отзывы — только с именем как на площадке и датой.
@@ -43,17 +48,49 @@
   `npm run preview` (просмотр сборки).
 - Две страницы Vite: `index.html` (лендинг) и `privacy/index.html` (`/privacy/`).
   Входы заданы в `vite.config.js`.
-- Пути к файлам из `public/` в коде — через `import.meta.env.BASE_URL`,
-  в HTML — через `%BASE_URL%`. Иначе на GitHub Pages ссылки сломаются.
+- Базовый путь — корень домена: `base: '/'` в `vite.config.js`, флаг
+  `--base` в сборке не передаётся. Пути к файлам из `public/` в коде —
+  по-прежнему через `import.meta.env.BASE_URL`, в HTML — через `%BASE_URL%`
+  (руками `/photos/…` не писать: если сайт когда-нибудь снова окажется
+  в подпапке, достаточно поменять `base`).
+- `public/.htaccess` попадает в корень `dist/` при каждой сборке: переадресация
+  `www.banivyatki.ru` → `banivyatki.ru` (301), gzip для html/css/js/svg/json,
+  кэш статики на год (`Cache-Control: public, max-age=31536000`), html без
+  кэша (`no-cache`), `Options -Indexes`. Переадресацию HTTP → HTTPS не
+  прописывать: она включена на стороне хостинга, два правила конфликтуют.
 - Переменные окружения: `VITE_YMAPS_KEY` — ключ Яндекс Карт (см. `.env.example`).
 
-### Деплой на GitHub Pages
+### Деплой на Beget (banivyatki.ru)
 
-Workflow `.github/workflows/deploy-pages.yml`: при пуше в `main` (или вручную
-через «Run workflow») собирает сайт с `--base=/banivyatki-landing/` и публикует
-`dist/` через `actions/deploy-pages`. Ключ карт передаётся в сборку из секрета
-репозитория `VITE_YMAPS_KEY` (Settings → Secrets and variables → Actions).
-В Settings → Pages источник должен быть «GitHub Actions».
+Workflow `.github/workflows/deploy-beget.yml`: при пуше в `main` (или вручную
+через «Run workflow») собирает сайт (`npm run build`, ключ карт из секрета
+`VITE_YMAPS_KEY`), проверяет, что в `dist/` есть `index.html`,
+`privacy/index.html` и `.htaccess` и нет строки `banivyatki-landing`, и
+выкладывает `dist/` по FTP действием `SamKirkland/FTP-Deploy-Action`
+(секреты `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`). FTP-аккаунт привязан
+к папке сайта, поэтому `server-dir: ./` — корень `public_html`, путей
+вроде `/<домен>/public_html` в настройках нет. Полная очистка папки
+(`dangerous-clean-slate`) выключена: действие ведёт файл состояния
+`.ftp-deploy-sync-state.json` в корне сайта и удаляет только то, что само
+выложило раньше (старые хэшированные бандлы); файлы, которых в сборке
+никогда не было (PHP-обработчик заявок), не трогает. `log-level: minimal`.
+Протокол — обычный FTP (как в задании); если Beget принимает FTPS,
+можно переключить `protocol: ftps` отдельным решением.
+
+Выкладка идёт **автоматически после каждого мержа в `main`** — вливать PR
+значит публиковать.
+
+### Старый адрес на GitHub Pages
+
+`.github/workflows/pages-redirect.yml` публикует на GitHub Pages одну
+страницу `pages-redirect/index.html`: `<meta http-equiv="refresh">` и
+`location.replace` на `https://banivyatki.ru/`, `canonical` на новый адрес,
+`<meta name="robots" content="noindex">`, без счётчика Метрики. Запускается
+при изменении этой страницы или самого workflow в `main` и вручную.
+В Settings → Pages источник остаётся «GitHub Actions». Прежний workflow
+`deploy-pages.yml` удалён. Вложенные старые адреса (например
+`…/banivyatki-landing/privacy/`) на Pages отдают 404 — одна страница по
+заданию, `404.html` не добавлялась.
 
 Рабочий процесс: каждое задание — в ветке от свежего `main`, коммиты, push,
 pull request; вливает владелец (или по его прямой просьбе в чате). После
@@ -84,6 +121,11 @@ pull request; вливает владелец (или по его прямой �
 ## Структура
 
 ```
+.github/workflows/
+  deploy-beget.yml            — сборка и выкладка dist/ на Beget по FTP при пуше в main
+  pages-redirect.yml          — страница-переадресация на GitHub Pages (старый адрес)
+pages-redirect/index.html     — та самая страница: refresh + canonical на banivyatki.ru, noindex
+public/.htaccess              — Apache: www → без www, gzip, кэш статики, без листинга
 index.html                    — лендинг: счётчик Яндекс.Метрики 113423850 в начале <head> (noscript —
                                 первым в <body>), preload картинки первого экрана (одна ссылка, подбирается
                                 скриптом под ширину экрана — иначе Firefox ругается на media), favicon
@@ -965,6 +1007,10 @@ goal, params)`. Если `window.ym` нет (блокировщик, нет се
   только готовые WebP. Если файл заменяется под тем же именем — старые
   ширины удаляются автоматически, иначе удалить неиспользуемые.
 - `<img>`: `loading="lazy"`, явные `width` и `height`, скругление 6 px.
+- Статика кэшируется на год (`.htaccess`), а имена фото не хэшируются:
+  замена кадра **под тем же именем** у вернувшихся посетителей может не
+  обновиться до года. Новый кадр — лучше под новым именем (номер или
+  суффикс), старые файлы удалить.
 
 - Только WebP в `public/photos/`, оригиналы (JPG/PNG с фотосессии и от
   дизайнера) в репозиторий не коммитить. В самих снимках ничего не менять:
@@ -1025,7 +1071,8 @@ goal, params)`. Если `window.ym` нет (блокировщик, нет се
 
 ## Проверка перед пушем
 
-- `npm run build` без ошибок.
+- `npm run build` без ошибок; в `dist/` есть `.htaccess`, нет строки
+  `banivyatki-landing` (это же проверяет шаг «Проверка сборки» в workflow).
 - Скриншоты на 1440, 1024, 768, 390 через Playwright с Chromium из
   `/opt/pw-browsers` (`executablePath: '/opt/pw-browsers/chromium'`).
   Playwright ставить в отдельной папке вне репозитория. Google Fonts в
@@ -1233,12 +1280,14 @@ goal, params)`. Если `window.ym` нет (блокировщик, нет се
 - **FAQ, ответы № 3, 4, 13** — подтвердить у владельца формулировки (список
   в «Известных проблемах»). Вопрос № 19 про возврат аванса — нужно
   решение Ильи.
-- **Переезд на banivyatki.ru.** Ничего не начато. Нужно: хостинг Beget
-  (PHP 8.3, SSL Let's Encrypt), сборка с `--base=/`, деплой вместо GitHub
-  Pages (workflow по SFTP/FTP на Beget или ручная выгрузка `dist/`), Referer
-  ключа карт уже включает `banivyatki.ru` и `www.banivyatki.ru`, `page_url`
-  в заявках подтянется сам. Ждём: доступ к хостингу у владельца (в чат не
-  передавать) и решение, когда переезжать (после Битрикса или до).
+- **Переезд на banivyatki.ru.** Сделано: `base: '/'`, workflow выкладки
+  на Beget по FTP, `.htaccess`, страница-переадресация на GitHub Pages,
+  Referer в `scripts/geocode.mjs` — `https://banivyatki.ru/`. Осталось:
+  первая выкладка после мержа и проверка владельцем вживую (главная,
+  `/privacy/`, фото, карта с ключом, `www` → без `www`, HTTPS, заголовки
+  кэша, старый адрес переадресует). Канонического адреса, og-тегов,
+  `robots.txt`, `sitemap.xml` в проекте нет и не создавались — отдельное
+  задание, если понадобятся. Ждём: отчёт владельца о живом сайте.
 
 ### Известные проблемы (статус)
 
@@ -1259,4 +1308,4 @@ goal, params)`. Если `window.ym` нет (блокировщик, нет се
 Формы уходят в Битрикс24 · цели считаются в Метрике · карта работает на
 телефоне · политика открывается · FAQ подтверждён · скриншоты 1440 / 1024 /
 768 / 390 · нет горизонтального скролла · `git log -p -S` без ключей ·
-сайт на `banivyatki.ru` (если переезд до запуска).
+сайт на `banivyatki.ru` проверен вживую после первой выкладки.
