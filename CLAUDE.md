@@ -55,9 +55,36 @@
   в подпапке, достаточно поменять `base`).
 - `public/.htaccess` попадает в корень `dist/` при каждой сборке: переадресация
   `www.banivyatki.ru` → `banivyatki.ru` (301), gzip для html/css/js/svg/json,
-  кэш статики на год (`Cache-Control: public, max-age=31536000`), html без
-  кэша (`no-cache`), `Options -Indexes`. Переадресацию HTTP → HTTPS не
+  `Options -Indexes`, кэш по таблице ниже. Переадресацию HTTP → HTTPS не
   прописывать: она включена на стороне хостинга, два правила конфликтуют.
+  Проверять на настоящем Apache (в песочнице ставится `apt-get install
+  apache2`, конфиг с `AllowOverride All` на `dist/`, модули rewrite,
+  headers, expires, deflate), а не на глаз.
+
+  | Что | `Cache-Control` | Почему |
+  | --- | --- | --- |
+  | `/assets/*` (css, js с хешем в имени) | `public, max-age=31536000, immutable` — год | при изменении меняется имя файла; правило в `<If "%{REQUEST_URI} =~ m#^/assets/#">`, оно применяется после `<FilesMatch>` |
+  | шрифты (woff2, woff, ttf, otf) | год | на странице их нет (Google Fonts), правило на будущее |
+  | картинки вне `/assets/` (webp, png, jpg, svg, ico: фото, favicon, og) | `public, max-age=604800` — 7 дней | имена постоянные, кадры заменяются под тем же именем |
+  | html | `no-cache` | всегда перепроверяется |
+
+  `mod_expires` дублирует те же сроки в `Expires`. Строгого года для фото
+  **не ставить**: вернувшийся посетитель месяцами видел бы старый кадр.
+- SEO-теги в `<head>` главной: `canonical` `https://banivyatki.ru/`,
+  `description` (160 символов, собран из фраз первого экрана и подвала,
+  цены нет — она считается из `MIN_PRICE`, а в HTML попала бы руками),
+  `og:type` website, `og:url`, `og:title` (= `<title>`), `og:description`
+  (= `description`), `og:image` `https://banivyatki.ru/og-banivyatki.jpg`
+  с `og:image:width/height` 1200 × 630, `og:locale` ru_RU, `og:site_name`
+  «Бани Вятки», `twitter:card` summary_large_image. Менять текст описания
+  или заголовка — в обоих местах (`description` и `og:description`).
+  `public/og-banivyatki.jpg` — кадр первого экрана `hero-autumn-1920`
+  (окно 1600 × 840 от левого края, верх 60, → 1200 × 630, JPEG 82,
+  mozjpeg, ~94 КБ, без EXIF), без текста поверх, не отзеркален (на сайте
+  зеркало через CSS). `public/robots.txt`: `User-agent: *`,
+  `Disallow: /privacy/`, `Host: https://banivyatki.ru` (Яндекс директиву
+  `Host` с 2018 года не читает, главное зеркало — 301 и Вебмастер;
+  оставлена по заданию). Карты сайта нет сознательно: одна страница.
 - Переменные окружения: `VITE_YMAPS_KEY` — ключ Яндекс Карт (см. `.env.example`).
 
 ### Деплой на Beget (banivyatki.ru)
@@ -66,16 +93,18 @@ Workflow `.github/workflows/deploy-beget.yml`: при пуше в `main` (или
 через «Run workflow») собирает сайт (`npm run build`, ключ карт из секрета
 `VITE_YMAPS_KEY`), проверяет, что в `dist/` есть `index.html`,
 `privacy/index.html` и `.htaccess` и нет строки `banivyatki-landing`, и
-выкладывает `dist/` по FTP действием `SamKirkland/FTP-Deploy-Action`
-(секреты `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`). FTP-аккаунт привязан
+выкладывает `dist/` по FTPS (`protocol: ftps` — FTP поверх TLS, порт 21)
+действием `SamKirkland/FTP-Deploy-Action` (секреты `FTP_SERVER`,
+`FTP_USERNAME`, `FTP_PASSWORD`). FTP-аккаунт привязан
 к папке сайта, поэтому `server-dir: ./` — корень `public_html`, путей
 вроде `/<домен>/public_html` в настройках нет. Полная очистка папки
 (`dangerous-clean-slate`) выключена: действие ведёт файл состояния
 `.ftp-deploy-sync-state.json` в корне сайта и удаляет только то, что само
 выложило раньше (старые хэшированные бандлы); файлы, которых в сборке
 никогда не было (PHP-обработчик заявок), не трогает. `log-level: minimal`.
-Протокол — обычный FTP (как в задании); если Beget принимает FTPS,
-можно переключить `protocol: ftps` отдельным решением.
+Первая выкладка (run 1, 5 октября 2026) прошла по обычному FTP; затем
+переключено на FTPS. Если выкладка по FTPS падает — не подбирать настройки
+вслепую: откатить `protocol: ftps` и показать владельцу ошибку сервера.
 
 Выкладка идёт **автоматически после каждого мержа в `main`** — вливать PR
 значит публиковать.
@@ -125,8 +154,10 @@ pull request; вливает владелец (или по его прямой �
   deploy-beget.yml            — сборка и выкладка dist/ на Beget по FTP при пуше в main
   pages-redirect.yml          — страница-переадресация на GitHub Pages (старый адрес)
 pages-redirect/index.html     — та самая страница: refresh + canonical на banivyatki.ru, noindex
-public/.htaccess              — Apache: www → без www, gzip, кэш статики, без листинга
-index.html                    — лендинг: счётчик Яндекс.Метрики 113423850 в начале <head> (noscript —
+public/.htaccess              — Apache: www → без www, gzip, кэш (assets год, фото 7 дней, html нет), без листинга
+public/robots.txt             — обход разрешён, /privacy/ закрыт, Host
+public/og-banivyatki.jpg      — картинка для ссылок 1200 × 630 из кадра первого экрана
+index.html                    — лендинг: canonical, description, og-теги, twitter:card; счётчик Яндекс.Метрики 113423850 в начале <head> (noscript —
                                 первым в <body>), preload картинки первого экрана (одна ссылка, подбирается
                                 скриптом под ширину экрана — иначе Firefox ругается на media), favicon
 privacy/index.html            — страница политики
@@ -1007,10 +1038,10 @@ goal, params)`. Если `window.ym` нет (блокировщик, нет се
   только готовые WebP. Если файл заменяется под тем же именем — старые
   ширины удаляются автоматически, иначе удалить неиспользуемые.
 - `<img>`: `loading="lazy"`, явные `width` и `height`, скругление 6 px.
-- Статика кэшируется на год (`.htaccess`), а имена фото не хэшируются:
-  замена кадра **под тем же именем** у вернувшихся посетителей может не
-  обновиться до года. Новый кадр — лучше под новым именем (номер или
-  суффикс), старые файлы удалить.
+- Фото кэшируются на 7 дней (`.htaccess`): замена кадра под тем же именем
+  доходит до вернувшихся посетителей не позже чем через неделю. Новый
+  кадр под новым именем (номер или суффикс) по-прежнему чище, но теперь
+  полагаемся на срок кэша.
 
 - Только WebP в `public/photos/`, оригиналы (JPG/PNG с фотосессии и от
   дизайнера) в репозиторий не коммитить. В самих снимках ничего не менять:
@@ -1285,9 +1316,10 @@ goal, params)`. Если `window.ym` нет (блокировщик, нет се
   Referer в `scripts/geocode.mjs` — `https://banivyatki.ru/`. Осталось:
   первая выкладка после мержа и проверка владельцем вживую (главная,
   `/privacy/`, фото, карта с ключом, `www` → без `www`, HTTPS, заголовки
-  кэша, старый адрес переадресует). Канонического адреса, og-тегов,
-  `robots.txt`, `sitemap.xml` в проекте нет и не создавались — отдельное
-  задание, если понадобятся. Ждём: отчёт владельца о живом сайте.
+  кэша, старый адрес переадресует). Первая выкладка по FTP прошла; затем
+  добавлены FTPS, кэш фото 7 дней, canonical, description, og-теги,
+  `og-banivyatki.jpg`, `robots.txt` (карты сайта нет: одна страница).
+  Ждём: отчёт владельца о живом сайте и о выкладке по FTPS.
 
 ### Известные проблемы (статус)
 

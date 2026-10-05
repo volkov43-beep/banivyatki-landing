@@ -53,14 +53,16 @@ jobs:
             exit 1
           fi
 
-      # Готовое действие выкладки по FTP. Пароль и логин — из секретов, в журнал
-      # не печатаются (GitHub маскирует значения секретов). Режим полной очистки
-      # папки (dangerous-clean-slate) не включать.
+      # Готовое действие выкладки по FTPS (FTP поверх TLS, порт 21): логин и
+      # пароль не идут по сети открытым текстом. Пароль и логин — из секретов,
+      # в журнал не печатаются (GitHub маскирует значения секретов). Режим
+      # полной очистки папки (dangerous-clean-slate) не включать.
       - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
           local-dir: ./dist/
           server-dir: ./
           dangerous-clean-slate: false
