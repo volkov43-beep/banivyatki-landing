@@ -129,7 +129,7 @@ npx -y sharp-cli -i PROZ6025_HDR.jpg -o public/photos/pech.webp resize 1200 -f w
 Сайт живёт на хостинге Beget по адресу https://banivyatki.ru (в корне домена).
 Workflow `.github/workflows/deploy-beget.yml` при каждом пуше в `main` (или вручную
 через «Run workflow») собирает проект с ключом карт из секрета `VITE_YMAPS_KEY`
-и выкладывает `dist/` по FTP в корень сайта. Доступ к FTP — секреты репозитория
+и выкладывает `dist/` по FTPS (FTP поверх TLS) в корень сайта. Доступ к FTP — секреты репозитория
 `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` (Settings → Secrets and variables →
 Actions). Файлы, которых нет в сборке (например, PHP-обработчик заявок), с сервера
 не удаляются. Настройки Apache — `public/.htaccess`, попадает в `dist/` при сборке.
