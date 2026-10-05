@@ -1,7 +1,32 @@
 import FloorPlan from './FloorPlan.jsx'
+import { photoSrc } from '../ResponsivePhoto.jsx'
 import { LAYOUTS, formatPrice } from '../../data/calculator.js'
 
 const BASE = import.meta.env.BASE_URL
+
+/** Фото карточки: строка — один файл 800 × 600; объект { name, alt } — две ширины через srcset. */
+function CardPhoto({ card }) {
+  const cls = 'block aspect-[4/3] w-full rounded object-cover'
+  if (typeof card.photo === 'string') {
+    return (
+      <img src={`${BASE}${card.photo}`} alt={`Баня-Подкова ${card.size}`} width="800" height="600" loading="lazy" decoding="async" className={cls} />
+    )
+  }
+  const { name, alt } = card.photo
+  return (
+    <img
+      src={photoSrc(name, 1280)}
+      srcSet={`${photoSrc(name, 640)} 640w, ${photoSrc(name, 1280)} 1280w`}
+      sizes="(min-width: 1024px) 352px, 100vw"
+      alt={alt}
+      width="1280"
+      height="960"
+      loading="lazy"
+      decoding="async"
+      className={cls}
+    />
+  )
+}
 
 /**
  * Карточка варианта. Вся карточка — радиокнопка: кликабельна целиком,
@@ -9,6 +34,9 @@ const BASE = import.meta.env.BASE_URL
  * Кнопка «Выбрать» внутри — только визуальная, чтобы не вкладывать
  * интерактивный элемент в интерактивный. Нажатие на выбранную карточку
  * снова вызывает onSelect — родитель прокручивает к форме.
+ *
+ * Фото 4:3 с явными width/height и aspect-ratio: место зарезервировано,
+ * при переключении сезона карточки не прыгают, пока грузится новый кадр.
  */
 export default function CalculatorCard({ card, selected, insulated, tabIndex, onSelect, cardRef }) {
   return (
@@ -41,15 +69,7 @@ export default function CalculatorCard({ card, selected, insulated, tabIndex, on
         </span>
       )}
 
-      <img
-        src={`${BASE}${card.photo}`}
-        alt={`Баня-Подкова ${card.size}`}
-        width="800"
-        height="600"
-        loading="lazy"
-        decoding="async"
-        className="block aspect-[4/3] w-full rounded object-cover"
-      />
+      <CardPhoto card={card} />
 
       <div className="mt-4">
         <FloorPlan layout={LAYOUTS[card.layout]} insulated={insulated} />
