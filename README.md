@@ -126,10 +126,15 @@ npx -y sharp-cli -i PROZ6025_HDR.jpg -o public/photos/pech.webp resize 1200 -f w
 
 ## Публикация
 
-Сайт публикуется на GitHub Pages workflow'ом `.github/workflows/deploy-pages.yml`
-при каждом пуше в `main` (или вручную через «Run workflow»). Адрес:
-https://volkov43-beep.github.io/banivyatki-landing/
+Сайт живёт на хостинге Beget по адресу https://banivyatki.ru (в корне домена).
+Workflow `.github/workflows/deploy-beget.yml` при каждом пуше в `main` (или вручную
+через «Run workflow») собирает проект с ключом карт из секрета `VITE_YMAPS_KEY`
+и выкладывает `dist/` по FTP в корень сайта. Доступ к FTP — секреты репозитория
+`FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` (Settings → Secrets and variables →
+Actions). Файлы, которых нет в сборке (например, PHP-обработчик заявок), с сервера
+не удаляются. Настройки Apache — `public/.htaccess`, попадает в `dist/` при сборке.
 
-В настройках репозитория (Settings → Pages) источник должен быть «GitHub Actions».
-Для приватного репозитория Pages доступен только на платных планах GitHub;
-на бесплатном плане репозиторий должен быть публичным.
+Старый адрес https://volkov43-beep.github.io/banivyatki-landing/ отдаёт одну
+страницу `pages-redirect/index.html` с переадресацией на banivyatki.ru
+(workflow `.github/workflows/pages-redirect.yml`); в Settings → Pages источник
+по-прежнему «GitHub Actions».

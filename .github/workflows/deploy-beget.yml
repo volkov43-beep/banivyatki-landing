@@ -1,0 +1,67 @@
+# Сборка и выкладка сайта на хостинг Beget (banivyatki.ru) по FTP.
+# Запускается при пуше в main или вручную («Run workflow»).
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions):
+#   VITE_YMAPS_KEY — ключ Яндекс Карт, передаётся в сборку;
+#   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD — доступ к FTP Beget.
+# FTP-аккаунт привязан к папке сайта: после подключения мы сразу в корне
+# public_html, поэтому целевая папка — ./ (корень).
+#
+# Файлы, которых нет в сборке, с сервера НЕ удаляются: рядом будет лежать
+# PHP-обработчик заявок. Действие помнит только то, что само выложило
+# (файл состояния .ftp-deploy-sync-state.json в корне сайта), и убирает
+# лишь устаревшие файлы прежних сборок (старые хэшированные бандлы).
+name: Deploy to Beget
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beget
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Базовый путь — корень домена (base: '/' в vite.config.js), флаг --base не нужен.
+      - run: npm run build
+        env:
+          VITE_YMAPS_KEY: ${{ secrets.VITE_YMAPS_KEY }}
+
+      - name: Проверка сборки
+        run: |
+          test -f dist/index.html
+          test -f dist/privacy/index.html
+          test -f dist/.htaccess
+          if grep -rq "banivyatki-landing" dist; then
+            echo "В сборке остался старый базовый путь banivyatki-landing" >&2
+            exit 1
+          fi
+
+      # Готовое действие выкладки по FTP. Пароль и логин — из секретов, в журнал
+      # не печатаются (GitHub маскирует значения секретов). Режим полной очистки
+      # папки (dangerous-clean-slate) не включать.
+      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ./
+          dangerous-clean-slate: false
+          log-level: minimal

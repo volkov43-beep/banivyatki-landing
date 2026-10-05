@@ -1,0 +1,41 @@
+# Старый адрес на GitHub Pages (volkov43-beep.github.io/banivyatki-landing/)
+# теперь отдаёт одну страницу pages-redirect/index.html с переадресацией
+# на https://banivyatki.ru. Сам сайт выкладывается на Beget
+# (.github/workflows/deploy-beget.yml).
+# Запускается при изменении страницы или этого workflow в main, либо вручную.
+name: GitHub Pages redirect
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pages-redirect/**
+      - .github/workflows/pages-redirect.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-redirect
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
