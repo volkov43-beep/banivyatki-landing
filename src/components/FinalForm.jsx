@@ -6,6 +6,7 @@ import { track } from '../lib/track.js'
 import { getUtm } from '../lib/utm.js'
 import { callbackWhen } from '../lib/callback.js'
 import { formatPhone, isCompletePhone, normalizePhone } from '../lib/phone.js'
+import { PHONE } from '../data/calculator.js'
 
 const BASE = import.meta.env.BASE_URL
 const CONTACT = [
@@ -61,6 +62,8 @@ export default function FinalForm() {
       ...getUtm(),
       page_url: window.location.href,
       submitted_at: new Date().toISOString(),
+      elapsed_ms: Date.now() - mountedAt.current,
+      website: trap,
     }
 
     setStatus('sending')
@@ -122,12 +125,15 @@ export default function FinalForm() {
       </div>
 
       <Button type="submit" disabled={status === 'sending'} full className="mt-6">
-        Получить расчёт
+        {status === 'sending' ? 'Отправляем…' : 'Получить расчёт'}
       </Button>
 
       {status === 'error' && (
         <p role="alert" className="mt-3 text-body text-alert-on-dark">
-          Заявка не отправилась. Попробуйте ещё раз или позвоните нам.
+          Не удалось отправить заявку. Позвоните нам или попробуйте ещё раз:{' '}
+          <a href={`tel:${PHONE.tel}`} className="font-bold text-surface no-underline">
+            {PHONE.display}
+          </a>
         </p>
       )}
 

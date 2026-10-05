@@ -249,6 +249,7 @@ export default function SectionCalculator() {
                       card_id: selected.id,
                       card_title: selected.title,
                       size: selected.size,
+                      option_shown: `${selected.size}, ${SEASONS.find((s) => s.id === season).short}`,
                       price_shown: selected.price,
                     }}
                   />

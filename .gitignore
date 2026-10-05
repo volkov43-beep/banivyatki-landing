@@ -141,3 +141,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Настоящий конфиг обработчика заявок живёт только на сервере (private/config.php)
+server/config.php
