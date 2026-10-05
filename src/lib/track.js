@@ -1,12 +1,22 @@
 /**
- * Обёртка над целями Яндекс.Метрики.
- * Номер счётчика подставим позже. Пока счётчика нет — функция молча
- * ничего не делает и не бросает ошибок.
+ * Обёртка над целями Яндекс.Метрики. Счётчик 113423850 подключён в
+ * index.html (код Яндекса в начале <head>), здесь только цели:
+ * ym(YM_COUNTER_ID, 'reachGoal', goal, params).
+ *
+ * Если счётчик не загрузился (блокировщик, нет сети) — window.ym нет,
+ * вызов молча пропускается: кнопки и формы работать не перестают.
+ * В режиме разработки (import.meta.env.DEV — `npm run dev`) события в
+ * Метрику не уходят, только в консоль.
  */
-export const YM_COUNTER_ID = null
+export const YM_COUNTER_ID = 113423850
 
 export function track(goal, params) {
-  if (!YM_COUNTER_ID || typeof window === 'undefined' || typeof window.ym !== 'function') return
+  if (typeof window === 'undefined') return
+  if (import.meta.env.DEV) {
+    console.log('[metrika]', goal, params ?? '')
+    return
+  }
+  if (typeof window.ym !== 'function') return
   try {
     window.ym(YM_COUNTER_ID, 'reachGoal', goal, params)
   } catch {

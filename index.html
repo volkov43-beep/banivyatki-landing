@@ -3,6 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Счётчик Яндекс.Метрики 113423850 — как можно ближе к началу head, чтобы
+      просмотр успел уйти, даже если вкладку сразу закрыли. Код выдан Яндексом;
+      единственное изменение — убран параметр электронной коммерции (магазина
+      нет). Часть кода для посетителей без JavaScript стоит первой в body:
+      div внутри head невалиден. Цели отправляет track() из src/lib/track.js.
+    -->
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=113423850', 'ym');
+
+        ym(113423850, 'init', {ssr:true, webvisor:true, clickmap:true, referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <!-- /Yandex.Metrika counter -->
     <meta name="theme-color" content="#1A1512" />
     <title>Бани Вятки — мобильная баня «Подкова»</title>
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32.png" />
@@ -41,6 +60,8 @@
     />
   </head>
   <body>
+    <!-- Yandex.Metrika counter: часть для посетителей без JavaScript -->
+    <noscript><div><img src="https://mc.yandex.ru/watch/113423850" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
