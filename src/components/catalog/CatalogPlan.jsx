@@ -1,7 +1,6 @@
-import Button from '../Button.jsx'
 import { photoSrc } from '../ResponsivePhoto.jsx'
 
-export default function CatalogPlan({ model, onCatalog }) {
+export default function CatalogPlan({ model }) {
   return (
     <>
       <img
@@ -14,11 +13,6 @@ export default function CatalogPlan({ model, onCatalog }) {
         decoding="async"
         className="mx-auto block h-auto max-h-[65dvh] w-auto max-w-full rounded-md object-contain"
       />
-      <div className="mx-auto mt-4 max-w-[360px]">
-        <Button full className="whitespace-nowrap" onClick={() => onCatalog(model)}>
-          Получить каталог
-        </Button>
-      </div>
     </>
   )
 }
