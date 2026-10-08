@@ -54,7 +54,7 @@ Resize LANCZOS без upscale, WebP method6, фото quality90, планы qual
 
 Порядок App: Header → Hero → **CatalogSection** → Works → Reviews → Calculator → Benefits → Comparison → Inside → Process → Showroom → FAQ → Final → Footer. Все остальные позиции сохранены.
 
-`CatalogSection` управляет `{kind: plan|form, model}`. Три `CatalogCard` используют общий `ResponsivePhoto` и Button. `CatalogDialog` через native dialog/portal показывает `CatalogPlan` или `CatalogForm`; при plan→form модель и исходный opener не теряются.
+`CatalogSection` управляет `{kind: plan|form, model}`. Три `CatalogCard` используют общий `ResponsivePhoto` и Button. «Планировка» и миниатюра объединены в одну Button link с aria-label модели: блок140×105 px (4:3), object-contain без crop, только существующий plan-640.webp через photoSrc, lazy и декоративный alt="". Подпись над изображением, gap8 px, слева, на всех ширинах; hover opacity90 и прежний focus-visible. mt-auto и одинаковый размер сохраняют выравнивание CTA. Увеличенный viewer/аналитика не изменены; один клик — одно событие. `CatalogDialog` через native dialog/portal показывает `CatalogPlan` или `CatalogForm`; при plan→form модель и исходный opener не теряются.
 
 Фон forest, текст surface/muted-on-dark, потенциальная цена accent, Onest и прежние tokens. Открытые flex-column карточки, нижняя группа mt-auto, без новых рамок/теней/иконок и фиксированных высот текста. Grid как Works:1 колонка <600,2 от600,3 от1024; фото одинаковой пропорции2048/1529. Image sizes учитывают container/padding/gaps. Dialog имеет viewport max-height, внутренний scroll, Escape/close и восстановление scroll/focus. Новых анимаций нет; существующие focus-visible/reduced-motion сохраняются.
 
@@ -67,8 +67,8 @@ Resize LANCZOS без upscale, WebP method6, фото quality90, планы qual
 | id = crmCode | title | tagline | dimensions | sections | capacity | priceFrom |
 | --- | --- | --- | --- | --- | --- | --- |
 | podkova-35 | Подкова 3,5 м | Компактная для небольшого участка |3,5 ×2,4 м |2 секции |до4 чел. |null |
-| podkova-45 | Подкова 4,5 м | Для семьи |4,5 ×2,4 м |2 секции |4–6 чел. |null |
-| podkova-60 | Подкова 6 м | Три полноценные зоны |6 ×2,4 м |3 секции |4–6 чел. |null |
+| podkova-45 | Подкова 4,5 м | Для семьи |4,5 ×2,4 м |2 секции |для 4–6 чел. |null |
+| podkova-60 | Подкова 6 м | Три полноценные зоны |6 ×2,4 м |3 секции |для 5–8 чел. |null |
 
 Null скрывает строку цены. Для будущей цены достаточно заполнить числовые priceFrom в data; это не изменит price_shown/OPPORTUNITY/калькулятор.
 
@@ -139,9 +139,9 @@ Referrer при наличии добавляет «Переход с: …» п�
 
 ## 10. Frontend build / DOM
 
-`npm run build`:успех, Vite7.3.6,96 modules. main146.72kB (gzip43.58), общий JS228.90kB (gzip72.05), CSS31.18kB (gzip7.08). npm выдаёт предупреждение переменной окружения http-proxy; build не блокирует. `git diff --check` пройден. Master JPG в dist отсутствуют;12 WebP присутствуют.
+`npm run build`:успех, Vite7.3.6,96 modules. main147.04kB (gzip43.67), общий JS228.90kB (gzip72.05), CSS31.28kB (gzip7.10). npm выдаёт предупреждение переменной окружения http-proxy; build не блокирует. `git diff --check` пройден. Master JPG в dist отсутствуют;12 WebP присутствуют.
 
-DOM harness вне репозитория:23 проверки пройдены (3 карточки, null-price, plan→form, model context, invalid phone/consent, keyboard method, payload/UTM, sending guard, error/retained input, manual retry, success/analytics без PII, cancel/scroll/focus restore). HTTP mocked, dialog polyfilled; это проверка UI-логики, **не реальный browser QA**. jsdom и локальные QA-зависимости не добавлены в package.json/lock.
+DOM harness вне репозитория:28 проверок пройдены (3 карточки, null-price,3 thumbnails только640 с декоративным alt, новые capacity, один plan goal при клике по thumbnail, plan→form, model context, invalid phone/consent, keyboard method, payload/UTM, sending guard, error/retained input, manual retry, success/analytics без PII, cancel/scroll/focus restore). HTTP mocked, dialog polyfilled; это проверка UI-логики, **не реальный browser QA**. jsdom и локальные QA-зависимости не добавлены в package.json/lock.
 
 ## 11. PHP tests
 

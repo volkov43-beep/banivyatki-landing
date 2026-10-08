@@ -4,7 +4,7 @@
 
 Документ основан на текущих React/PHP-файлах, образце конфигурации, тестах и workflow. Действующий сервер, приватный конфиг, Битрикс24, cron и кабинет Метрики не проверялись. Значения секретов, credentials и URL вебхука не приводятся, в том числе в примерах. Все примеры данных ниже синтетические: телефон состоит из нулей, имя/ответы/UTM вымышленные. Имена конфигурационных ключей обозначают структуру, а не раскрывают значения.
 
-**Актуализировано по ветке `feature/catalog-models`: catalog реализован в коде, но production этой работой не публиковался.** Квиз остаётся рекомендацией, `form: quiz` не поддерживается. Старые формы/mapping, config, queue/retry, workflow и счётчик не изменены. Master JPG остаются только локально и исключены из Git правилом `/source-assets/catalog/*.jpg`. Проверки: PHP8.3 phone22, handler83; DOM23; build пройден. Внешние кабинеты не проверялись.
+**Актуализировано по ветке `feature/catalog-models`: catalog реализован в коде, но production этой работой не публиковался.** Квиз остаётся рекомендацией, `form: quiz` не поддерживается. Старые формы/mapping, config, queue/retry, workflow и счётчик не изменены. Master JPG остаются только локально и исключены из Git правилом `/source-assets/catalog/*.jpg`. Проверки: PHP8.3 phone22, handler83; DOM28; build пройден. Внешние кабинеты не проверялись.
 
 Краткий вывод: текущий backend создаёт **CONTACT и DEAL, не CRM LEAD**. Канал рекламы отражает `SOURCE_ID`, тип обращения — уникальная подпись `SOURCE_DESCRIPTION` из `BV_FORMS`. Для новых сценариев требуется согласованное расширение серверного контракта; просто добавить поля React недостаточно.
 
@@ -359,7 +359,7 @@ Frontend хранит UTM в sessionStorage `bv_utm`. Новые UTM из URL п
 
 ## 7. Checklist файлов для добавления форм
 
-Catalog реализован по отдельному UI brief; ниже перечислены фактические изменения. Quiz остаётся проектом будущего задания.
+Catalog реализован по отдельному UI brief; ниже перечислены фактические изменения. Карточки обновлены: capacity4,5 м «для 4–6 чел.»,6 м «для 5–8 чел.»; единая кнопка подписи/миниатюры140×105 открывает прежний viewer с одним catalog_plan_open. Эти UI-правки не меняют payload/form/model codes/CRM/backend. Quiz остаётся проектом будущего задания.
 
 ### 7.1. Фактические файлы catalog
 
@@ -612,4 +612,4 @@ Stub modes сейчас `ok`, `found`, `error`, `timeout`; error/timeout дей�
 
 PHP8.3: phone.test.php22 случая; handler.test.php83 проверки успешно. Catalog: три модели, точные TITLE/SOURCE_DESCRIPTION/COMMENTS, source site/Direct, call/MAX, raw invalid типы/enum/длины/пропуски, отсутствие непредусмотренных CRM fields, queue при failure и retry каждой модели. Старые сценарии и business regression проходят. Рекомендации раздел10 для catalog happy path/enum/queue уже реализованы; quiz, потерянный REST outcome и дополнительные сбои остаются будущими проверками.
 
-DOM harness:23 проверки карточек/null цены, plan→form, модели, validation, sending guard, error/retained input, retry, success goal без PII, закрытия/scroll/focus restore. Native dialog полифиллен: actual focus trap и реальный Escape проверяются отдельно браузером. npm build прошёл. Browser visual QA на1440/1024/768/600/390/360 и CLS не выполнены из-за среды. Перед production нужны visual QA, доставка private lib, настройка целей и синтетическая проверка CRM/queue. Отчёт: docs/CATALOG_IMPLEMENTATION.md.
+DOM harness:28 проверок карточек/null цены, plan→form, модели, validation, sending guard, error/retained input, retry, success goal без PII, закрытия/scroll/focus restore. Native dialog полифиллен: actual focus trap и реальный Escape проверяются отдельно браузером. npm build прошёл. Browser visual QA на1440/1024/768/600/390/360 и CLS не выполнены из-за среды. Перед production нужны visual QA, доставка private lib, настройка целей и синтетическая проверка CRM/queue. Отчёт: docs/CATALOG_IMPLEMENTATION.md.

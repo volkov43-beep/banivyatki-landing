@@ -1,5 +1,5 @@
 import Button from '../Button.jsx'
-import ResponsivePhoto from '../ResponsivePhoto.jsx'
+import ResponsivePhoto, { photoSrc } from '../ResponsivePhoto.jsx'
 import { CATALOG_IMAGE_RATIO, CATALOG_IMAGE_SIZES } from '../../data/catalog.js'
 
 export default function CatalogCard({ model, onPlan, onCatalog }) {
@@ -19,8 +19,19 @@ export default function CatalogCard({ model, onPlan, onCatalog }) {
             от {model.priceFrom.toLocaleString('ru-RU')} ₽
           </p>
         )}
-        <Button variant="link" size="md" className="mt-3 min-h-11" onClick={() => onPlan(model)} aria-label={`Планировка — ${model.title}`}>
-          Планировка
+        <Button variant="link" size="md" className="mt-3 min-h-11 cursor-pointer" onClick={() => onPlan(model)} aria-label={`Планировка — ${model.title}`}>
+          <span className="flex flex-col items-start gap-2 text-left">
+            <span>Планировка</span>
+            <img
+              src={photoSrc(model.planImage, 640)}
+              alt=""
+              width={640}
+              height={478}
+              loading="lazy"
+              decoding="async"
+              className="block h-[105px] w-[140px] rounded-md object-contain group-hover:opacity-90"
+            />
+          </span>
         </Button>
         <Button full className="mt-3 whitespace-nowrap" onClick={() => onCatalog(model)} aria-label={`Получить каталог — ${model.title}`}>
           Получить каталог

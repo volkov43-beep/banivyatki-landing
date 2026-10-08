@@ -16,14 +16,14 @@ export const CATALOG_MODELS = [
   {
     id: 'podkova-45', crmCode: 'podkova-45', title: 'Подкова 4,5 м',
     tagline: 'Для семьи', dimensions: '4,5 × 2,4 м',
-    sections: '2 секции', capacity: '4–6 чел.', priceFrom: null,
+    sections: '2 секции', capacity: 'для 4–6 чел.', priceFrom: null,
     catalogImage: 'podkova-45-catalog', planImage: 'podkova-45-plan',
     alt: 'Баня «Подкова» 4,5 м', planAlt: 'Планировка бани «Подкова» 4,5 м',
   },
   {
     id: 'podkova-60', crmCode: 'podkova-60', title: 'Подкова 6 м',
     tagline: 'Три полноценные зоны', dimensions: '6 × 2,4 м',
-    sections: '3 секции', capacity: '4–6 чел.', priceFrom: null,
+    sections: '3 секции', capacity: 'для 5–8 чел.', priceFrom: null,
     catalogImage: 'podkova-60-catalog', planImage: 'podkova-60-plan',
     alt: 'Баня «Подкова» 6 м', planAlt: 'Планировка бани «Подкова» 6 м',
   },
