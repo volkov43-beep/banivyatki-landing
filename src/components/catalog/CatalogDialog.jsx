@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import Button from '../Button.jsx'
 
 // Native dialog provides an inert background and keyboard focus containment.
 // Switching plan → form keeps the same dialog and original card opener.
@@ -27,13 +26,18 @@ export default function CatalogDialog({ title, kind, onClose, children }) {
       aria-labelledby={titleId}
       aria-modal="true"
       onCancel={(e) => { e.preventDefault(); onClose() }}
-      className={`fixed inset-0 m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] overflow-y-auto rounded-md border-0 bg-forest p-5 text-surface backdrop:bg-[rgba(26,21,18,0.85)] md:p-8 ${kind === 'plan' ? 'max-w-[960px]' : 'max-w-[560px]'}`}
+      className={`fixed inset-0 m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] overflow-y-auto rounded-md border-0 backdrop:bg-[rgba(26,21,18,0.85)] ${kind === 'plan' ? 'max-w-[960px] bg-transparent p-4 text-surface md:p-6' : 'max-w-[480px] bg-surface p-5 text-ink md:p-6'}`}
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <h2 id={titleId} className="text-title">{title}</h2>
-        <Button variant="link" size="sm" className="-mt-2 min-h-11 shrink-0" onClick={onClose}>
-          Закрыть
-        </Button>
+      <button
+        type="button"
+        aria-label="Закрыть"
+        onClick={onClose}
+        className="absolute right-3 top-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded bg-transparent text-current hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:right-4 md:top-4"
+      >
+        <span aria-hidden="true" className="text-[28px] leading-none">×</span>
+      </button>
+      <div className={`flex min-h-11 items-center pr-12 ${kind === 'plan' ? 'mb-4' : 'mb-2'}`}>
+        <h2 id={titleId} className={kind === 'plan' ? 'text-body' : 'text-title'}>{title}</h2>
       </div>
       {children}
     </dialog>,
