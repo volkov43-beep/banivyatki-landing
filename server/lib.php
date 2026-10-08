@@ -23,11 +23,17 @@ const BV_FORMS = [
     'visit'        => ['label' => 'Запись на просмотр',       'title' => 'Запись'],
     'faq_question' => ['label' => 'Вопрос из FAQ',            'title' => 'Вопрос'],
     'final'        => ['label' => 'Форма внизу страницы',     'title' => 'Расчёт'],
+    'catalog'      => ['label' => 'Каталог бань',             'title' => 'Каталог'],
 ];
 /** Старое или короткое имя формы → каноническое. */
 const BV_FORM_ALIASES = ['calc' => 'calculator'];
 const BV_VISIT_TYPES = ['showroom' => 'Шоурум', 'production' => 'Производство', 'video' => 'Видеозвонок'];
 const BV_CONTACT_METHODS = ['call' => 'Звонок', 'max' => 'MAX'];
+const BV_CATALOG_MODELS = [
+    'podkova-35' => 'Подкова 3,5 м',
+    'podkova-45' => 'Подкова 4,5 м',
+    'podkova-60' => 'Подкова 6 м',
+];
 const BV_UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 const BV_MAX_ATTEMPTS = 10;
 const BV_LOG_KEEP_DAYS = 30;
@@ -168,6 +174,21 @@ function bv_form_name(mixed $raw): ?string
     return isset(BV_FORMS[$form]) ? $form : null;
 }
 
+/** Validate raw catalog enums before bv_str can coerce or truncate them.
+ * Legacy forms keep their existing validation contract.
+ */
+function bv_catalog_valid(array $data, string $form): bool
+{
+    if ($form !== 'catalog') {
+        return true;
+    }
+    return is_string($data['phone'] ?? null)
+        && is_string($data['contact_method'] ?? null)
+        && isset(BV_CONTACT_METHODS[$data['contact_method']])
+        && is_string($data['catalog_model'] ?? null)
+        && isset(BV_CATALOG_MODELS[$data['catalog_model']]);
+}
+
 /**
  * Собирает заявку для отправки: только известные поля, обрезанные по длине.
  * $phone уже нормализован, $form — каноническое имя.
@@ -194,6 +215,9 @@ function bv_build_lead(array $data, string $phone, string $form): array
     ];
     foreach (BV_UTM_KEYS as $key) {
         $lead[$key] = bv_str($data, $key, 200);
+    }
+    if ($form === 'catalog') {
+        $lead['catalog_model'] = bv_str($data, 'catalog_model', 20);
     }
     return $lead;
 }
@@ -257,6 +281,10 @@ function bv_deal_comments(array $cfg, array $lead, bool $contactFound, ?int $con
         $lines[] = 'Повторное обращение' . ($portal !== '' ? ': ' . $portal . '/crm/contact/details/' . $contactId . '/' : '');
     }
     $lines[] = 'Форма: ' . BV_FORMS[$lead['form']]['label'];
+    if ($lead['form'] === 'catalog') {
+        $lines[] = 'Интересующая модель: ' . BV_CATALOG_MODELS[$lead['catalog_model']];
+        $lines[] = 'Запрос: Отправить каталог бань';
+    }
     if ($lead['option_shown'] !== '') {
         $lines[] = 'Выбранный вариант: ' . $lead['option_shown'];
     }

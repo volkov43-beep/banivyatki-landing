@@ -1,5 +1,6 @@
 import Header from './components/Header.jsx'
 import SectionHero from './components/SectionHero.jsx'
+import CatalogSection from './components/catalog/CatalogSection.jsx'
 import SectionWorks from './components/SectionWorks.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
 import SectionCalculator from './components/SectionCalculator.jsx'
@@ -18,6 +19,7 @@ export default function App() {
       <Header />
       <main>
         <SectionHero />
+        <CatalogSection />
         <SectionWorks />
         <SectionReviews />
         <SectionCalculator />

@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # Настоящий конфиг обработчика заявок живёт только на сервере (private/config.php)
 server/config.php
+
+# Local-only catalog masters; never publish originals to GitHub
+/source-assets/catalog/*.jpg

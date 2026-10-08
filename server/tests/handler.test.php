@@ -207,6 +207,89 @@ post(lead(['form' => 'calc', 'price_shown' => null]));
 $deal = json_decode(substr(stubCalls()[2], strlen('crm.deal.add ')), true)['fields'];
 check('calc без цены: «Сайт · Расчёт · 4–4,5 м, тёплый сезон» (псевдоним calc)', $deal['TITLE'] === 'Сайт · Расчёт · 4–4,5 м, тёплый сезон', $deal['TITLE']);
 
+// --- regression: бизнес остаётся прежним ---
+resetStub('ok');
+post(lead(['form' => 'business', 'option_shown' => '', 'price_shown' => null, 'company' => 'Тестовая база', 'comment' => 'Две бани']));
+$deal = json_decode(substr(stubCalls()[2], strlen('crm.deal.add ')), true)['fields'];
+check('business: прежние TITLE, SOURCE_DESCRIPTION, COMMENTS', $deal['TITLE'] === 'Сайт · Для бизнеса' && $deal['SOURCE_DESCRIPTION'] === 'Калькулятор, для бизнеса' && str_contains($deal['COMMENTS'], "Компания: Тестовая база\nКомментарий: Две бани"));
+
+// --- каталог: три модели, канал, связь, server-side labels ---
+function catalogLead(string $model, array $extra = []): array
+{
+    return lead($extra + ['form' => 'catalog', 'catalog_model' => $model, 'option_shown' => '', 'price_shown' => null]);
+}
+
+$catalogModels = ['podkova-35' => 'Подкова 3,5 м', 'podkova-45' => 'Подкова 4,5 м', 'podkova-60' => 'Подкова 6 м'];
+foreach ($catalogModels as $code => $label) {
+    resetStub('ok');
+    $method = $code === 'podkova-45' ? 'max' : 'call';
+    $source = $code === 'podkova-45' ? 'google' : 'YANDEX';
+    [$c, $b] = post(catalogLead($code, [
+        'contact_method' => $method, 'utm_source' => $source, 'utm_medium' => 'CPC',
+        'SOURCE_DESCRIPTION' => 'CLIENT OVERRIDE', 'UF_CRM_FAKE' => 'CLIENT FIELD', 'request_text' => 'CLIENT REQUEST',
+    ]));
+    $calls = stubCalls();
+    $deal = json_decode(substr($calls[2], strlen('crm.deal.add ')), true)['fields'] ?? [];
+    $contact = json_decode(substr($calls[1], strlen('crm.contact.add ')), true)['fields'] ?? [];
+    $expected = "Форма: Каталог бань\nИнтересующая модель: $label\nЗапрос: Отправить каталог бань\nСпособ связи: " . ($method === 'max' ? 'MAX' : 'Звонок')
+        . "\nСтраница: https://banivyatki.ru/\nПереход с: https://yandex.ru/\nВремя отправки: 05.10.2026 14:12 (МСК)\nМетки: utm_source=$source, utm_medium=CPC, utm_campaign=test";
+    check("catalog $code: 200 и CONTACT → DEAL", $c === 200 && $b === '{"ok":true}' && count($calls) === 3 && ($contact['PHONE'][0]['VALUE'] ?? '') === '+79123456789');
+    check("catalog $code: точные TITLE, SOURCE_DESCRIPTION, COMMENTS", ($deal['TITLE'] ?? '') === 'Сайт · Каталог' && ($deal['SOURCE_DESCRIPTION'] ?? '') === 'Каталог бань' && ($deal['COMMENTS'] ?? '') === $expected);
+    check("catalog $code: канал и $method", ($deal['SOURCE_ID'] ?? '') === ($source === 'google' ? 'WEB' : 'DIRECT') && ($deal['UF_CRM_METHOD'] ?? '') === ($method === 'max' ? '12' : '11'));
+    check("catalog $code: модель не в CONTACT/OPPORTUNITY, клиентские поля игнорируются", !isset($contact['catalog_model']) && !isset($deal['OPPORTUNITY']) && !isset($deal['UF_CRM_FAKE']) && !str_contains(json_encode($deal), 'CLIENT'));
+}
+
+// Raw values must not be coerced/truncated to a valid enum.
+$invalidCatalog = [
+    ['catalog_model' => 'unknown'], ['catalog_model' => null], ['catalog_model' => ''],
+    ['catalog_model' => 35], ['catalog_model' => true], ['catalog_model' => ['podkova-35']],
+    ['catalog_model' => ['id' => 'podkova-35']], ['catalog_model' => str_repeat('x', 300)],
+    ['catalog_model' => 'podkova-35 '], ['catalog_model' => 'PODKOVA-35'],
+    ['contact_method' => 'telegram'], ['contact_method' => null], ['contact_method' => ''],
+    ['contact_method' => 1], ['contact_method' => true], ['contact_method' => ['call']],
+    ['contact_method' => ['id' => 'call']], ['contact_method' => str_repeat('call', 100)],
+    ['phone' => 79123456789], ['phone' => ['+79123456789']], ['phone' => ['number' => '+79123456789']],
+];
+foreach ($invalidCatalog as $i => $invalid) {
+    resetStub('ok');
+    $queuedBefore = count(queueFiles());
+    [$c, $b] = post(catalogLead('podkova-35', $invalid));
+    check("catalog invalid #$i →400 bad_request без REST/queue", $c === 400 && $b === '{"ok":false,"error":"bad_request"}' && stubCalls() === [] && count(queueFiles()) === $queuedBefore);
+}
+foreach (['catalog_model', 'contact_method', 'phone'] as $missing) {
+    resetStub('ok');
+    $payload = catalogLead('podkova-35');
+    unset($payload[$missing]);
+    [$c, $b] = post($payload);
+    check("catalog missing $missing →400", $c === 400 && $b === '{"ok":false,"error":"bad_request"}' && stubCalls() === []);
+}
+resetStub('ok');
+[$c, $b] = post(catalogLead('podkova-35', ['phone' => '123']));
+check('catalog неверный телефон →400 bad_phone', $c === 400 && str_contains($b, 'bad_phone') && stubCalls() === []);
+
+// Each model survives private JSON queue and CLI retry unchanged.
+resetStub('error');
+foreach ($catalogModels as $code => $label) {
+    $before = queueFiles();
+    [$c, $b] = post(catalogLead($code));
+    $newFiles = array_values(array_diff(queueFiles(), $before));
+    $job = count($newFiles) === 1 ? json_decode(file_get_contents($newFiles[0]), true) : [];
+    check("catalog $code: CRM failure →ok, модель в queue", $c === 200 && $b === '{"ok":true}' && ($job['lead']['catalog_model'] ?? '') === $code && ($job['lead']['form'] ?? '') === 'catalog');
+}
+resetStub('ok');
+exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $catalogRetryOut, $catalogRetryRc);
+$retryDeals = [];
+foreach (stubCalls() as $call) {
+    if (str_starts_with($call, 'crm.deal.add ')) {
+        $retryDeals[] = json_decode(substr($call, strlen('crm.deal.add ')), true)['fields'];
+    }
+}
+check('catalog retry: три заявки отправлены, queue пуста', $catalogRetryRc === 0 && count(queueFiles()) === 0 && count($retryDeals) === 3);
+foreach ($catalogModels as $code => $label) {
+    $matching = array_filter($retryDeals, static fn ($d) => $d['TITLE'] === 'Сайт · Каталог' && $d['SOURCE_DESCRIPTION'] === 'Каталог бань' && str_contains($d['COMMENTS'], "Интересующая модель: $label\nЗапрос: Отправить каталог бань"));
+    check("catalog retry $code: модель/контекст сохранены", count($matching) === 1);
+}
+
 // --- повторное обращение ---
 resetStub('found');
 post(lead());
