@@ -1,4 +1,4 @@
-export const CATALOG_TITLE = 'Выберите свою «Подкову»'
+export const CATALOG_TITLE = 'Выберите свою баню'
 export const CATALOG_SUBTITLE = 'Три размера под разные задачи и участок'
 
 // All approved masters share this aspect ratio. Keep the entire composition.
