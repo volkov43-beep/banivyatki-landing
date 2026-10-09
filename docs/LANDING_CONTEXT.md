@@ -1,6 +1,6 @@
 # Технический контекст лендинга «Бани Вятки»
 
-Дата инвентаризации: **8 октября 2026 года**. Репозиторий: `volkov43-beep/banivyatki-landing`. Базовая версия: `bdca6c33b3d9051ec2ae78d32e8721f00ec56005`; документ обновлён по реализации ветки `feature/catalog-models` (каталог добавлен, production не проверен и не опубликован этой работой).
+Дата инвентаризации: **8 октября 2026 года**. Репозиторий: `volkov43-beep/banivyatki-landing`. Базовая версия: `bdca6c33b3d9051ec2ae78d32e8721f00ec56005`; документ актуализирован для `feature/sauna-quiz` от main `ddcb0191c934f04b21a150cd6f54a4fecf7b81bc`. Квиз добавлен, production не проверен и не опубликован этой работой. Детальный контракт: `docs/QUIZ_IMPLEMENTATION.md`.
 
 Документ описывает **существующую реализацию в репозитории**, а не предполагаемые будущие изменения. Проверка действующего сайта, кабинетов Beget, Битрикс24, Метрики, секретов GitHub Actions и задания cron в эту инвентаризацию не входит. Рабочие значения серверного конфига вне репозитория не установлены. Значения ключей, вебхуков, паролей и других credentials здесь намеренно не приводятся.
 
@@ -78,7 +78,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 
 ## 2. Главная страница: фактический порядок блоков
 
-Порядок ниже строго соответствует `src/App.jsx`. **Каталог — второй раздел main сразу после Hero, «Наши работы» — третий; остальные секции сохраняют прежний порядок.** Карта является вложенной частью «Наших работ». Header наложен поверх hero; Footer стоит после main.
+Порядок ниже строго соответствует `src/App.jsx`. **Hero → Catalog → Works → Reviews → Quiz → SectionLocations (существующий MapBlock) → Calculator → Benefits → Comparison → Inside → Process → Showroom → FAQ → Final.** Квиз пятый; карта вынесена из Works в шестой блок по явному заданию. Остальные секции сохранены. Header наложен поверх hero; Footer стоит после main.
 
 ### 2.1. Header — контакты поверх первого экрана
 
@@ -112,15 +112,15 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **Оформление/responsive:** forest, surface / muted-on-dark, существующие Onest/tokens/container/section padding. Открытые flex-column карточки без рамок/теней; нижняя группа `mt-auto`, без фиксированной высоты текста. 1 колонка <600 px, 2 от600, 3 от1024; gaps 16/24 px horizontal и32/40 vertical. Dialog: plan transparent без forest-панели, max-width960, padding16/24; form surface/ink, max-width480, padding20/24. Neutral ink backdrop85%, viewport margin16 и scroll, общий close× hit-area44×44/glyph28. План CTA centered max360; compact form gap12/input min44, light Segmented, CTA mt16. Новых анимаций нет.
 - **Аналитика:** `catalog_plan_open`, `catalog_open`, `catalog_submit`; только `{model}` без PII; submit после `ok:true`. Общие helpers и старые формы не изменены.
 
-### 2.4. Наши работы — шесть объектов и карта
+### 2.4. Наши работы — шесть объектов
 
-- **Компонент/файл:** `SectionWorks`, `src/components/SectionWorks.jsx`, `#works`; карта внутри имеет `#map`.
-- **Дочерние компоненты:** `works/WorkCard`, `works/Lightbox`, `works/MapBlock`, `Button`; фотографии карточек через `ResponsivePhoto`.
+- **Компонент/файл:** `SectionWorks`, `src/components/SectionWorks.jsx`, `#works`; прежняя вложенная карта теперь в SectionLocations после Quiz.
+- **Дочерние компоненты:** `works/WorkCard`, `works/Lightbox`, `Button`; фотографии карточек через `ResponsivePhoto`.
 - **Текст/данные:** `src/data/works.js` — название, подзаголовок, объекты, комплектации, фактические цены и примечание. Объекты: Зониха, Дороничи, Слободской, Кирово-Чепецк, Бабичи, доставка/установка. В примечании нижняя граница цены берётся из `MIN_PRICE`. Карта читает отдельный `src/data/objects.js` (не массив карточек работ).
 - **Assets:** пары `obekt-1-zoniha-*`, `obekt-2-doronichi-*`, `obekt-3-slobodskoy-*`, `obekt-4-chepetsk-*`, `obekt-5-babichi-*`, `obekt-6-ustanovka-*` с ширинами 640/1280; у каждого объекта главное и дополнительное фото. Lightbox показывает галерею объекта.
 - **CTA/ссылки:** фото → viewer и `works_photo_open {name}`; «+ ещё N» раскрывает комплектацию; «Рассчитать такую» → `works_calc_click {name}`, `requestCalc(season, cardId)`, выбор соответствующего варианта в калькуляторе и прокрутка к его карточкам. У доставки/установки нет цены, комплектации и кнопки расчёта.
-- **Карта:** «Где стоят наши бани», региональные точки, переключение на всю область и дальние объекты. При отсутствии карты CTA «Рассчитать доставку» вызывает общий переход к калькулятору. Внешний API и fallback описаны в разделе 6.
-- **Формы:** отсутствуют. Фон карточек — `surface-2`; следующая внутренняя часть карты — `ink`, без промежуточного зазора.
+- **Карта перенесена:** существующий MapBlock теперь сразу после Quiz, см. 2.7; данные/код/API/цели не изменены.
+- **Формы:** отсутствуют. Фон карточек — `surface-2`; внутренней карты в Works больше нет.
 
 ### 2.5. Отзывы владельцев
 
@@ -131,7 +131,22 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **CTA/ссылки:** раскрытие длинного текста; открытие фото; «Показать ещё»/свернуть список. Цели: `review_expand {label}`, `review_photo_open {label}`, `reviews_show_more`. Подписи источников сами по себе не ведут на внешние страницы отзывов.
 - **Формы:** отсутствуют. Светлый фон `surface-2`, карточки `surface` с акцентной полосой слева.
 
-### 2.6. Калькулятор — «Сколько стоит»
+### 2.6. Подбор бани за 5 вопросов
+
+- **Компоненты:** `quiz/QuizSection`, `QuizDialog`, `QuizStep`, `QuizFinalForm`, `QuizFloatingReminder`; вопросы/state helpers — `src/data/quiz.js`. Якорь `#quiz`, заголовок «Подберём баню под ваш участок и задачи».
+- **UI:** surface section, существующий container/gutter, forest banner с CSS overlay78–82%, accent line64×2, Onest/tokens/Button. Decorative img `quiz-bg-plan-{640,1280}.webp` (640×357/1280×714), lazy/object-cover, alt пустой; master только локально.
+- **CTA:** «Начать подбор» открывает native light dialog max960. Пять шагов place/area/features/timing/budget, single auto-next250ms, multi Continue, Back, Skip2–5. Обязательный place. Progress20..100. Закрытие×48/Escape/backdrop, focus return/body scroll lock. Native keyboard inputs, visible focus, существующий reduced-motion.
+- **Форма:** телефон, имя необязательно, обязательный explicit method max/telegram/whatsapp/call и согласие; `form:quiz`, `quiz_version:v1`, пять scalar quiz_* (features CSV). Единственный итоговый POST через прежний submitLead. Error сохраняет ввод; success обещает варианты от менеджера.
+- **Resume:** sessionStorage `bv_quiz_v1` хранит только ответы/шаг/widget/started/completed, без контактов. После закрытия reminder; × сворачивает в pill; success очищает ответы/скрывает reminder. Автооткрытия modal нет. Mobile bar bottom88+safe-area, desktop card280px. Contact form остаётся смонтированной при закрытии в полёте; повторная отправка заблокирована.
+- **Analytics:** quiz_open {source}, quiz_start, quiz_step {step,question}, quiz_close {step}, quiz_submit только после ok. PII не передаются.
+- **Responsive:** banner min360/400, text max800; dialog gutters12/24, panel20/40; answers1 колонка до600,2 выше; methods2×2. Реальный responsive/CLS QA шести ширин ещё требуется. Полный контракт/проверки — `docs/QUIZ_IMPLEMENTATION.md`.
+
+### 2.7. Где стоят наши бани
+
+- **Компоненты:** новая внешняя обёртка `SectionLocations.jsx` → прежний `works/MapBlock.jsx`, якорь `#map`, текст/координаты `src/data/objects.js`.
+- **Перенос:** прежняя ink-обёртка, container и padding из Works сохранены. MapBlock, Yandex Maps loader/ключ, fallback «Рассчитать доставку», цели и interactions не менялись. Никакой новой карты не создано.
+
+### 2.8. Калькулятор — «Сколько стоит»
 
 - **Компонент/файл:** `SectionCalculator`, `src/components/SectionCalculator.jsx`, `#calculator`.
 - **Дочерние компоненты:** `calculator/Segmented`, `CalculatorCard`, `FloorPlan`, `LeadForm`, `ReviewCard` (отзыв бизнеса), `Button`.
@@ -142,7 +157,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **Формы:** одна `LeadForm` в режиме `calculator` после выбора карточки и другая в режиме `business`. Цели успешной отправки — `calc_submit`, `business_submit`. Поля и endpoint см. раздел 6.
 - **Mobile CTA:** нижняя фиксированная панель появляется при выбранной карточке, если форма не видна, ещё не отправлена и выбран режим «Себе»; возвращает к форме. Может оставаться видимой после прокрутки за пределы калькулятора.
 
-### 2.7. Преимущества — «Что вы получаете»
+### 2.9. Преимущества — «Что вы получаете»
 
 - **Компонент/файл:** `SectionBenefits`, `src/components/SectionBenefits.jsx`, `#benefits`.
 - **Дочерние компоненты:** `BenefitIcon` из `components/benefits/BenefitIcons.jsx`, `Button`.
@@ -151,7 +166,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **CTA/ссылки:** «Собрать свою баню» → `benefits_cta` → `requestCalcOpen()`.
 - **Формы:** отсутствуют. Фон `forest`, свободные колонки без универсальных карточек с тенями.
 
-### 2.8. Сравнение с баней-бочкой
+### 2.10. Сравнение с баней-бочкой
 
 - **Компонент/файл:** `SectionComparison`, `src/components/SectionComparison.jsx`. У section нет собственного `id`; есть `aria-labelledby="comparison-title"`.
 - **Назначение:** «Чем Подкова отличается от бани-бочки»: ширина/ровный пол, отсутствие стяжек, двойной проливной пол, дуга стен по форме тела.
@@ -161,7 +176,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **CTA/ссылки:** «Узнать цену Подковы» → `compare_cta` → `requestCalcOpen()`.
 - **Формы:** отсутствуют. Фон `ink`, сравнение различает `podkova` и `alert-on-dark`.
 
-### 2.9. Устройство — «Что внутри»
+### 2.11. Устройство — «Что внутри»
 
 - **Компонент/файл:** `SectionInside`, `src/components/SectionInside.jsx`. Собственного `id` у section нет; связь с заголовком — `inside-title`.
 - **Текст:** локальные `SECTIONS`/`DETAILS` и JSX. Основные темы: вентиляция, «второе дыхание», утепление, гидроизоляция, печь, дерево, кровля; отдельно ручка двери и слив.
@@ -170,7 +185,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **CTA/ссылки:** «Посмотреть баню вживую» → `#showroom`; отдельной цели клика в этом CTA нет.
 - **Формы:** отсутствуют. Фон `surface`. Внутренние разделители — тонкие линии и обводная капсула с акцентным текстом, не заголовки новой секции main.
 
-### 2.10. Порядок заказа
+### 2.12. Порядок заказа
 
 - **Компонент/файл:** `SectionProcess`, `src/components/SectionProcess.jsx`, `#process`.
 - **Текст:** локальные `STEPS` и `SUMMARY`, заголовок «Как проходит заказ». Пять шагов: «Заявка и расчёт», «Просмотр и договор», «Изготовление», «Доставка и установка», «Гарантия и обслуживание». У каждого срок и колонки «Делаем мы»/«Делаете вы»; при отсутствии действий клиента выводится «Ничего».
@@ -179,7 +194,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **CTA/ссылки:** «Рассчитать стоимость» → `#calculator`, `process_cta_click`. Адрес шоурума в тексте шага не является отдельной ссылкой.
 - **Формы:** нет. Реальный фон `forest`, светлый текст, светлая панель действий клиента с акцентной левой границей.
 
-### 2.11. Просмотр перед покупкой
+### 2.13. Просмотр перед покупкой
 
 - **Компонент/файл:** `SectionShowroom`, `src/components/SectionShowroom.jsx`, `#showroom`; форма — `#visit-form`.
 - **Дочерние компоненты:** `showroom/VisitCard`, `showroom/VisitForm`, `ResponsivePhoto`, `Button`.
@@ -189,7 +204,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **Форма:** `VisitForm`, тип `visit`, цель `visit_submit {type}`. Видеозвонок здесь означает заявку менеджеру, а не встроенный видеочат.
 - **Оформление:** секция `surface`, карточки `surface-2`, форма на `forest`.
 
-### 2.12. Частые вопросы
+### 2.14. Частые вопросы
 
 - **Компонент/файл:** `SectionFaq`, `src/components/SectionFaq.jsx`, `#faq`.
 - **Дочерние компоненты:** `FaqQuestionForm`; локальные функции разбора ссылок/ответов. Нативные `<details>/<summary>`, допускается несколько раскрытых ответов одновременно.
@@ -199,7 +214,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **Форма:** `FaqQuestionForm`, тип `faq_question`, цель `faq_question_submit`.
 - **Оформление:** фон `surface-2`; тонкие границы вопросов, знак «+» поворачивается, отдельной анимации высоты ответа нет.
 
-### 2.13. Финальная заявка
+### 2.15. Финальная заявка
 
 - **Компонент/файл:** `SectionFinal`, `src/components/SectionFinal.jsx`, `#final`.
 - **Дочерний компонент:** `FinalForm`.
@@ -209,7 +224,7 @@ pages-redirect/index.html        redirect со старого адреса GitHu
 - **Форма:** тип `final`, цель `final_submit`, подробности в разделе 6.
 - **Оформление:** `forest`, центрированная колонка максимум 600 px; собственные вертикальные padding 80/128 px, а не стандартные 64/96.
 
-### 2.14. Footer
+### 2.16. Footer
 
 - **Компонент/файл:** `Footer`, `src/components/Footer.jsx`.
 - **Дочерние элементы:** логотип, контактные/юридические строки, inline иконка VK; универсальной системы колонок footer нет.
@@ -352,7 +367,7 @@ Tailwind использует стандартные `sm: 640`, `md: 768`, `lg: 
 | FloorPlan | `src/components/calculator/FloorPlan.jsx` | CalculatorCard | SVG-планировка бани по варианту |
 | WorkCard | `src/components/works/WorkCard.jsx` | Works | Реализованный объект: фото, комплектация, цена, связанный расчёт |
 | Lightbox | `src/components/works/Lightbox.jsx` | Works | Модальная галерея объекта |
-| MapBlock | `src/components/works/MapBlock.jsx` | Works | Lazy карта объектов и fallback; не отдельная секция App |
+| MapBlock | `src/components/works/MapBlock.jsx` | SectionLocations после Quiz | Прежняя lazy карта объектов и fallback |
 | OwnerReviewCard | `src/components/reviews/OwnerReviewCard.jsx` | Reviews | Отзыв владельца с раскрытием/фотографиями |
 | Avatar | `src/components/reviews/Avatar.jsx` | OwnerReviewCard | Инициалы автора, круглая плашка |
 | PhotoViewer | `src/components/reviews/PhotoViewer.jsx` | Reviews | Просмотр фотографий конкретного отзыва |
@@ -386,6 +401,7 @@ Tailwind использует стандартные `sm: 640`, `md: 768`, `lg: 
 
 | Форма / компонент | Поля посетителя | Контекст payload | Success goal |
 | --- | --- | --- | --- |
+| Квиз / `quiz/QuizFinalForm` | Телефон, имя необязательно, max/telegram/whatsapp/call, согласие | `form:quiz`, version v1, place/area/features CSV/timing/budget | `quiz_submit` |
 | Каталог / `catalog/CatalogForm` | Телефон, необязательное имя, звонок/MAX, обязательное согласие | `form: catalog`, строгое `catalog_model: podkova-35/podkova-45/podkova-60` | `catalog_submit {model}` |
 | Расчёт / `calculator/LeadForm` | Телефон, необязательное имя, звонок/MAX, обязательное согласие | `form: calculator`, выбранная карточка, сезон, название/размер, `option_shown`, `price_shown` | `calc_submit` |
 | Бизнес / тот же `LeadForm` | Телефон, имя, компания, комментарий, звонок/MAX, согласие | `form: business`, `company`, `comment` | `business_submit` |
@@ -495,13 +511,13 @@ REST timeout: connect 5 секунд, полный timeout 10 секунд **н�
 
 Колесо мыши прокручивает страницу (`scrollZoom` не используется). На coarse pointer взаимодействие включается касанием; подсказка запоминается в `sessionStorage` (`bv_map_hint_seen`).
 
-Telegram/WhatsApp API, bot, webhook либо deep link в текущем коде нет. MAX — вариант предпочтительного способа связи в формах, без SDK/deep link/автоматической переписки. Видеосвязь — тип заявки на показ. Социальная ссылка footer ведёт во VK.
+Telegram/WhatsApp теперь доступны как предпочтительный способ связи в quiz, попадают в COMMENTS. API/bot/deep link и автоматической отправки сообщений нет. MAX — вариант предпочтительного способа связи в формах, без SDK/deep link/автоматической переписки. Видеосвязь — тип заявки на показ. Социальная ссылка footer ведёт во VK.
 
 ## 7. Assets
 
 ### 7.1. Расположение, форматы и naming
 
-В `public/photos/` **126 WebP-файлов**. Дополнительно в корне public — JPEG `og-banivyatki.jpg` 1200×630, PNG favicon 32×32 и apple-touch-icon 180×180; итого 129 растровых файлов в public. AVIF в репозитории нет. Значительная часть иконок/схем реализована inline SVG в JSX, а не отдельными `.svg`-файлами. Шрифты внешние.
+В `public/photos/` **128 WebP-файлов** (включая два новых фона квиза). Дополнительно в корне public — JPEG `og-banivyatki.jpg` 1200×630, PNG favicon 32×32 и apple-touch-icon 180×180; итого 131 растровой файл в public. AVIF в репозитории нет. Значительная часть иконок/схем реализована inline SVG в JSX, а не отдельными `.svg`-файлами. Шрифты внешние.
 
 Имена — латиница/транслитерация, lowercase, дефисы; название отражает роль, объект, порядок кадра и/или ширину:
 
@@ -572,7 +588,7 @@ SourceIcon выбирает из round 56/80/112 наиболее подходя
 
 ## 9. Ограничения и правила будущих доработок
 
-1. **Менять порядок секций только по явному заданию через App.** Каталог сейчас второй блок. «Наши работы» сейчас третий блок и включает карту; не переносить его и не выделять карту в отдельную секцию как побочный эффект другой задачи.
+1. **Менять порядок секций только по явному заданию через App.** Каталог сейчас второй блок. «Наши работы» третий, Reviews четвёртый, Quiz пятый, карта шестая; перенос карты выполнен по явному ТЗ квиза.
 2. **Сохранять существующие токены и тональность.** Использовать ink/forest/surface/surface-2, Onest, `text-heading/body/lead`, общий wrapper и существующие интервалы. Не добавлять независимую палитру, новую гарнитуру, большие радиусы и повсеместные тени без дизайн-задачи. На тёмном применять соответствующие варианты текста/ошибок.
 3. **Переиспользовать компоненты по назначению.** CTA через Button, стандартные фото через ResponsivePhoto, выбор через Segmented, рейтинг через RatingStars/SourceIcon. Для заявок использовать существующие forms/helpers; не копировать LeadForm в новую секцию. Специализированный WorkCard/CalculatorCard не объявлять универсальным Card без отдельной проработки контракта.
 4. **Учитывать несколько responsive-порогов.** Desktop основных композиций — 1024, увеличение общих отступов — 768, отдельные сетки/схемы — 600. Проверять минимум 1440, 1024, 768, 600, 390 и 360 px, длинные тексты, клавиатуру и reduced motion. Не фиксировать высоты текстовых карточек, которые ломаются при переносе строк; сохранять выравнивание CTA flex-колонками.
@@ -595,3 +611,9 @@ SourceIcon выбирает из round 56/80/112 наиболее подходя
 ### Проверки реализации каталога
 
 `npm run build` прошёл. PHP8.3: phone.test.php —22 случая, handler.test.php —83 проверки, включая catalog и regression. DOM harness вне repo —35 проверок формы/dialog/analytics; native dialog для harness полифиллен. Реальные браузерные проверки 1440/1024/768/600/390/360 px, отсутствие horizontal overflow/CLS и фактический focus trap **не подтверждены**: локальный Chrome аварийно завершается, cloud browser не видит localhost. Production не публиковался. Подробный отчёт/релиз — `docs/CATALOG_IMPLEMENTATION.md`.
+
+### Дополнение по backend квиза
+
+`bv_quiz_valid` в server/lib.php и вызов в endpoint: строгие raw strings/enums/version, CSV каждого token, дедупликация и canonical order. BV_QUIZ_FIELDS содержит доверенные labels. Сценарий quiz исключает legacy comment/price/option context. Данные сохраняются в private queue и retry без изменения retry.php. TITLE «Сайт · Квиз», SOURCE_DESCRIPTION «Квиз · Подбор бани», SOURCE_ID остаётся рекламным каналом. Private config менять не требуется: Telegram/WhatsApp всегда есть в COMMENTS; UF заполняется только при существующем configured value.
+
+**Перед merge: server/lib.php → private/lib.php на Beget вручную.** Новые endpoint/frontend требуют совместимую private lib; Actions её не доставляет. Проверки: phone22, handler213, quiz DOM49, catalog DOM42; build/diff успешно. Browser screenshots не созданы: Chrome exit139. Все подробности/команды в QUIZ_IMPLEMENTATION.md.

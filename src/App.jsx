@@ -3,6 +3,8 @@ import SectionHero from './components/SectionHero.jsx'
 import CatalogSection from './components/catalog/CatalogSection.jsx'
 import SectionWorks from './components/SectionWorks.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
+import QuizSection from './components/quiz/QuizSection.jsx'
+import SectionLocations from './components/SectionLocations.jsx'
 import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionBenefits from './components/SectionBenefits.jsx'
 import SectionComparison from './components/SectionComparison.jsx'
@@ -22,6 +24,8 @@ export default function App() {
         <CatalogSection />
         <SectionWorks />
         <SectionReviews />
+        <QuizSection />
+        <SectionLocations />
         <SectionCalculator />
         <SectionBenefits />
         <SectionComparison />

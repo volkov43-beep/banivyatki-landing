@@ -1,26 +1,12 @@
 import { useState } from 'react'
 import WorkCard from './works/WorkCard.jsx'
 import Lightbox from './works/Lightbox.jsx'
-import MapBlock from './works/MapBlock.jsx'
 import { WORKS, WORKS_TITLE, WORKS_SUBTITLE, WORKS_NOTE } from '../data/works.js'
 import { MIN_PRICE, formatPrice } from '../data/calculator.js'
 import { requestCalc } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 
-/**
- * Экран «Наши работы» (#works): карточки объектов на surface-2, карта ниже
- * на ink (две части одного блока, стык без зазора и линии). Заголовок и
- * подзаголовок по центру. Сверху шесть карточек объектов (от 1024 px три в ряд,
- * от 600 px две, ниже одна: в двух колонках на 390 списки комплектации не читаются),
- * под карточками строка-пояснение про цену (WORKS_NOTE, muted, по центру;
- * «от 293 000 ₽» — MIN_PRICE калькулятора цветом price),
- * ниже карта «Где стоят наши бани» (works/MapBlock) со своим маленьким
- * заголовком — прежний экран карты стал частью этого блока.
- *
- * Клик по фото — увеличение (Lightbox) и цель works_photo_open с названием
- * объекта. «Рассчитать такую» — цель works_calc_click и запрос калькулятору
- * через lib/calc.js: блоки друг о друге не знают.
- */
+/** Карточки работ. Существующая карта вынесена после квиза в SectionLocations. */
 export default function SectionWorks() {
   const [open, setOpen] = useState(null)
 
@@ -53,13 +39,6 @@ export default function SectionWorks() {
           <span className="text-price">{formatPrice(MIN_PRICE)}</span>
           {WORKS_NOTE.after}
         </p>
-      </div>
-
-      {/* Карта — тёмная часть блока, стык без зазора и линии */}
-      <div className="bg-ink text-surface">
-        <div className="mx-auto max-w-container px-gutter py-section-y md:px-gutter-lg md:py-section-y-lg">
-          <MapBlock />
-        </div>
       </div>
 
       {open && <Lightbox work={open} onClose={() => setOpen(null)} />}

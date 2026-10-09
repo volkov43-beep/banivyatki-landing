@@ -1,10 +1,10 @@
 # Технический контекст интеграции banivyatki.ru → Битрикс24
 
-Инвентаризация: **8 октября 2026 года**. Репозиторий `volkov43-beep/banivyatki-landing`, базовый HEAD `bdca6c33b3d9051ec2ae78d32e8721f00ec56005`, актуализация по ветке `feature/catalog-models`.
+Инвентаризация: **8 октября 2026 года**. Репозиторий `volkov43-beep/banivyatki-landing`, базовый HEAD `bdca6c33b3d9051ec2ae78d32e8721f00ec56005`, актуализация по ветке `feature/sauna-quiz` от main ddcb019. Полный действующий контракт квиза — `docs/QUIZ_IMPLEMENTATION.md`.
 
 Документ основан на текущих React/PHP-файлах, образце конфигурации, тестах и workflow. Действующий сервер, приватный конфиг, Битрикс24, cron и кабинет Метрики не проверялись. Значения секретов, credentials и URL вебхука не приводятся, в том числе в примерах. Все примеры данных ниже синтетические: телефон состоит из нулей, имя/ответы/UTM вымышленные. Имена конфигурационных ключей обозначают структуру, а не раскрывают значения.
 
-**Актуализировано по ветке `feature/catalog-models`: catalog реализован в коде, но production этой работой не публиковался.** Квиз остаётся рекомендацией, `form: quiz` не поддерживается. Старые формы/mapping, config, queue/retry, workflow и счётчик не изменены. Master JPG остаются только локально и исключены из Git правилом `/source-assets/catalog/*.jpg`. Проверки: PHP8.3 phone22, handler83; DOM35; build пройден. Внешние кабинеты не проверялись.
+**Catalog и quiz реализованы.** Quiz v1 использует пять scalar полей, server-side labels, общий CONTACT→DEAL/queue/retry. Старые form contracts, private config/retry, workflow и счётчик не изменены. Master JPG catalog/quiz только локально и ignored. Проверки: phone22, handler213, quiz DOM49, catalog DOM42, build/diff успешно. Production/внешние кабинеты не проверены. **До merge вручную доставить server/lib.php как private/lib.php на Beget.**
 
 Краткий вывод: текущий backend создаёт **CONTACT и DEAL, не CRM LEAD**. Канал рекламы отражает `SOURCE_ID`, тип обращения — уникальная подпись `SOURCE_DESCRIPTION` из `BV_FORMS`. Для новых сценариев требуется согласованное расширение серверного контракта; просто добавить поля React недостаточно.
 
@@ -42,7 +42,7 @@
 4. Непустое `website` → журнал dropped/honeypot, **200 ok без CRM**.
 5. `elapsed_ms` не numeric либо после `(int)` меньше 3000 → dropped/too_fast, **200 ok без CRM**.
 6. Загрузка config для определения IP; файловый rate limit 5 запросов за 600 с → 429 `too_many_requests`.
-7. Поддерживаемый form и непустой phone → иначе 400 `bad_request`. `bv_catalog_valid($data, $form)` проверяет catalog raw strings и enums до нормализации; отказ →400 `bad_request`. Затем неверная строка телефона →400 `bad_phone`. Для остальных form валидатор возвращает true и сохраняет прежнее поведение.
+7. Поддерживаемый form и непустой phone → иначе 400 `bad_request`. `bv_catalog_valid($data, $form)` и `bv_quiz_valid($data, $form)` проверяют raw strings/enums соответствующего сценария до нормализации; отказ →400 `bad_request`. Затем неверная строка телефона →400 `bad_phone`. Для остальных form валидатор возвращает true и сохраняет прежнее поведение.
 8. Проверка результата загрузки config → 500 `server_config`, если он недоступен/неполон.
 9. `bv_build_lead` → `bv_send_lead`. Успех REST → журнал sent, 200 ok.
 10. Ошибка REST → `bv_queue_put($res['lead'], $res['error'])`; успешная запись → queued, 200 ok; неудачная → lost, 500 `server_error`.
@@ -74,7 +74,7 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 
 ### 2.1. Поддерживаемые значения form и frontend
 
-Шесть канонических типов в `BV_FORMS`, плюс единственный alias `calc → calculator`. Строки регистрозависимы, не trim: `Calculator`, ` calculator ` и `quiz` сейчас не поддерживаются; `catalog` поддерживается.
+Семь канонических типов в `BV_FORMS`, плюс единственный alias `calc → calculator`. Строки регистрозависимы, не trim: `Calculator`, ` calculator ` сейчас не поддерживаются; `catalog` и `quiz` поддерживаются.
 
 | Входной form | Компонент / место | Поля UI | Дополнительный frontend-контекст | Что PHP сохраняет из специфичного контекста | Success goal |
 | --- | --- | --- | --- | --- | --- |
@@ -82,11 +82,12 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 | `business` | Тот же LeadForm, вкладка бизнеса | Телефон, имя, company, comment, call/max, согласие | company/comment; технические пустые season/card_id/card_title/size, price_shown null | company/comment; общий whitelist также принимает option_shown/price_shown, но текущий UI их не задаёт для бизнеса | `business_submit` |
 | `visit` | `src/components/showroom/VisitForm.jsx`, SectionShowroom | showroom/production/video, имя, телефон, call/max, согласие | visit_type | visit_type | `visit_submit`, params `{type: visitType}` |
 | `faq_question` | `src/components/FaqQuestionForm.jsx`, SectionFaq | Обязательный вопрос, имя, телефон, call/max, согласие | question | question | `faq_question_submit` |
+| `quiz` | `src/components/quiz/QuizFinalForm.jsx` | Телефон, имя необязательно, explicit max/telegram/whatsapp/call, согласие | quiz_version v1; quiz_place/area/features/timing/budget, общие metadata | Общие metadata + 6 quiz fields, без legacy business context | `quiz_submit` |
 | `catalog` | `src/components/catalog/CatalogForm.jsx`, CatalogSection/Dialog | Телефон, имя необязательно, call/max, обязательное UI-согласие | catalog_model выбранной модели, общие metadata | C + catalog_model; строгая validation новых enum | `catalog_submit {model}` |
 | `final` | `src/components/FinalForm.jsx`, SectionFinal | Имя необязательно, телефон, call/max, согласие | Дополнительных бизнес-полей нет | Общие поля | `final_submit` |
 | `calc` | Отдельного React-компонента нет; backend совместимость | Как calculator для внешнего совместимого отправителя | Аналог calculator | Канонизируется в calculator | Автоматической цели backend нет; текущий React использует calculator/calc_submit |
 
-Во всех текущих UI обязательны полный телефон и checkbox согласия; остальные общие поля имени необязательны. Согласие не входит в payload. FAQ требует вопрос только на frontend — endpoint **не проверяет его обязательность**. Server whitelist общий для всех form: например, отправленный вручную `company` при final или `question` при visit не отклоняется и может попасть в COMMENTS.
+Во всех текущих UI обязательны полный телефон и checkbox согласия; остальные общие поля имени необязательны. Согласие не входит в payload. FAQ требует вопрос только на frontend — endpoint **не проверяет его обязательность**. Legacy server whitelist общий (quiz отдельно исключает legacy business fields): например, отправленный вручную `company` при final или `question` при visit не отклоняется и может попасть в COMMENTS.
 
 Общие сохраняемые поля `C`: form, phone, name, contact_method, option_shown, price_shown, visit_type, question, company, comment, page_url, referrer, submitted_at и пять UTM. Для catalog дополнительно сохраняется `catalog_model` ≤20, другие формы его не сохраняют. Остальной whitelist одинаков для каждой строки таблицы; столбец специфичного контекста показывает нормальную отправку существующего UI, не ограничения per-form. `website`/elapsed проверяются до build, но не сохраняются в lead.
 
@@ -98,6 +99,7 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 
 | Канонический form | CONTACT / DEAL | TITLE в обычном сценарии UI | SOURCE_ID | SOURCE_DESCRIPTION (точная строка) | Специфика COMMENTS | UTM |
 | --- | --- | --- | --- | --- | --- | --- |
+| quiz | K / D | `Сайт · Квиз` | S | `Квиз · Подбор бани` | Пять доверенных labels ответов, method, серверный запрос, общие metadata | Все5 по mapping |
 | catalog | K / D | `Сайт · Каталог` | S | `Каталог бань` | Форма, доверенная модель, серверный запрос + общие строки | Все 5 по общему mapping |
 | calculator | K / D | `Сайт · Расчёт · <option_shown> · от <price_shown> ₽`; пустые вариант/цена пропускаются | S | `Калькулятор` | Форма, выбранный вариант, показанная цена + общие строки | Все 5 в COMMENTS при наличии; в поля K/D только по respective mapping |
 | business | K / D | `Сайт · Для бизнеса`; build/title также умеют добавить вариант/цену, если они присланы | S | `Калькулятор, для бизнеса` | Форма, компания, комментарий + общие строки | То же |
@@ -153,13 +155,13 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 
 `bv_str` ограничивает длину в символах mbstring, не в байтах. Оставляет переносы строк, carriage return и tab; не выполняет HTML escaping. Передача строки с переносом может нарушить читаемость структуры COMMENTS. Как конкретный интерфейс Битрикс24 отображает HTML, по этому коду не устанавливается; произвольную разметку и строки дополнительных CRM-полей из клиента принимать не рекомендуется.
 
-Не сохраняются: season/card_id/card_title/size, website/elapsed_ms, checkbox consent, произвольные `quiz_answers`, `quiz_*`, любые `catalog_*` кроме разрешённого catalog_model, дополнительные frontend поля. contact_id/contact_found добавляет **сервер** после REST, а не копирует из публичного payload.
+Не сохраняются: season/card_id/card_title/size, website/elapsed_ms, checkbox consent, произвольные `quiz_answers`, `quiz_*` кроме шести явно разрешённых для form quiz, любые `catalog_*` кроме разрешённого catalog_model, дополнительные frontend поля. contact_id/contact_found добавляет **сервер** после REST, а не копирует из публичного payload.
 
 Строгой server validation вопроса, связи и типа визита сейчас нет. В этом документе они описаны как ограничение реализации; исправлять их для старых сценариев в рамках добавления новой формы без отдельной задачи не следует.
 
-### 3.3. Реализованное расширение catalog и будущий quiz
+### 3.3. Реализованные catalog и quiz
 
-Catalog добавлен в BV_FORMS (`Каталог бань` / `Каталог`), BV_CATALOG_MODELS, bv_catalog_valid, условный whitelist bv_build_lead и bv_deal_comments в `server/lib.php`; endpoint вызывает проверку. Ни один клиентский label, SOURCE_DESCRIPTION, UF code или request_text не копируется в CRM. Подписи моделей доверенные, серверные. `catalog_model` сохраняется в queue как часть lead; retry.php не изменён и использует обновлённую lib. Quiz потребует отдельной схемы, whitelist/enum/version, COMMENTS, endpoint validation и тестов; просто BV_FORMS недостаточно. Подробный checklist — раздел7.
+Catalog добавлен в BV_FORMS (`Каталог бань` / `Каталог`), BV_CATALOG_MODELS, bv_catalog_valid, условный whitelist bv_build_lead и bv_deal_comments в `server/lib.php`; endpoint вызывает проверку. Ни один клиентский label, SOURCE_DESCRIPTION, UF code или request_text не копируется в CRM. Подписи моделей доверенные, серверные. `catalog_model` сохраняется в queue как часть lead; retry.php не изменён и использует обновлённую lib. Quiz реализован: bv_quiz_valid, bv_quiz_features, BV_QUIZ_FIELDS/METHODS, whitelist version+five answers и server COMMENTS. Все ответы raw strings; CSV≤200, tokens checked/dedup/canonical. Unsure/skipped exclusive; обязательные version/place/phone/method и остальные ответы (допустим skipped). Строка phone≤40, optional name≤100. Неверные значения400 до REST/queue. Детали — QUIZ_IMPLEMENTATION.md.
 
 ## 4. Mapping в Битрикс24
 
@@ -192,7 +194,7 @@ Catalog добавлен в BV_FORMS (`Каталог бань` / `Катало�
 | Пользовательское поле способа связи | cfg.contact_method_field, cfg.contact_method_call/max | Field code и подходящие portal values (например ID списка) неизвестны; пустой код/значение — поле не заполняется |
 | Пять UTM | bv_utm_fields(cfg.deal_utm_fields, lead) | Field mapping configurable; непустой input всегда ещё доступен в COMMENTS |
 
-`OPPORTUNITY`, CURRENCY_ID, COMPANY_ID, отдельное поле form_code, ответы квиза и поле «каталог» не заполняются. Цена — контекст показанного предложения в TITLE/COMMENTS. Company формы бизнеса — строка «Компания: …» в COMMENTS, не отдельная CRM-компания.
+`OPPORTUNITY`, CURRENCY_ID, COMPANY_ID, отдельное поле form_code и отдельные UF для ответов квиза/каталога не заполняются. Ответы quiz записываются в COMMENTS. Цена — контекст показанного предложения в TITLE/COMMENTS. Company формы бизнеса — строка «Компания: …» в COMMENTS, не отдельная CRM-компания.
 
 `bv_contact_fields`/bv_deal_fields добавляют UTM через PHP array union `+`: уже имеющиеся стандартные keys не переопределяются UTM. При ошибочном mapping двух меток в один код внутри bv_utm_fields победит последняя обработанная метка. Код поля связи также берётся из доверенного config; ошибочная настройка может конфликтовать со стандартным полем, поэтому реальные настройки требуют проверки.
 
@@ -221,7 +223,7 @@ Frontend хранит UTM в sessionStorage `bv_utm`. Новые UTM из URL п
 
 ### 5.2. Можно ли отличить формы по сделке сейчас?
 
-**Да, для каждого из шести канонических сценариев — по SOURCE_DESCRIPTION.** Он всегда ставится сервером из BV_FORMS. Дублирующее указание есть первой содержательной строкой COMMENTS: `Форма: <label>`. TITLE помогает, но final и calculator могут иметь одинаковое «Сайт · Расчёт», поэтому TITLE не надёжный единственный discriminator. SOURCE_ID показывает канал и не различает формы.
+**Да, для каждого из семи канонических сценариев — по SOURCE_DESCRIPTION.** Он всегда ставится сервером из BV_FORMS. Дублирующее указание есть первой содержательной строкой COMMENTS: `Форма: <label>`. TITLE помогает, но final и calculator могут иметь одинаковое «Сайт · Расчёт», поэтому TITLE не надёжный единственный discriminator. SOURCE_ID показывает канал и не различает формы.
 
 | Сценарий | Отличительный SOURCE_DESCRIPTION | Что можно определить дополнительно |
 | --- | --- | --- |
@@ -231,7 +233,7 @@ Frontend хранит UTM в sessionStorage `bv_utm`. Новые UTM из URL п
 | Запись | Запись на просмотр | Шоурум/производство/видео из COMMENTS и TITLE; один form visit для всех |
 | Вопрос | Вопрос из FAQ | Текст вопроса из COMMENTS |
 | Каталог | Каталог бань | COMMENTS: доверенная модель и запрос; отдельный form catalog |
-| Будущий квиз | Пока неизвестный form, сделка обычным путём не создаётся | Рекомендация: отдельный label «Квиз подбора бани» |
+| Квиз | Квиз · Подбор бани | Пять ответов и запрос подбора в COMMENTS |
 
 **Конкретный CTA внутри страницы определить однозначно нельзя.** Одну форму калькулятора открывают hero, работы, преимущества и сравнение; visit может быть открыт карточкой или FAQ. Имя открывающего CTA не входит в lead/DEAL. Goals клика существуют отдельно, но отдельная сделка не связана с ними request ID. Alias calc также неотличим от calculator, что соответствует его назначению.
 
@@ -320,7 +322,7 @@ Frontend хранит UTM в sessionStorage `bv_utm`. Новые UTM из URL п
 
 Нормальный UI бизнеса не передаёт вариант/цену, поэтому их нет в примере. Но server-функция добавит эти строки при присланных значениях и для других форм; whitelist не является per-form схемой.
 
-### 6.3. Catalog реализован; quiz — рекомендация
+### 6.3. Catalog и quiz: фактические COMMENTS
 
 Сохранить существующий префикс `Форма:`, чтобы не вводить параллельно «Источник формы» и не смешивать форму с каналом SOURCE_ID. Заголовки/порядок блоков генерировать сервером, labels ответов из фиксированного словаря, не из произвольного клиентского текста.
 
@@ -338,28 +340,27 @@ Frontend хранит UTM в sessionStorage `bv_utm`. Новые UTM из URL п
 
 Строка «Запрос» серверная константа для catalog; отдельный payload `request_text` не нужен. Менеджер отправляет каталог вручную. Success должен обещать связь/отправку менеджером, не «каталог уже отправлен».
 
-**Квиз**, рекомендуемые SOURCE_DESCRIPTION «Квиз подбора бани», TITLE «Сайт · Квиз»:
+**Квиз**: TITLE «Сайт · Квиз», SOURCE_DESCRIPTION «Квиз · Подбор бани».
 
 ```text
-Форма: Квиз подбора бани
-Версия квиза: v1
-Ответы:
-Сезонность: Круглый год
-Размер: 4–4,5 м
-Количество человек: 3–4
-Бюджет: 400–600 тыс. ₽
-Срок покупки: Через 1–3 месяца
-Способ связи: Звонок
+Форма: Квиз · Подбор бани
+Место: Участок и место определены
+Площадь: Средняя — около 11 м² / 4,5 м
+Особенности: Утепление для круглого года, Топка с улицы
+Сроки: 1–3 месяца
+Бюджет: 350–500 тыс. ₽
+Способ связи: MAX
+Запрос: Подобрать подходящую баню и отправить варианты
 Страница: https://banivyatki.ru/
-Время отправки: 08.10.2026 09:00 (МСК)
+Время отправки: 08.10.2026 13:00 (МСК)
 Метки: utm_source=yandex, utm_medium=cpc, utm_campaign=demo
 ```
 
-Это эквивалент желаемой структуры в существующей архитектуре. ANSWERS-секция вставляется для form quiz, общие строки продолжают формироваться общим кодом. Ответы не следует пересылать в CONTACT: контекст относится к конкретному новому обращению/сделке, а не ко всем обращениям этого человека.
+Пропуск→«Не ответил». Labels — только BV_QUIZ_FIELDS. Enum codes и клиентские свободные labels в COMMENTS не попадают. CONTACT общий, ответы относятся к конкретной сделке. Telegram/WhatsApp не требуют config: предпочтение есть в COMMENTS. UF заполняется только при настроенном contact_method_<code>; значения не придумываются.
 
 ## 7. Checklist файлов для добавления форм
 
-Catalog реализован по отдельному UI brief; ниже перечислены фактические изменения. Карточки обновлены: capacity4,5 м «для 4–6 чел.»,6 м «для 5–8 чел.»; единая кнопка подписи/миниатюры140×105 открывает прежний viewer с одним catalog_plan_open. Эти UI-правки не меняют payload/form/model codes/CRM/backend. Quiz остаётся проектом будущего задания.
+Catalog реализован по отдельному UI brief; ниже перечислены фактические изменения. Карточки обновлены: capacity4,5 м «для 4–6 чел.»,6 м «для 5–8 чел.»; единая кнопка подписи/миниатюры140×105 открывает прежний viewer с одним catalog_plan_open. Эти UI-правки не меняют payload/form/model codes/CRM/backend. Quiz реализован по отдельному brief, см.7.2.
 
 ### 7.1. Фактические файлы catalog
 
@@ -381,96 +382,17 @@ Catalog реализован по отдельному UI brief; ниже пер
 
 Важный порядок доставки: сначала server/lib.php → private/lib.php, потом новый public/api/lead.php/frontend. Retry/config обновлять не требуется; существующий retry должен читать новую lib.
 
-### 7.2. Чтобы добавить form quiz
+### 7.2. Фактические файлы quiz
 
-| Файл / область | Менять? | Конкретная цель будущей работы |
-| --- | --- | --- |
-| `src/components/QuizForm.jsx` (новый) | Да, создать | Шаги, ответы, back/next, итоговый phone/name/method/consent, validation и однократная отправка только завершённого квиза |
-| `src/data/quiz.js` (новый) | Да, создать | Version и закрытые options/code-label pairs, тексты вопросов; это UI-данные, не замена server validation |
-| Файл подключения quiz CTA/блока | Да | Разместить сценарий по отдельному заданию; App только для новой секции; открытие/контекст |
-| Button/Segmented и существующие helpers | Нет | Переиспользовать; не дублировать submit/phone/UTM/track |
-| `src/lib/submitLead.js` | **Нет** | Общий JSON helper подходит scalar quiz payload |
-| `server/lib.php::BV_FORMS` | Да | quiz label «Квиз подбора бани», title «Квиз» |
-| `server/lib.php::bv_build_lead` | Да | quiz_version и пять quiz_* scalar fields, ограниченные длины; сохранять только проверенный контракт |
-| `server/lib.php` новые enums/version/validation | Да | Типы string, known version/options, обязательные ответы, запрет nested structures и неизвестных quiz_*; контролируемая схема |
-| `public/api/lead.php` | Да | Вызвать validation новых сценариев, 400 invalid quiz до REST/queue |
-| `server/lib.php::bv_deal_comments` | Да | Секции версии/ответов, стабильный порядок, labels из server enums; пустые/невалидные значения не молча терять |
-| bv_deal_title/fields/contact_fields/utm_fields | Нет при базовом TITLE и COMMENTS-only ответах | Default title/BV_FORMS mapping уже подходят; новые UF-поля только при отдельном требовании CRM фильтров |
-| config.sample.php и private/config.php | Нет для минимального варианта | Существующие воронка/источники/связь/UTM; новые mappings нужны лишь для отдельных quiz UF-полей |
-| `server/retry.php` | Нет для минимального совместимого lead | Обновлённая lib должна понимать quiz и прежние jobs; новые поля уже в сериализованном lead |
-| `src/lib/track.js`, `index.html` | Нет | Общий track/counter; analytics callbacks в новом QuizForm |
-| QuizForm + Метрика | Да | `quiz_start`, при необходимости `quiz_step {step_id}`, `quiz_submit` после ok; не отправлять ответы/телефон в goal params |
-| `server/tests/handler.test.php` | Да | Payload/version/enum/types/limits/COMMENTS, источники, очереди, retry и regression старых сценариев |
-| `server/tests/bitrix-stub.php` | Да для расширенного failure coverage | Modes contact failure, deal failure, side effect + timeout, slow chain; не нужен новый REST-метод для quiz |
-| phone.test.php, workflow, Vite | Нет | Нормализация/публикация остаются прежними; tests запускать, private lib обновлять отдельно |
-| Документация | Да после реализации | Реальный version/options/поведение и тестирование |
+`src/data/quiz.js`, `src/components/quiz/*`, App/SectionLocations и перенос MapBlock из Works; две WebP. Backend: server/lib.php (schema/mapping), public/api/lead.php (вызов validator), server/tests/handler.test.php (213 проверок). Frontend tests: scripts/tests/quiz.dom.mjs. SubmitLead/phone/utm/track, config/retry, workflows и catalog не менялись.
 
-Не отправлять промежуточные шаги квиза как отдельные сделки: это множит обращения и цели, повышает вероятность дублей. Если нужна сохранность незавершённого квиза, это отдельный сценарий хранения с явным согласием/retention, а не скрытая последовательность lead.php вызовов.
+## 8. Действующий flat contract quiz v1
 
-## 8. Квиз и динамические данные: контракт payload
+Поля: `form:quiz`, `quiz_version:v1`, `quiz_place`, `quiz_area`, `quiz_features`, `quiz_timing`, `quiz_budget`, phone/name/contact_method и прежние metadata. Полные codes/limits, payload и файл-трассировка в `docs/QUIZ_IMPLEMENTATION.md`.
 
-### 8.1. Может ли текущий backend принять объект quiz_answers безопасно?
+Особенности передаются стабильной CSV строкой, без nested arrays/objects. Каждый token проверяется на backend; duplicates удаляются и порядок canonical. Unsure/skipped не смешиваются с другими features. Nested `quiz_answers` не используется: неизвестные ключи отбрасываются, а отсутствие/невалидность обязательных scalar fields даёт400. Просто передать ответы через form final нельзя — whitelist не сохранит их.
 
-JSON-парсер декодирует вложенный объект в PHP array, но текущий bv_build_lead **полностью игнорирует quiz_answers**. В существующее строковое comment объект тоже не попадёт: bv_str вернёт пустую строку. При form quiz endpoint после antispam/rate limit вернёт 400 неизвестной формы. При form final с quiz_answers сделка создастся без ответов. Это отсутствие поддержки, не успешная безопасная обработка квиза.
-
-Нельзя решить это копированием всего `$data` в lead или сериализацией произвольного объекта в COMMENTS: потеряются whitelist, пределы и тестируемый порядок; клиент сможет навязать лишние поля/текст.
-
-### 8.2. Сравнение вариантов
-
-| Вариант | Плюсы | Минусы в текущем коде | Вывод |
-| --- | --- | --- | --- |
-| A: `quiz_answers: {season, size, people, ...}` | Логически группирует ответы, удобно расширять с явной version | Требует отдельной recursive/структурной схемы, отличать object/list, ограничить keys/count/depth/types/length, нормализовать nested lead и queue; bv_str не подходит | Возможен при явном валидаторе, но больше новых механизмов |
-| B: `quiz_season`, `quiz_size`, `quiz_people`, ... | Прямо соответствует плоскому bv_build_lead, простая whitelist/enum validation, понятные fixtures и queue | Нельзя автоматически добавлять произвольные вопросы; frontend/server options надо синхронизировать | **Рекомендован для текущего фиксированного квиза** |
-| C: одна готовая строка | Можно поместить в текущий comment ≤2000, минимально для прототипа | Нет проверки полноты/enum, frontend диктует headings, ответы трудно фильтровать/переиспользовать, риск обрезания и неоднозначности; отдельный form всё равно нужен | Не рекомендован как основной контракт |
-
-Для динамического конструктора с меняющимися вопросами A + schema version может быть лучше позднее. Для пяти известных вопросов лендинга B минимальнее и соответствует текущей PHP-архитектуре. Не создавать произвольный список «любые ответы», пока маркетинговая структура фиксированная.
-
-### 8.3. Рекомендуемый B (проект контракта v1, не реализован)
-
-Пример payload итогового шага; значения вариантов предварительные и требуют согласования маркетингового ТЗ:
-
-```json
-{
-  "form": "quiz",
-  "quiz_version": "v1",
-  "quiz_season": "year",
-  "quiz_size": "4_5m",
-  "quiz_people": "3_4",
-  "quiz_budget": "400_600k",
-  "quiz_purchase_term": "1_3months",
-  "phone": "+70000000000",
-  "name": "Тест",
-  "contact_method": "call",
-  "utm_source": "yandex",
-  "utm_medium": "cpc",
-  "utm_campaign": "demo",
-  "utm_content": "",
-  "utm_term": "",
-  "page_url": "https://banivyatki.ru/",
-  "submitted_at": "2026-10-08T06:00:00.000Z",
-  "elapsed_ms": 12000,
-  "website": ""
-}
-```
-
-Referrer не надо дублировать в React: его добавит submitLead. Timer разумно считать от открытия/начала квиза и не сбрасывать при переходе на последний шаг, иначе быстро заполненный последний экран даст ложный dropped после долгого прохождения.
-
-Предлагаемые server правила:
-
-| Ключ | Тип, предел | Предлагаемые значения |
-| --- | --- | --- |
-| quiz_version | string ≤20, обязательный | `v1`; неизвестная version отклоняется |
-| quiz_season | string ≤20, обязательный | warm / year / unsure |
-| quiz_size | string ≤20, обязательный | 3m / 4_5m / 6m / unsure |
-| quiz_people | string ≤20, обязательный | 1_2 / 3_4 / 5_6 / 7_plus / unsure |
-| quiz_budget | string ≤20, обязательный | up_to_300k / 300_400k / 400_600k / 600k_plus / unsure |
-| quiz_purchase_term | string ≤20, обязательный | soon / 1_3months / 3_6months / later / unsure |
-
-Отвечать «не определился» можно через enum unsure; отсутствие поля не следует считать эквивалентом unsure. Проверять raw type/длину/enum **до** общей coercion/truncation, чтобы массивы/числа/длинный код не стали silently empty либо совпавшим укороченным кодом. Неизвестные `quiz_*`/quiz_answers в quiz payload отклонять, остальные общие metadata принимать по явному контракту. Не менять глобальное правило неизвестных полей старых форм незаметно.
-
-Лейблы для COMMENTS задаёт backend, не клиент. Ответы хранятся в нормализованной lead и queue без потери; CONTACT остаётся общим. Версия нужна, чтобы обновление формулировок/options не переосмыслило ожидающие retry ответы: сохранять понимание v1, пока возможны jobs v1. При новой v2 добавлять отдельную схему, не заменять labels кодов задним числом. Бюджетный диапазон — ответ пользователя, **не OPPORTUNITY/price_shown**.
-
-Если ответы нужны для сегментации в CRM, позже добавить специально настроенные UF mapping для этих нормализованных scalar полей. Произвольные UF_CRM keys, поле назначения либо labels из клиентского JSON принимать нельзя.
+Сохранены общий whitelist metadata, UTM, SOURCE_ID, CONTACT/DEAL. Для quiz исключены legacy comment/question/company/price/option/visit fields. Нельзя передавать client CRM field codes/labels или весь объект data в queue. Quiz version+five scalar fields остаются в normalized lead/queue; retry.php не меняется. При новой v2 поддерживать v1 jobs до полного завершения очереди. Бюджет не является OPPORTUNITY.
 
 ## 9. Минимальный контракт «Получить каталог»
 
@@ -530,7 +452,7 @@ Analytics: `catalog_submit` после ok, `catalog_open` при открыти�
 - Retry HTTP 404; CLI отправляет jobs и очищает queue; 10-я ошибка → failed; второй retry выходит по lock.
 - 6-й запрос IP →429; очистка старых log; отсутствующий/неполный/синтаксически неверный config и отсутствующая lib.
 
-Stub modes сейчас `ok`, `found`, `error`, `timeout`; error/timeout действуют для любого первого вызова, поэтому не моделируют отдельно «contact создан, затем deal упал». Добавлен явный regression happy path business и catalog cases. Нет полного покрытия strict enum/длинных текстов/oversized body/nested answers/непишущейся очереди/реального browser timeout/случая неопределённого результата deal.add. Локальные PHP-тесты не проверяют React/счётчик/live portal/серверный cron. Handler расширен и запущен на PHP8.3:83 проверки пройдены, phone22 случая пройдены.
+Stub modes сейчас `ok`, `found`, `error`, `timeout`; error/timeout действуют для любого первого вызова, поэтому не моделируют отдельно «contact создан, затем deal упал». Добавлен явный regression happy path business и catalog cases. Нет полного покрытия strict enum/длинных текстов/oversized body/nested answers/непишущейся очереди/реального browser timeout/случая неопределённого результата deal.add. Локальные PHP-тесты не проверяют React/счётчик/live portal/серверный cron. Handler расширен и запущен на PHP8.3:213 проверок пройдены, phone22 случая пройдены. Добавлено130 quiz cases: enums/CSV/dedup/exclusive/missing/types/lengths/точный COMMENTS/source/queue/retry и приватность логов.
 
 Команды выполненной проверки: `php server/tests/phone.test.php`, `php server/tests/handler.test.php`. Handler использует временную копию сайта и локальные PHP-серверы на 8090/8091/8092, требует cURL/mbstring/CLI/proc_open и свободные порты. Не подставлять production webhook в stub tests.
 
@@ -541,8 +463,8 @@ Stub modes сейчас `ok`, `found`, `error`, `timeout`; error/timeout дей�
 | Catalog happy path | form catalog + общие поля → CONTACT/DEAL, точные TITLE/SOURCE_DESCRIPTION/COMMENTS, call и max, источник сайта/Директа, все 5 UTM |
 | Catalog validation | Нет/invalid phone →400; отсутствующий/неизвестный method в новом контракте →400; лишний request_text не управляет server строкой; optional name пустой → fallback |
 | Quiz happy path | Все пять вариантов + version → exact ordered COMMENTS и сохранение всех ответов; unsure явно отображается; бюджет не превращается в OPPORTUNITY |
-| Quiz schema | Missing answer/version, unknown version/enum, numbers/bools/null/array вместо strings, quiz_answers object/list вместо B, unknown quiz_* →400, ноль REST/queue |
-| Unknown form | quiz (не поддерживается) и random/case/whitespace →400 при elapsed≥3000; отдельно подтвердить нынешний early dropped при elapsed отсутствует, чтобы не ошибиться в oracle |
+| Quiz schema | Missing answer/version, unknown version/enum, numbers/bools/null/array вместо strings, object/list вместо обязательных scalar fields →400; лишние keys отбрасываются, ноль REST/queue |
+| Unknown form | random/case/whitespace →400 при elapsed≥3000; отдельно подтвердить нынешний early dropped при elapsed отсутствует, чтобы не ошибиться в oracle |
 | Длины и типы | Границы и превышения каждого нового enum field; старые name/question/comment/UTM обрезаются по прежнему правилу; control chars и newlines; body>65 536 →400; nested/deep structures не проходят новый schema |
 | Источник | YANDEX/CPC →Direct; другой medium/source либо пустой source_direct →site; никакой form не меняет channel; labels catalog/quiz distinct от final |
 | CONTACT | Existing contact не создаётся/не обновляется; новые ответы остаются в DEAL; несколько найденных IDs →first; пустой/невалидный REST contact ID →queue |
@@ -606,10 +528,16 @@ Stub modes сейчас `ok`, `found`, `error`, `timeout`; error/timeout дей�
 14. После разрешённой публикации проверить синтетическую заявку в CRM, SOURCE_DESCRIPTION/COMMENTS/UTM/контакт, цели, очередь и cron, без раскрытия config.
 15. Обновить техническую документацию по реализованному контракту и зафиксировать обнаруженные внешние ограничения.
 
-Эти шаги — инструкция для следующего маркетингового сценария. Catalog реализован в ветке feature/catalog-models; quiz не реализован. Production deploy/merge этой работой не выполнялись. Приватный config, старые компоненты, workflow, retry и счётчик не изменены.
+Эти шаги — инструкция для следующего маркетингового сценария. Catalog и quiz реализованы; отдельный quiz contract описан выше. Production deploy/merge этой работой не выполнялись. Приватный config, старые компоненты, workflow, retry и счётчик не изменены.
 
 ## 13. Проверки catalog и ограничения релиза
 
-PHP8.3: phone.test.php22 случая; handler.test.php83 проверки успешно. Catalog: три модели, точные TITLE/SOURCE_DESCRIPTION/COMMENTS, source site/Direct, call/MAX, raw invalid типы/enum/длины/пропуски, отсутствие непредусмотренных CRM fields, queue при failure и retry каждой модели. Старые сценарии и business regression проходят. Рекомендации раздел10 для catalog happy path/enum/queue уже реализованы; quiz, потерянный REST outcome и дополнительные сбои остаются будущими проверками.
+PHP8.3: phone.test.php22 случая; handler.test.php83 проверки успешно. Catalog: три модели, точные TITLE/SOURCE_DESCRIPTION/COMMENTS, source site/Direct, call/MAX, raw invalid типы/enum/длины/пропуски, отсутствие непредусмотренных CRM fields, queue при failure и retry каждой модели. Старые сценарии и business regression проходят. Catalog и quiz happy path/enum/queue покрыты. Неопределённый REST outcome, этапные contact/deal failures и ошибки записи очереди остаются расширенным будущим coverage.
 
 DOM harness:35 проверок карточек/null цены, plan→form, модели, validation, sending guard, error/retained input, retry, success goal без PII, закрытия/scroll/focus restore. Native dialog полифиллен: actual focus trap и реальный Escape проверяются отдельно браузером. npm build прошёл. Browser visual QA на1440/1024/768/600/390/360 и CLS не выполнены из-за среды. Перед production нужны visual QA, доставка private lib, настройка целей и синтетическая проверка CRM/queue. Отчёт: docs/CATALOG_IMPLEMENTATION.md.
+
+## 14. Проверки и выпуск quiz
+
+Quiz DOM49, catalog regression DOM42, phone22/handler213, build/diff прошли. HTTP mocked и dialog polyfilled не заменяют реальный browser QA. Chrome в окружении падает с139; screenshot pack отсутствует. Netlify и production не использовались.
+
+**ДО MERGE: server/lib.php → private/lib.php на Beget вручную.** Config/retry менять не требуется. Новый endpoint и frontend публикуются только после совместимой private lib; Actions её не доставляет. Цели quiz нужно проверить/создать в кабинете Метрики. Подробности ограничений/QA/payload/выпуска — QUIZ_IMPLEMENTATION.md.

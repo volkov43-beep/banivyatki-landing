@@ -147,3 +147,6 @@ server/config.php
 
 # Local-only catalog masters; never publish originals to GitHub
 /source-assets/catalog/*.jpg
+
+# Quiz master stays local; production uses WebP only
+/source-assets/quiz/*.jpg

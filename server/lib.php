@@ -24,6 +24,7 @@ const BV_FORMS = [
     'faq_question' => ['label' => 'Вопрос из FAQ',            'title' => 'Вопрос'],
     'final'        => ['label' => 'Форма внизу страницы',     'title' => 'Расчёт'],
     'catalog'      => ['label' => 'Каталог бань',             'title' => 'Каталог'],
+    'quiz'         => ['label' => 'Квиз · Подбор бани',        'title' => 'Квиз'],
 ];
 /** Старое или короткое имя формы → каноническое. */
 const BV_FORM_ALIASES = ['calc' => 'calculator'];
@@ -33,6 +34,38 @@ const BV_CATALOG_MODELS = [
     'podkova-35' => 'Подкова 3,5 м',
     'podkova-45' => 'Подкова 4,5 м',
     'podkova-60' => 'Подкова 6 м',
+];
+// Quiz v1: labels are trusted server-side, never accepted from the browser.
+const BV_QUIZ_CONTACT_METHODS = ['max' => 'MAX', 'telegram' => 'Telegram', 'whatsapp' => 'WhatsApp', 'call' => 'Позвонить'];
+const BV_QUIZ_FIELDS = [
+    'quiz_place' => ['label' => 'Место', 'options' => [
+        'ready' => 'Участок и место определены',
+        'have_plot_choose_place' => 'Участок есть, место ещё выбираю',
+        'preparing_plot' => 'Участок покупаю или готовлю',
+        'no_plot' => 'Пока участка нет',
+    ]],
+    'quiz_area' => ['label' => 'Площадь', 'options' => [
+        'compact_35' => 'Компактная — до 9 м² / 3,5 м',
+        'medium_45' => 'Средняя — около 11 м² / 4,5 м',
+        'spacious_60' => 'Просторная — около 14–15 м² / 6 м',
+        'unsure' => 'Пока не определился', 'skipped' => 'Не ответил',
+    ]],
+    'quiz_features' => ['label' => 'Особенности', 'options' => [
+        'year_round' => 'Утепление для круглого года', 'side_entry' => 'Вход сбоку',
+        'outside_firebox' => 'Топка с улицы', 'canopy' => 'Козырёк',
+        'terrace' => 'Терраса / крыльцо', 'shower' => 'Душ / моечная',
+        'unsure' => 'Пока не знаю', 'skipped' => 'Не ответил',
+    ]],
+    'quiz_timing' => ['label' => 'Сроки', 'options' => [
+        'asap' => 'Как можно скорее', 'month' => 'В течение месяца',
+        'one_three_months' => '1–3 месяца', 'three_six_months' => '3–6 месяцев',
+        'later' => 'Позже / пока изучаю', 'skipped' => 'Не ответил',
+    ]],
+    'quiz_budget' => ['label' => 'Бюджет', 'options' => [
+        'under_350' => 'До 350 тыс. ₽', '350_500' => '350–500 тыс. ₽',
+        '500_700' => '500–700 тыс. ₽', 'over_700' => 'Более 700 тыс. ₽',
+        'unsure' => 'Пока не определился', 'skipped' => 'Не ответил',
+    ]],
 ];
 const BV_UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 const BV_MAX_ATTEMPTS = 10;
@@ -189,6 +222,37 @@ function bv_catalog_valid(array $data, string $form): bool
         && isset(BV_CATALOG_MODELS[$data['catalog_model']]);
 }
 
+/** Strict bounded scalar CSV, stable order, no unknown tokens or mixed sentinels. */
+function bv_quiz_features(mixed $raw): ?string
+{
+    if (!is_string($raw) || $raw === '' || strlen($raw) > 200) return null;
+    $tokens = array_unique(explode(',', $raw));
+    $allowed = BV_QUIZ_FIELDS['quiz_features']['options'];
+    foreach ($tokens as $token) {
+        if (!isset($allowed[$token])) return null;
+    }
+    if ((in_array('unsure', $tokens, true) || in_array('skipped', $tokens, true)) && count($tokens) !== 1) return null;
+    return implode(',', array_values(array_intersect(array_keys($allowed), $tokens)));
+}
+
+/** Scenario-specific raw validation; legacy and catalog contracts stay intact. */
+function bv_quiz_valid(array $data, string $form): bool
+{
+    if ($form !== 'quiz') return true;
+    if (($data['quiz_version'] ?? null) !== 'v1'
+        || !is_string($data['phone'] ?? null) || strlen($data['phone']) > 40
+        || !is_string($data['contact_method'] ?? null)
+        || !isset(BV_QUIZ_CONTACT_METHODS[$data['contact_method']])) return false;
+    if (isset($data['name']) && (!is_string($data['name']) || mb_strlen($data['name']) > 100)) return false;
+    foreach (BV_QUIZ_FIELDS as $key => $spec) {
+        $value = $data[$key] ?? null;
+        if ($key === 'quiz_features') {
+            if (bv_quiz_features($value) === null) return false;
+        } elseif (!is_string($value) || !isset($spec['options'][$value])) return false;
+    }
+    return true;
+}
+
 /**
  * Собирает заявку для отправки: только известные поля, обрезанные по длине.
  * $phone уже нормализован, $form — каноническое имя.
@@ -218,6 +282,15 @@ function bv_build_lead(array $data, string $phone, string $form): array
     }
     if ($form === 'catalog') {
         $lead['catalog_model'] = bv_str($data, 'catalog_model', 20);
+    }
+    if ($form === 'quiz') {
+        $lead['quiz_version'] = 'v1';
+        foreach (BV_QUIZ_FIELDS as $key => $spec) {
+            $lead[$key] = $key === 'quiz_features' ? bv_quiz_features($data[$key]) : bv_str($data, $key, 40);
+        }
+        // These are legacy scenario fields, not part of the quiz contract.
+        foreach (['option_shown', 'visit_type', 'question', 'company', 'comment'] as $key) $lead[$key] = '';
+        $lead['price_shown'] = null;
     }
     return $lead;
 }
@@ -285,16 +358,25 @@ function bv_deal_comments(array $cfg, array $lead, bool $contactFound, ?int $con
         $lines[] = 'Интересующая модель: ' . BV_CATALOG_MODELS[$lead['catalog_model']];
         $lines[] = 'Запрос: Отправить каталог бань';
     }
+    if ($lead['form'] === 'quiz') {
+        foreach (BV_QUIZ_FIELDS as $key => $spec) {
+            $codes = $key === 'quiz_features' ? explode(',', $lead[$key]) : [$lead[$key]];
+            $labels = array_map(static fn ($code) => $spec['options'][$code], $codes);
+            $lines[] = $spec['label'] . ': ' . implode(', ', $labels);
+        }
+    }
     if ($lead['option_shown'] !== '') {
         $lines[] = 'Выбранный вариант: ' . $lead['option_shown'];
     }
     if ($lead['price_shown']) {
         $lines[] = 'Показанная цена: ' . bv_format_price($lead['price_shown']);
     }
-    $method = BV_CONTACT_METHODS[$lead['contact_method']] ?? '';
+    $methods = $lead['form'] === 'quiz' ? BV_QUIZ_CONTACT_METHODS : BV_CONTACT_METHODS;
+    $method = $methods[$lead['contact_method']] ?? '';
     if ($method !== '') {
         $lines[] = 'Способ связи: ' . $method;
     }
+    if ($lead['form'] === 'quiz') $lines[] = 'Запрос: Подобрать подходящую баню и отправить варианты';
     $visit = BV_VISIT_TYPES[$lead['visit_type']] ?? '';
     if ($visit !== '') {
         $lines[] = 'Тип визита: ' . $visit;
