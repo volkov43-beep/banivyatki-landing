@@ -4,8 +4,8 @@
  *
  * Логотип — круг 64 px (48 px до 1023 px), файлы 128 и 256 px через srcset,
  * мягкая тень, чтобы отделяться от светлого неба.
- * Телефон: от 1024 px обычный текст; до 1023 px — ссылка-плашка
- * с иконкой трубки на полупрозрачном тёмном фоне с размытием.
+ * Телефон — ссылка-плашка на полупрозрачном forest-фоне с размытием
+ * на всех ширинах; иконка трубки остаётся только до 1023 px.
  */
 const BASE = import.meta.env.BASE_URL
 
@@ -41,7 +41,7 @@ export default function Header() {
       </a>
       <a
         href="tel:+78332775770"
-        className="flex h-11 items-center gap-2 rounded-[22px] bg-[rgba(20,14,10,0.55)] px-[14px] text-[14px] font-bold leading-none text-white no-underline backdrop-blur-[8px] lg:h-auto lg:gap-0 lg:rounded-none lg:bg-transparent lg:px-0 lg:text-[20px] lg:text-surface lg:backdrop-blur-none"
+        className="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[22px] border border-[rgba(244,234,223,0.18)] bg-[rgba(16,35,29,0.88)] px-[14px] py-3 text-[14px] font-bold leading-none text-surface no-underline backdrop-blur-[8px] lg:min-h-12 lg:gap-0 lg:rounded-[24px] lg:px-5 lg:text-[20px]"
       >
         <PhoneIcon />
         <span>+7 (8332) 77-57-70</span>
