@@ -290,6 +290,89 @@ foreach ($catalogModels as $code => $label) {
     check("catalog retry $code: модель/контекст сохранены", count($matching) === 1);
 }
 
+// --- Quiz v1: endpoint schema, trusted labels, channel and retry. ---
+function quizLead(array $extra = []): array
+{
+    return lead($extra + [
+        'form' => 'quiz', 'quiz_version' => 'v1', 'quiz_place' => 'ready',
+        'quiz_area' => 'medium_45', 'quiz_features' => 'year_round,outside_firebox',
+        'quiz_timing' => 'one_three_months', 'quiz_budget' => '350_500',
+        'contact_method' => 'max', 'price_shown' => null, 'option_shown' => '',
+    ]);
+}
+function lastDeal(): array
+{
+    $deals = array_values(array_filter(stubCalls(), static fn ($c) => str_starts_with($c, 'crm.deal.add ')));
+    return $deals ? json_decode(substr(end($deals), strlen('crm.deal.add ')), true)['fields'] : [];
+}
+resetStub('ok');
+[$c, $b] = post(quizLead(['SOURCE_DESCRIPTION' => 'UNTRUSTED', 'quiz_answers' => ['fake' => 'text'], 'comment' => 'UNTRUSTED', 'request_text' => 'UNTRUSTED']));
+$quizExpected = "Форма: Квиз · Подбор бани\nМесто: Участок и место определены\nПлощадь: Средняя — около 11 м² / 4,5 м\nОсобенности: Утепление для круглого года, Топка с улицы\nСроки: 1–3 месяца\nБюджет: 350–500 тыс. ₽\nСпособ связи: MAX\nЗапрос: Подобрать подходящую баню и отправить варианты\nСтраница: https://banivyatki.ru/\nПереход с: https://yandex.ru/\nВремя отправки: 05.10.2026 14:12 (МСК)\nМетки: utm_source=yandex, utm_medium=cpc, utm_campaign=test";
+$deal = lastDeal();
+check('quiz happy path: CONTACT → DEAL, trusted COMMENTS', $c === 200 && $b === '{"ok":true}' && count(stubCalls()) === 3 && ($deal['COMMENTS'] ?? '') === $quizExpected);
+check('quiz TITLE / SOURCE_DESCRIPTION / Direct / contact', ($deal['TITLE'] ?? '') === 'Сайт · Квиз' && ($deal['SOURCE_DESCRIPTION'] ?? '') === 'Квиз · Подбор бани' && ($deal['SOURCE_ID'] ?? '') === 'DIRECT' && ($deal['CONTACT_ID'] ?? 0) === 101);
+check('quiz UTM and existing configured method mapping', ($deal['UTM_CAMPAIGN'] ?? '') === 'test' && ($deal['UF_CRM_METHOD'] ?? '') === '12' && !isset($deal['OPPORTUNITY']));
+$quizEnums = [
+    'quiz_place' => ['ready', 'have_plot_choose_place', 'preparing_plot', 'no_plot'],
+    'quiz_area' => ['compact_35', 'medium_45', 'spacious_60', 'unsure', 'skipped'],
+    'quiz_features' => ['year_round', 'side_entry', 'outside_firebox', 'canopy', 'terrace', 'shower', 'unsure', 'skipped', 'shower,terrace,year_round'],
+    'quiz_timing' => ['asap', 'month', 'one_three_months', 'three_six_months', 'later', 'skipped'],
+    'quiz_budget' => ['under_350', '350_500', '500_700', 'over_700', 'unsure', 'skipped'],
+];
+foreach ($quizEnums as $key => $values) {
+    foreach ($values as $value) {
+        resetStub('ok');
+        [$c] = post(quizLead([$key => $value]));
+        check("quiz enum $key=$value", $c === 200 && count(stubCalls()) === 3);
+        if ($value === 'skipped') check("quiz $key skipped → Не ответил", str_contains(lastDeal()['COMMENTS'], 'Не ответил'));
+    }
+}
+foreach (['max' => 'MAX', 'telegram' => 'Telegram', 'whatsapp' => 'WhatsApp', 'call' => 'Позвонить'] as $code => $label) {
+    resetStub('ok');
+    [$c] = post(quizLead(['contact_method' => $code, 'utm_source' => 'organic']));
+    $deal = lastDeal();
+    check("quiz $code + site source", $c === 200 && $deal['SOURCE_ID'] === 'WEB' && str_contains($deal['COMMENTS'], "Способ связи: $label"));
+    if (in_array($code, ['telegram', 'whatsapp'], true)) check("quiz $code no invented UF value", !isset($deal['UF_CRM_METHOD']));
+}
+resetStub('ok');
+post(quizLead(['quiz_features' => 'terrace,year_round,terrace,outside_firebox,year_round']));
+check('quiz CSV canonical order and dedup', str_contains(lastDeal()['COMMENTS'], "Особенности: Утепление для круглого года, Топка с улицы, Терраса / крыльцо\n"));
+$quizInvalid = [
+    ['quiz_version' => 'v2'], ['quiz_place' => 'skipped'], ['contact_method' => 'email'],
+    ['quiz_features' => 'unsure,terrace'], ['quiz_features' => 'skipped,year_round'],
+    ['quiz_features' => 'skipped,unsure'], ['quiz_features' => 'year_round,unknown'],
+    ['quiz_features' => 'year_round,'], ['quiz_features' => ' year_round'],
+    ['name' => str_repeat('я', 101)], ['phone' => str_repeat('1', 41)],
+];
+foreach (array_merge(['quiz_version', 'contact_method', 'phone', 'name'], array_keys($quizEnums)) as $key) {
+    foreach ([[], ['fake' => 'text'], true, 12] as $invalid) $quizInvalid[] = [$key => $invalid];
+}
+foreach (array_keys($quizEnums) as $key) {
+    foreach (['', 'unknown', str_repeat('x', 300), null] as $invalid) $quizInvalid[] = [$key => $invalid];
+}
+foreach ($quizInvalid as $i => $invalid) {
+    resetStub('ok'); $before = count(queueFiles());
+    [$c, $b] = post(quizLead($invalid));
+    check("quiz invalid #$i →400 without REST/queue", $c === 400 && $b === '{"ok":false,"error":"bad_request"}' && stubCalls() === [] && count(queueFiles()) === $before);
+}
+foreach (array_merge(['quiz_version', 'phone', 'contact_method'], array_keys($quizEnums)) as $key) {
+    $payload = quizLead(); unset($payload[$key]); resetStub('ok');
+    [$c] = post($payload);
+    check("quiz missing $key rejected", $c === 400 && stubCalls() === []);
+}
+resetStub('ok'); [$c, $b] = post(quizLead(['phone' => '123']));
+check('quiz malformed phone', $c === 400 && str_contains($b, 'bad_phone') && stubCalls() === []);
+resetStub('error');
+$before = queueFiles(); [$c, $b] = post(quizLead());
+$files = array_values(array_diff(queueFiles(), $before));
+$job = $files ? json_decode(file_get_contents($files[0]), true) : [];
+check('quiz CRM failure accepted into queue', $c === 200 && $b === '{"ok":true}' && count($files) === 1);
+foreach (array_merge(['quiz_version', 'contact_method'], array_keys($quizEnums)) as $key) check("quiz queue preserves $key", ($job['lead'][$key] ?? null) === quizLead()[$key]);
+resetStub('ok');
+exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $quizRetryOut, $quizRetryRc);
+check('quiz retry preserves exact context, drains queue', $quizRetryRc === 0 && count(queueFiles()) === 0 && (lastDeal()['COMMENTS'] ?? '') === $quizExpected && lastDeal()['TITLE'] === 'Сайт · Квиз');
+check('quiz public logs contain no name/phone/answers', !str_contains(logText(), '9123456789') && !str_contains(logText(), 'Тест') && !str_contains(logText(), 'year_round'));
+
 // --- повторное обращение ---
 resetStub('found');
 post(lead());

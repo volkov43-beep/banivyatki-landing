@@ -120,7 +120,7 @@ $form = bv_form_name($data['form'] ?? null);
 if ($form === null || empty($data['phone'])) {
     bv_respond(400, false, 'bad_request');
 }
-if (!bv_catalog_valid($data, $form)) {
+if (!bv_catalog_valid($data, $form) || !bv_quiz_valid($data, $form)) {
     bv_respond(400, false, 'bad_request');
 }
 $phone = bv_normalize_phone($data['phone']);
