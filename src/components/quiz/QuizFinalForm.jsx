@@ -44,7 +44,7 @@ export default function QuizFinalForm({ answers, startedAt, onSuccess, onBack })
   if (status === 'done') return <p role="status" className="text-body">{QUIZ_SUCCESS}</p>
   return (
     <div className="mx-auto max-w-[560px]">
-      <p className="mb-6 text-body">Оставьте номер телефона. Менеджер свяжется с вами, уточнит детали и отправит подходящие варианты удобным способом.</p>
+      <p className="mb-6 text-center text-body">Оставьте номер телефона. Менеджер свяжется с вами, уточнит детали и отправит подходящие варианты удобным способом.</p>
       <form onSubmit={handleSubmit} noValidate>
         <fieldset disabled={status === 'sending'} className="flex min-w-0 flex-col gap-4">
           <legend className="sr-only">Контактные данные</legend>

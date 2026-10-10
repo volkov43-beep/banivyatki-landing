@@ -63,11 +63,11 @@ export default function QuizSection() {
           </div>
         </div>
       </section>
-      {mounted && <QuizDialog open={open} title={question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
+      {mounted && <QuizDialog open={open} finalStep={state.step >= 5} title={question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
         {state.step < 5 ? open && <QuizStep key={state.step} question={question} step={state.step} value={state.answers[question.field]} onAnswer={answer} onNext={next} onBack={() => setState((s) => ({ ...s, step: s.step - 1 }))} />
           : <QuizFinalForm key={attempt} startedAt={startedAt.current} answers={state.answers} onSuccess={success} onBack={() => setState((s) => ({ ...s, step: 4 }))} />}
       </QuizDialog>}
-      {!state.completed && <div hidden={open}><QuizFloatingReminder state={state.widget} onOpen={start} onCollapse={() => setState((s) => ({ ...s, widget: 'compact' }))} /></div>}
+      {!state.completed && <div hidden={open}><QuizFloatingReminder state={state.widget} step={state.step} onOpen={start} onCollapse={() => setState((s) => ({ ...s, widget: 'compact' }))} /></div>}
     </>
   )
 }
