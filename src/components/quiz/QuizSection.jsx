@@ -8,8 +8,12 @@ import QuizStep from './QuizStep.jsx'
 import QuizFinalForm from './QuizFinalForm.jsx'
 import QuizFloatingReminder from './QuizFloatingReminder.jsx'
 
+const emptyContactDraft = () => ({ phone: '', name: '', contact: '', consent: false })
+
 export default function QuizSection() {
   const [state, setState] = useState(readQuizState)
+  // Memory only: keep contacts separate from the persisted quiz progress.
+  const [contactDraft, setContactDraft] = useState(emptyContactDraft)
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -19,7 +23,7 @@ export default function QuizSection() {
   useEffect(() => { saveQuizState(state) }, [state])
   function start(source) {
     if (!mounted || state.completed) startedAt.current = Date.now()
-    if (state.completed) { setState({ ...emptyQuizState(state.started), widget: 'expanded' }); setAttempt((n) => n + 1) }
+    if (state.completed) { setState({ ...emptyQuizState(state.started), widget: 'expanded' }); setContactDraft(emptyContactDraft()); setAttempt((n) => n + 1) }
     else setState((s) => ({ ...s, widget: s.widget === 'hidden' ? 'expanded' : s.widget }))
     openerRef.current = document.activeElement
     setMounted(true)
@@ -63,11 +67,11 @@ export default function QuizSection() {
           </div>
         </div>
       </section>
-      {mounted && <QuizDialog open={open} title={question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
+      {mounted && <QuizDialog open={open} finalStep={state.step >= 5} title={question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
         {state.step < 5 ? open && <QuizStep key={state.step} question={question} step={state.step} value={state.answers[question.field]} onAnswer={answer} onNext={next} onBack={() => setState((s) => ({ ...s, step: s.step - 1 }))} />
-          : <QuizFinalForm key={attempt} startedAt={startedAt.current} answers={state.answers} onSuccess={success} onBack={() => setState((s) => ({ ...s, step: 4 }))} />}
+          : <QuizFinalForm key={attempt} startedAt={startedAt.current} answers={state.answers} contactDraft={contactDraft} onContactChange={(patch) => setContactDraft((draft) => ({ ...draft, ...patch }))} onSuccess={success} onBack={() => setState((s) => ({ ...s, step: 4 }))} />}
       </QuizDialog>}
-      {!state.completed && <div hidden={open}><QuizFloatingReminder state={state.widget} onOpen={start} onCollapse={() => setState((s) => ({ ...s, widget: 'compact' }))} /></div>}
+      {!state.completed && <div hidden={open}><QuizFloatingReminder state={state.widget} step={state.step} onOpen={start} onCollapse={() => setState((s) => ({ ...s, widget: 'compact' }))} /></div>}
     </>
   )
 }

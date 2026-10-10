@@ -1,7 +1,7 @@
 # Квиз подбора бани — реализация v1
 
-Ветка `feature/sauna-quiz`, база main `ddcb0191c934f04b21a150cd6f54a4fecf7b81bc`.
-Новая feature-ветка; merge и production deploy не выполнялись. Netlify не использовался.
+Первичная реализация: `feature/sauna-quiz`, PR #50, объединённый в main `48ae5c88a12660e903bc59496e9d2dfe77aafd81`.
+Актуализация UX от 10 октября 2026: `feature/quiz-ux-polish` от этого main. В рамках UX-правок merge/deploy/Netlify не выполнялись; backend и контракт не менялись.
 
 ## Порядок страницы
 
@@ -13,10 +13,10 @@ Header → Hero → Catalog → Works → Reviews → **Quiz (пятый бло�
 
 - `src/data/quiz.js`: пять вопросов, field/id/type/required, labels/codes, версия, CSV toggle, проверка восстановления sessionStorage.
 - `quiz/QuizSection.jsx`: светлая секция surface; banner forest, декоративный responsive img, CSS overlay forest 78–82%, заголовок/подзаголовок и «Займёт около 1 минуты», общий Button «Начать подбор». Линия accent 64×2, текст max800, min-height360/400, container/gutter/Onest/tokens прежние.
-- `quiz/QuizDialog.jsx`: native dialog через portal; светлая surface-панель max960, padding20/40; на mobile внешние поля12, на desktop24. Neutral ink backdrop85%, vertical scroll, overflow-x hidden. ×:48×48, glyph32. Escape/cancel и pointerdown+click непосредственно по dialog/backdrop вызывают единый onClose. Клик внутри не закрывает. Заголовок получает focus при открытии/смене вопроса, native modal обеспечивает inert/focus containment. Body overflow сохраняется/восстанавливается. Возврат focus на фактический opener, при его исчезновении после success — на CTA секции.
-- `quiz/QuizStep.jsx`: radio single-select с selected state и auto-next250ms; multi-select checkbox с явным «Продолжить». Назад, сохранённые ответы, `skipped` со второго шага. Unsure исключает прочие features. Таймер отменяется при закрытии/назад/unmount. Progress20/40/60/80/100%. Ответы:1 колонка <600,2 от600. Никаких анимаций перемещения; общий reduced-motion действует на Button.
-- `quiz/QuizFinalForm.jsx`: один финальный submitLead; телефон обязателен, имя max100 необязательно, четыре native radio2×2 без default, согласие. Helpers phone/getUtm/submitLead/track прежние. Sending ref + disabled предотвращают повтор в полёте; error сохраняет ввод, retry только вручную. Form остаётся смонтированной при закрытии dialog, чтобы поздний ответ не терялся и не открывал вторую отправку при resume. Закрытие не отменяет HTTP. Контакты хранятся только в React memory, не в sessionStorage.
-- `quiz/QuizFloatingReminder.jsx`: только после явного открытия квиза; desktop слева внизу компактная forest-карточка280px, mobile горизонтальный bar. Закрытие reminder сворачивает в «Подобрать баню». Mobile bottom88px + safe-area оставляет место прежней calculator fixed CTA (~64px); desktop bottom24. При dialog reminder скрыт и недоступен клавиатуре. После success удаляется.
+- `quiz/QuizDialog.jsx`: native dialog через portal; светлая surface-панель: вопросы max960, финальная форма/success max640, padding20/40; на mobile внешние поля12, на desktop24. Neutral ink backdrop85%, vertical scroll, overflow-x hidden. ×:48×48, glyph32. На финальном этапе заголовок центрирован с симметричным padding40, перенос естественный; пояснение тоже по центру, поля и подписи слева. Внутренняя форма по-прежнему max560. Escape/cancel и pointerdown+click непосредственно по dialog/backdrop вызывают единый onClose. Клик внутри не закрывает. Заголовок получает focus при открытии/смене вопроса, native modal обеспечивает inert/focus containment. Body overflow сохраняется/восстанавливается. Возврат focus на фактический opener, при его исчезновении после success — на CTA секции.
+- `quiz/QuizStep.jsx`: первый обязательный вопрос — подписи «* Обязательный вопрос» и «Выберите один вариант», без нижних кнопок, auto-next250ms только после выбора (в том числе повторного клика по сохранённому radio). Восстановление шага само не запускает таймер; закрытие отменяет его. Шаги2–5: выбор только отмечает варианты; слева SVG-стрелка в обводке48×48 с aria-label «Предыдущий вопрос», справа «Далее» высотой48. Далее сохраняет выбранное значение/CSV, либо skipped при пустом ответе; подсказка «Можно не отвечать — нажмите «Далее»». Multi сохраняет подсказку о нескольких вариантах и exclusive unsure. Ref-lock исключает двойной переход/goal до commit React. Возврат сохраняет ответы. Progress20/40/60/80/100%; сетка1 колонка <600,2 от600. Стили selected прежние (accent border/surface-2). Новых анимаций нет.
+- `quiz/QuizFinalForm.jsx`: один финальный submitLead; телефон обязателен, имя max100 необязательно, четыре native radio2×2 без default, согласие. Helpers phone/getUtm/submitLead/track прежние. Sending ref + disabled предотвращают повтор в полёте; error сохраняет ввод, retry только вручную. Form остаётся смонтированной при закрытии dialog, чтобы поздний ответ не терялся и не открывал вторую отправку при resume. Закрытие не отменяет HTTP. Телефон/имя/способ связи/согласие управляются отдельным contactDraft в QuizSection: переход «Назад к вопросам» → «Далее» не сбрасывает их. Этот React-state отделён от persisted progress и не пишется в sessionStorage/localStorage/analytics. После reload или явного нового запуска после success draft пустой; sending/status/alive и обработка позднего ответа остаются в QuizFinalForm.
+- `quiz/QuizFloatingReminder.jsx`: только после явного открытия квиза; desktop слева внизу карточка256px, padding16, центрированные заголовок/кнопка «Далее». Декоративный quiz-bg-plan-640.webp (без srcset/1280) под overlay rgba(16,35,29,0.82); старый forest fallback. Крестик44×44 с focus-visible, место под него зарезервировано. На mobile горизонтальный bar с переносом текста; bottom88px + safe-area оставляет место calculator fixed CTA (~64px); desktop bottom24. Строка «Вы остановились на шаге N из 5», на форме — «Осталось оставить контакты». Далее только открывает сохранённый шаг без продвижения/quiz_step. × сворачивает в «Подобрать баню». При dialog reminder скрыт и недоступен клавиатуре; после success удаляется.
 
 Frontend elapsed отсчитывается от первого открытия текущего запуска, а не от перехода к форме. После полной перезагрузки новый отсчёт начинается при resume. Существующий antispam pattern сохранён: honeypot/слишком быстрое заполнение дают локальный success без HTTP/goal; сервер тоже может ответить ok при antispam drop.
 
@@ -112,7 +112,7 @@ REST failure→private queue с нормализованными version/все�
 | --- | --- | --- |
 | quiz_open | Явное открытие dialog | source:section/floating/compact |
 | quiz_start | Первый фактический выбор в session | нет |
-| quiz_step | Завершение/пропуск шага, включая повтор после Назад | step:1..5, question:place/area/features/timing/budget |
+| quiz_step | Шаг1: auto-next после выбора; шаги2–5: только Далее с ответом/пропуском, включая повтор после возврата. Один goal на переход | step:1..5, question:place/area/features/timing/budget |
 | quiz_close | Закрытие до success | step:1..5; contact screen обозначается5 |
 | quiz_submit | Только submitLead ok:true | нет |
 
@@ -120,17 +120,19 @@ REST failure→private queue с нормализованными version/все�
 
 ## Проверки и ограничения
 
-- `npm run build`: успешная сборка Vite,103 modules.
+- UX-проверки 10.10.2026: `npm run build` успешно, Vite103 modules; `git diff --check` без ошибок. PHP не менялся, PHP-тесты повторно не запускались; ниже их предыдущие результаты первичной реализации.
 - `php server/tests/phone.test.php`:22 проверки успешно.
 - `php server/tests/handler.test.php`:213 проверок успешно (130 новых +83 прежних), PHP8.3. Quiz enums/CSV/dedup/exclusive sentinels, types/missing/lengths, контакты/точный COMMENTS/TITLE/source/UTM, queue/retry, privacy logs; regression catalog и старых форм.
-- `scripts/tests/quiz.dom.mjs`:49 проверок в jsdom/React StrictMode, HTTP mocked, native dialog polyfilled. Шаги/auto-next/back/multi/skip/progress, validation/single pending submit/error/manual retry/success, close/backdrop/cancel/focus, reminder/compact/resume/session/no PII/completion/restart. Запуск: `BV_JSDOM_PATH=/absolute/path/to/jsdom/lib/api.js node scripts/tests/quiz.dom.mjs`. Можно установить jsdom в отдельный QA-каталог; production dependencies не добавлялись. Если jsdom доступен в module resolution, переменная не нужна.
-- Прежний внешний catalog DOM harness:42 проверки успешно.
+- `scripts/tests/quiz.dom.mjs`:88 проверок в jsdom/React StrictMode, HTTP mocked, native dialog polyfilled. Auto-next только шага1/повтор выбранного ответа, ручные Далее2–5/двойной клик/единственный goal, back/multi/skipped/progress, строка reminder/resume без продвижения, контакты→Назад→Далее/изоляция обоих storage и analytics, validation/single pending submit/error/manual retry/success, повторное открытие pending без второго HTTP, close/backdrop/cancel/focus, reminder/compact/resume/session/no PII/completion/restart. Запуск: `BV_JSDOM_PATH=/absolute/path/to/jsdom/lib/api.js node scripts/tests/quiz.dom.mjs`. Можно установить jsdom в отдельный QA-каталог; production dependencies не добавлялись. Если jsdom доступен в module resolution, переменная не нужна.
+- Прежний внешний catalog DOM harness:42 проверки успешно при первичной реализации; в UX-задаче не перезапускался, каталог не менялся.
 - `git diff --check`: успешно.
-- **Реальный browser screenshot pack не создан:** локальный Chrome завершает даже `--version` с exit139 (SIGSEGV). Это не заменено DOM-скриншотами. Native focus trap/Escape, font wrapping, background crop, contrast, CLS и overflow на1440/1024/768/600/390/360 требуют browser QA перед release. CSS размеры/сетки реализованы, но прохождение визуальной проверки не заявляется.
+- **Реальный browser screenshot pack не создан:** локальный Chrome при повторной попытке 10.10.2026 завершает даже `--version` с exit139 (SIGSEGV). Это не заменено DOM-скриншотами. Native focus trap/Escape, font wrapping, background crop, contrast, CLS и overflow на1440/1024/768/600/390/360 требуют browser QA перед release. CSS размеры/сетки реализованы, но прохождение визуальной проверки не заявляется.
 - Production Bitrix24, Beget, Метрика, cron и реальные config/UF values не проверены.
 - Существующий timeout15с и несколько REST calls по10с сохраняют риск дубля при неопределённом исходе/ручном retry. Серверной idempotency нет; автоматический frontend retry не добавлялся. Контакты не сохраняются после reload. Dev helper, как прежде, логирует payload в консоль; production build этого не делает. Queue содержит PII и остаётся строго private.
 
 ## Порядок выпуска
+
+UX-правки не требуют нового обновления private/lib.php: PHP идентичен main после PR #50. Правило ниже относится к первоначальному включению quiz; фактическое состояние private backend на Beget этой работой не проверялось.
 
 **ПЕРЕД MERGE вручную скопировать `server/lib.php` → `private/lib.php` на Beget. GitHub Actions private/lib.php НЕ доставляет.**
 
