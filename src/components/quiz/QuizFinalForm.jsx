@@ -38,7 +38,7 @@ export default function QuizFinalForm({ answers, startedAt, contactDraft, onCont
     if (result.ok) { track('quiz_submit'); setStatus('done'); onSuccess() }
     else setStatus('error')
   }
-  if (status === 'done') return <p role="status" className="text-body">{QUIZ_SUCCESS}</p>
+  if (status === 'done') return <p role="status" className="mx-auto max-w-[480px] text-center text-body">{QUIZ_SUCCESS}</p>
   return (
     <div className="mx-auto max-w-[560px]">
       <p className="mb-6 text-center text-body">Оставьте номер телефона. Менеджер свяжется с вами, уточнит детали и отправит подходящие варианты удобным способом.</p>

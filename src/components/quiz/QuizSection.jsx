@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Button from '../Button.jsx'
 import { photoSrc } from '../ResponsivePhoto.jsx'
 import { track } from '../../lib/track.js'
-import { QUIZ_TITLE, QUIZ_SUBTITLE, QUIZ_QUESTIONS, emptyQuizState, readQuizState, saveQuizState, validQuizAnswer } from '../../data/quiz.js'
+import { QUIZ_TITLE, QUIZ_SUBTITLE, QUIZ_SUCCESS_TITLE, QUIZ_QUESTIONS, emptyQuizState, readQuizState, saveQuizState, validQuizAnswer } from '../../data/quiz.js'
 import QuizDialog from './QuizDialog.jsx'
 import QuizStep from './QuizStep.jsx'
 import QuizFinalForm from './QuizFinalForm.jsx'
@@ -67,7 +67,7 @@ export default function QuizSection() {
           </div>
         </div>
       </section>
-      {mounted && <QuizDialog open={open} finalStep={state.step >= 5} title={question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
+      {mounted && <QuizDialog open={open} finalStep={state.step >= 5} title={state.completed ? QUIZ_SUCCESS_TITLE : question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
         {state.step < 5 ? open && <QuizStep key={state.step} question={question} step={state.step} value={state.answers[question.field]} onAnswer={answer} onNext={next} onBack={() => setState((s) => ({ ...s, step: s.step - 1 }))} />
           : <QuizFinalForm key={attempt} startedAt={startedAt.current} answers={state.answers} contactDraft={contactDraft} onContactChange={(patch) => setContactDraft((draft) => ({ ...draft, ...patch }))} onSuccess={success} onBack={() => setState((s) => ({ ...s, step: 4 }))} />}
       </QuizDialog>}
