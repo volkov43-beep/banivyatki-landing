@@ -14,7 +14,7 @@ export default function QuizStep({ question, step, value = '', onAnswer, onNext,
     selected.current = question.type === 'multi' ? toggleQuizFeature(selected.current, code) : code
     onAnswer(selected.current)
     clearTimeout(timer.current)
-    timer.current = setTimeout(advance, 250)
+    if (question.type === 'single') timer.current = setTimeout(advance, 250)
   }
   function advance() {
     if (locked.current) return
