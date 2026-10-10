@@ -2,7 +2,8 @@ export const QUIZ_VERSION = 'v1'
 export const QUIZ_STORAGE_KEY = 'bv_quiz_v1'
 export const QUIZ_TITLE = 'Подберём баню под ваш участок и задачи'
 export const QUIZ_SUBTITLE = 'Ответьте на 5 вопросов — определим подходящий размер, планировку и комплектацию под ваш бюджет'
-export const QUIZ_SUCCESS = 'Заявка принята. Менеджер свяжется с вами и отправит подходящие варианты.'
+export const QUIZ_SUCCESS_TITLE = 'Готово — скоро свяжемся с вами'
+export const QUIZ_SUCCESS = 'Спасибо! Мы получили ваши ответы и подберём подходящие варианты бани. Менеджер свяжется с вами и отправит подборку удобным для вас способом.'
 const options = (pairs) => pairs.map(([code, label]) => ({ code, label }))
 export const QUIZ_QUESTIONS = [
   { id: 'place', field: 'quiz_place', type: 'single', required: true, title: 'Есть ли уже место для установки бани?', options: options([
