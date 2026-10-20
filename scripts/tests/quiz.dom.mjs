@@ -177,6 +177,6 @@ try {
  await unmount()
  sessionStorage.setItem(data.QUIZ_STORAGE_KEY,'{bad');check('bad storage fallback',data.readQuizState().step===0)
  sessionStorage.setItem(data.QUIZ_STORAGE_KEY,JSON.stringify({version:'v1',step:5,answers:{quiz_place:'fake'},widget:'expanded'}));check('invalid restored answers cannot bypass mandatory step',data.readQuizState().step===0)
- const app=await readFile(repo+'src/App.jsx','utf8');check('section order',app.indexOf('<SectionReviews />')<app.indexOf('<QuizSection />')&&app.indexOf('<QuizSection />')<app.indexOf('<SectionLocations />')&&app.indexOf('<SectionLocations />')<app.indexOf('<SectionCalculator />'))
+ const app=await readFile(repo+'src/App.jsx','utf8');check('section order',app.indexOf('<SectionReviews />')<app.indexOf('<QuizSection ')&&app.indexOf('<QuizSection ')<app.indexOf('<SectionLocations />')&&app.indexOf('<SectionLocations />')<app.indexOf('<SectionCalculator />'))
  console.log(`Quiz DOM: ${checks} checks passed. Mock HTTP / polyfilled dialog, not browser layout QA.`)
 } finally { await rm(folder,{recursive:true,force:true});dom.window.close() }

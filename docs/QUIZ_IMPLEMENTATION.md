@@ -3,6 +3,14 @@
 Первичная реализация: `feature/sauna-quiz`, PR #50, объединённый в main `48ae5c88a12660e903bc59496e9d2dfe77aafd81`.
 Актуализация UX от 10 октября 2026: после merge PR #51 создана `feature/quiz-autoadvance-reminder` от main `00db71a8a862a2abf9214ae157e738513028e341`. В рамках UX-правок merge/deploy/Netlify не выполнялись; backend и контракт не менялись.
 
+## Новый вход из каталога — 20.10.2026
+
+Три CTA «Рассчитать стоимость» вызывают App callback → ref QuizSection.startNew(model, opener), сразу открывая вопрос «Есть ли уже место для установки бани?». Ответы, шаг и contactDraft сбрасываются; площадь не предвыбрана. model используется только в quiz_open {source:catalog_card,model}, не попадает в payload или ответы. `quiz_start` остаётся однократным для session; started сохраняется при новой попытке. Guards защищают от двойного открытия/события.
+
+«Начать подбор», expanded и compact reminder продолжают прежний экран/контакты; после успеха явный запуск начинает новую попытку. Callback/ref реализован через useImperativeHandle, без новых событий/подписок, DOM-click и таймеров открытия.
+
+HTTP теперь принадлежит QuizSection.send. QuizFinalForm по-прежнему собирает и валидирует тот же payload, но вызывает onSubmitLead. Общий sendingRef/requestPending сохраняется между попытками. Новый вход с карточки разрешён во время старого запроса и открывает шаг1, однако вторая отправка недоступна до завершения первого запроса. requestAttempt/attemptRef отделяют результаты: поздний ok исходной заявки даёт один quiz_submit, но не очищает/завершает новый подбор; поздняя ошибка старого запроса не подменяет экран нового. При продолжении той же попытки прежние success/error и ручной retry работают. Контакты живут только в памяти.
+
 ## Порядок страницы
 
 Header → Hero → Catalog → Works → Reviews → **Quiz (пятый блок)** → **SectionLocations / MapBlock (шестой)** → Calculator → Benefits → Comparison → Inside → Process → Showroom → FAQ → Final → Footer.
@@ -15,7 +23,7 @@ Header → Hero → Catalog → Works → Reviews → **Quiz (пятый бло�
 - `quiz/QuizSection.jsx`: светлая секция surface; banner forest, декоративный responsive img, CSS overlay forest 78–82%, заголовок/подзаголовок и «Займёт около 1 минуты», общий Button «Начать подбор». Линия accent 64×2, текст max800, min-height360/400, container/gutter/Onest/tokens прежние.
 - `quiz/QuizDialog.jsx`: native dialog через portal; светлая surface-панель: вопросы max960, финальная форма/success max640, padding20/40; на mobile внешние поля12, на desktop24. Neutral ink backdrop85%, vertical scroll, overflow-x hidden. ×:48×48, glyph32. На финальном этапе заголовок центрирован с симметричным padding40, перенос естественный; пояснение тоже по центру, поля и подписи слева. Внутренняя форма по-прежнему max560. Escape/cancel и pointerdown+click непосредственно по dialog/backdrop вызывают единый onClose. Клик внутри не закрывает. Заголовок получает focus при открытии/смене вопроса, native modal обеспечивает inert/focus containment. Body overflow сохраняется/восстанавливается. Возврат focus на фактический opener, при его исчезновении после success — на CTA секции.
 - `quiz/QuizStep.jsx`: автопереход через250ms только на single-select шагах1/2/4/5. Новый выбор radio отменяет предыдущий таймер и запускает новый; latest-value ref сохраняет актуальный ответ. На multi-select шаге3 выбор/снятие checkbox не запускает таймер: переход только по «Далее», с полным CSV или skipped при пустом выборе. Повторный клик по сохранённому radio тоже запускает переход. Само восстановление шага не запускает таймер. Назад/закрытие/unmount отменяют таймер; единый ref-lock исключает двойной переход/goal при конкуренции timer/Далее. Первый вопрос обязательный, без нижних кнопок. Шаги2–5: слева SVG-стрелка48×48, справа «Далее» высотой48 — переход с сохранённым ответом или skipped при пустом. Для multi это единственный способ продолжить. Подсказка: «Если затрудняетесь ответить — нажмите «Далее».» Multi сохраняет exclusive unsure; после «Далее» можно вернуться и исправить CSV. Progress20..100%, сетка1 колонка <600,2 от600, прежние selected styles.
-- `quiz/QuizFinalForm.jsx`: один финальный submitLead; телефон обязателен, имя max100 необязательно, четыре native radio2×2 без default, согласие. Helpers phone/getUtm/submitLead/track прежние. Sending ref + disabled предотвращают повтор в полёте; error сохраняет ввод, retry только вручную. Form остаётся смонтированной при закрытии dialog, чтобы поздний ответ не терялся и не открывал вторую отправку при resume. Закрытие не отменяет HTTP. Телефон/имя/способ связи/согласие управляются отдельным contactDraft в QuizSection: переход «Назад к вопросам» → «Далее» не сбрасывает их. Этот React-state отделён от persisted progress и не пишется в sessionStorage/localStorage/analytics. После reload или явного нового запуска после success draft пустой; sending/status/alive и обработка позднего ответа остаются в QuizFinalForm.
+- `quiz/QuizFinalForm.jsx`: один финальный вызов onSubmitLead → QuizSection.send → общий submitLead; телефон обязателен, имя max100 необязательно, четыре native radio2×2 без default, согласие. Helpers phone/getUtm/submitLead/track прежние. Sending ref + disabled предотвращают повтор в полёте; error сохраняет ввод, retry только вручную. Form остаётся смонтированной при закрытии dialog, чтобы поздний ответ не терялся и не открывал вторую отправку при resume. Закрытие не отменяет HTTP. Телефон/имя/способ связи/согласие управляются отдельным contactDraft в QuizSection: переход «Назад к вопросам» → «Далее» не сбрасывает их. Этот React-state отделён от persisted progress и не пишется в sessionStorage/localStorage/analytics. После reload или явного нового запуска после success draft пустой; локальные sending/status/alive остаются в QuizFinalForm, обработка HTTP и привязка позднего ответа к попытке находятся в QuizSection.send.
 - `quiz/QuizFloatingReminder.jsx`: отдельная mini-card на forest-фоне. Desktop256px, центрированные заголовок «Продолжить подбор бани», строка прогресса и CTA «Продолжить»; миниатюра160×120. Mobile горизонтальная компоновка: миниатюра88×66 слева, текст и CTA справа, ширина до360px с ограничением viewport−24, bottom88px + safe-area; desktop bottom24. Используется существующий podkova-35-plan-640.webp, object-contain без crop; присланный podkova-35-plan(1).jpg побайтно совпадает с локальным catalog master, JPG не добавлен в Git. Планировка декоративная, alt пустой/aria-hidden. Крестик44×44 сворачивает в горизонтальную мини-карточку: один native button шириной272px (max-width100%), padding12px по горизонтали/8px по вертикали, миниатюра64×48 слева, текст справа. Цвета forest/surface/accent, focus-visible; «Продолжить подбор» и «Шаг N из 5» либо «Осталось оставить контакты». Mobile остаётся горизонтальным, ограничение viewport−24 и bottom88px + safe-area сохраняются. Высота по контенту, без отдельной большой CTA; нажатие только возобновляет сохранённый экран. В развёрнутой карточке строка «Вы остановились на шаге N из 5», на форме — «Осталось оставить контакты». CTA только открывает сохранённый экран. При dialog reminder скрыт, после success удаляется.
 
 Frontend elapsed отсчитывается от первого открытия текущего запуска, а не от перехода к форме. После полной перезагрузки новый отсчёт начинается при resume. Существующий antispam pattern сохранён: honeypot/слишком быстрое заполнение дают локальный success без HTTP/goal; сервер тоже может ответить ok при antispam drop.
@@ -112,13 +120,13 @@ REST failure→private queue с нормализованными version/все�
 
 | Goal | Условие | Params |
 | --- | --- | --- |
-| quiz_open | Явное открытие dialog | source:section/floating/compact |
+| quiz_open | Явное открытие dialog | source:section/floating/compact; новый вход: source:catalog_card + model:podkova-35/45/60 |
 | quiz_start | Первый фактический выбор в session | нет |
 | quiz_step | Auto-next1/2/4/5 после выбора radio либо Далее2–5 с ответом/пропуском, включая повтор после возврата. Один goal на фактический переход; названия/params не менялись | step:1..5, question:place/area/features/timing/budget |
 | quiz_close | Закрытие до success | step:1..5; contact screen обозначается5 |
 | quiz_submit | Только submitLead ok:true | нет |
 
-Нет phone/name/comments/свободных ответов в целях. Track/counter/index.html не изменены. Цели нужно отдельно создать/проверить в кабинете Метрики. Ok может означать queue acceptance, а не уже созданную сделку; автоматической отправки файлов/сообщений нет.
+Нет phone/name/comments/свободных ответов в целях. Track/counter/index.html не изменены. Цели уже зарегистрированы по данным владельца; идентификаторы не менялись, кабинет в этой задаче не проверялся. Ok может означать queue acceptance, а не уже созданную сделку; автоматической отправки файлов/сообщений нет.
 
 ## Проверки и ограничения
 
@@ -134,7 +142,7 @@ REST failure→private queue с нормализованными version/все�
 
 ## Порядок выпуска
 
-UX-правки не требуют нового обновления private/lib.php: PHP идентичен main после PR #50. Правило ниже относится к первоначальному включению quiz; фактическое состояние private backend на Beget этой работой не проверялось.
+Контракт quiz v1 не меняется, но в этой же ветке Hero использует новый catalog_model:all. Поэтому актуальная правка требует ручного обновления private/lib.php до merge/frontend. **До merge вручную обновить `server/lib.php` → `private/lib.php` на Beget и проверить совместимость. GitHub Actions этот приватный файл не доставляет. Только затем разрешать публикацию нового frontend.** Config/retry/вебхуки не менять; перенос на сервер этой работой не выполнялся. Новая библиотека совместима с прежними тремя моделями и остальными формами; старую lib нельзя возвращать, пока в очереди есть заявки `catalog_model: all`.
 
 **ПЕРЕД MERGE вручную скопировать `server/lib.php` → `private/lib.php` на Beget. GitHub Actions private/lib.php НЕ доставляет.**
 
@@ -145,3 +153,16 @@ UX-правки не требуют нового обновления private/li
 5. Проверить одну согласованную тестовую quiz-заявку, поля сделки/контакта, COMMENTS, цели и retry. Это не выполняется этой веткой.
 
 Нельзя публиковать новый endpoint/frontend раньше private backend. Самостоятельный merge/deploy запрещён; итог работы — draft PR.
+
+## Проверки CTA от 20.10.2026
+
+- `npm run build`: успешно, 103 модуля; package.json/lock и зависимости приложения не изменены.
+- `php server/tests/phone.test.php`: 22 проверки; `php server/tests/handler.test.php`: 228 проверок на PHP8.3.6 с curl/mbstring. Добавлены all/call/MAX, точные CRM-поля, все UTM, неизвестные enum, общий каталог в queue/retry; старые три модели и остальные формы проходят.
+- `scripts/tests/quiz.dom.mjs`: 100 проверок; `scripts/tests/cta.dom.mjs`: 54 проверки полного App в React StrictMode. Проверены новые CTA, reset/resume, focus, отсутствие двойных целей/submit, сохранение контактов, late success/error при новой попытке и общий HTTP-lock. HTTP mocked; dialog polyfilled.
+- `scripts/tests/cta.browser.mjs`: 121 проверка в реальном Chromium153 на локальном Vite production build, ширины360/390/768/1024/1440. Загружен Onest; проверены карточки/CTA, горизонтальный overflow, открытие без прокрутки, native dialog/focus/Escape, возврат focus, планировки/backdrop и общий catalog payload. Скриншоты Hero/карточек/формы/планировки/квиза просмотрены выборочно. Новых визуальных изменений сверх задания не внесено.
+- `git diff --check`: без ошибок. Browser запускает Vite preview только на127.0.0.1; HTTP формы mocked, production Метрика/CRM/карты/embeds блокируются. Public deployment не создавался.
+- Это не проверка production Beget/Bitrix24, живого счётчика, внешней карты, реальных iOS/Safari/Android или полного CLS-аудита. Прежние записи о недоступности Chrome относятся к октябрьским проверкам до этой актуализации.
+
+QA-зависимости установлены вне repo. Команды DOM: `BV_JSDOM_PATH=/path/to/jsdom/lib/api.js node scripts/tests/quiz.dom.mjs` и аналогично `cta.dom.mjs`. Browser: после build выполнить `BV_PLAYWRIGHT_PATH=/path/to/playwright-core/index.mjs BV_CHROMIUM_PATH=/path/to/chromium node scripts/tests/cta.browser.mjs`; шрифт может загружаться из Google Fonts либо из локального QA-кеша через `BV_FONT_CACHE`. PHP CLI/extensions могут быть предоставлены через PATH; тесты сами поднимают локальные HTTP/REST stubs.
+
+**Release gate:** вручную доставить совместимый `server/lib.php` как `private/lib.php` на Beget и проверить старые формы; затем, только после разрешения владельца, merge/frontend deployment. При наличии all jobs не откатывать private lib к версии без all. В этой работе main, production, private config и Beget не изменялись; merge/auto-merge/deploy не выполнялись.

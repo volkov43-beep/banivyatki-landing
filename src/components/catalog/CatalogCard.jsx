@@ -2,7 +2,7 @@ import Button from '../Button.jsx'
 import ResponsivePhoto, { photoSrc } from '../ResponsivePhoto.jsx'
 import { CATALOG_IMAGE_RATIO, CATALOG_IMAGE_SIZES } from '../../data/catalog.js'
 
-export default function CatalogCard({ model, onPlan, onCatalog }) {
+export default function CatalogCard({ model, onPlan, onCalculate }) {
   return (
     <li className="m-0 flex min-w-0 flex-col p-0">
       <ResponsivePhoto name={model.catalogImage} alt={model.alt} ratio={CATALOG_IMAGE_RATIO} sizes={CATALOG_IMAGE_SIZES} />
@@ -19,7 +19,7 @@ export default function CatalogCard({ model, onPlan, onCatalog }) {
             от {model.priceFrom.toLocaleString('ru-RU')} ₽
           </p>
         )}
-        <Button variant="link" size="md" className="mt-3 min-h-11 cursor-pointer" onClick={() => onPlan(model)} aria-label={`Планировка — ${model.title}`}>
+        <Button variant="link" size="md" className="mt-3 min-h-11 cursor-pointer" onClick={(event) => onPlan(model, event.currentTarget)} aria-label={`Планировка — ${model.title}`}>
           <span className="flex flex-col items-start gap-2 text-left">
             <span>Планировка</span>
             <img
@@ -33,8 +33,8 @@ export default function CatalogCard({ model, onPlan, onCatalog }) {
             />
           </span>
         </Button>
-        <Button full className="mt-3 whitespace-nowrap" onClick={() => onCatalog(model)} aria-label={`Получить каталог — ${model.title}`}>
-          Получить каталог
+        <Button full className="mt-3 whitespace-nowrap" onClick={(event) => onCalculate(model, event.currentTarget)} aria-label={`Рассчитать стоимость — ${model.title}`}>
+          Рассчитать стоимость
         </Button>
       </div>
     </li>

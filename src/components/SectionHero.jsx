@@ -1,5 +1,5 @@
 /**
- * Первый экран. Одно действие — кнопка «Рассчитать стоимость».
+ * Первый экран. Одно действие — кнопка «Получить каталог».
  *
  * Компьютер (от 1024 px): картинка на весь экран высотой 90vh (640…900 px),
  * колонка текста слева, до 42 % ширины. Кадр отзеркален по горизонтали
@@ -61,7 +61,7 @@ function RatingBadge({ source, className = '' }) {
   )
 }
 
-export default function SectionHero() {
+export default function SectionHero({ onCatalogOpen }) {
   // «Дыхание» кнопки: один раз, когда она впервые попала в поле зрения;
   // не запускается, если до этого навели или нажали, и при reduced-motion.
   const ctaRef = useRef(null)
@@ -177,8 +177,7 @@ export default function SectionHero() {
           <div className="mt-6 flex flex-col gap-5 lg:gap-4">
             <RatingBadge source={SOURCES.avito} />
             <Button
-              as="a"
-              href="#calculator"
+              onClick={(event) => onCatalogOpen(event.currentTarget)}
               arrow
               fullMobile
               ref={ctaRef}
@@ -187,7 +186,7 @@ export default function SectionHero() {
               onFocus={cancelBreathe}
               className={`self-start${breathe ? ' bv-breathe' : ''}`}
             >
-              Рассчитать стоимость
+              Получить каталог
             </Button>
           </div>
         </div>
