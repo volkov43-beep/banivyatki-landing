@@ -4,9 +4,28 @@
 
 Документ основан на текущих React/PHP-файлах, образце конфигурации, тестах и workflow. Действующий сервер, приватный конфиг, Битрикс24, cron и кабинет Метрики не проверялись. Значения секретов, credentials и URL вебхука не приводятся, в том числе в примерах. Все примеры данных ниже синтетические: телефон состоит из нулей, имя/ответы/UTM вымышленные. Имена конфигурационных ключей обозначают структуру, а не раскрывают значения.
 
-**Catalog и quiz реализованы.** Quiz v1 использует пять scalar полей, server-side labels, общий CONTACT→DEAL/queue/retry. Старые form contracts, private config/retry, workflow и счётчик не изменены. Master JPG catalog/quiz только локально и ignored. Проверки: phone22, handler213, quiz DOM49, catalog DOM42, build/diff успешно. Production/внешние кабинеты не проверены. **До merge вручную доставить server/lib.php как private/lib.php на Beget.**
+**Catalog и quiz реализованы.** Quiz v1 использует пять scalar полей, server-side labels, общий CONTACT→DEAL/queue/retry. Старые form contracts, private config/retry, workflow и счётчик не изменены. Master JPG catalog/quiz только локально и ignored. Проверки первоначальных реализаций: phone22, handler213, quiz DOM49, catalog DOM42, build/diff успешно; результаты актуализации20.10 приведены в конце. Production/внешние кабинеты не проверены. **До merge вручную доставить server/lib.php как private/lib.php на Beget.**
 
 Краткий вывод: текущий backend создаёт **CONTACT и DEAL, не CRM LEAD**. Канал рекламы отражает `SOURCE_ID`, тип обращения — уникальная подпись `SOURCE_DESCRIPTION` из `BV_FORMS`. Для новых сценариев требуется согласованное расширение серверного контракта; просто добавить поля React недостаточно.
+
+## Актуализация CTA и общего каталога — 20.10.2026
+
+Hero открывает существующую CatalogForm через App/CatalogSection, подпись «Каталог всех моделей», form:catalog/catalog_model:all. Карточки открывают новый quiz v1 с первого вопроса; код карточки используется только в quiz_open {source:catalog_card,model}, не передаётся в CRM как ответ. Контракт quiz не менялся. QuizSection.send теперь владеет HTTP/общим lock и номером попытки: поздний ответ старого запроса обрабатывается без изменения нового подбора; второй HTTP до его завершения запрещён.
+
+BV_CATALOG_MODELS дополнен all. Существующий bv_catalog_valid строго проверяет строковый enum без coercion/trim; bv_build_lead и queue/retry сохраняют all без изменений их реализации. bv_deal_title → «Сайт · Каталог · Все модели»; SOURCE_DESCRIPTION → «Каталог бань». COMMENTS:
+
+```text
+Форма: Каталог бань
+Запрос: Каталог всех моделей
+Способ связи: MAX
+Страница: https://banivyatki.ru/
+```
+
+Далее идут прежние referrer/время/пять UTM. Строки «Интересующая модель» нет. Для повторного контакта прежняя строка «Повторное обращение» остаётся. Все три прежних podkova-кода, TITLE «Сайт · Каталог», комментарии, CONTACT, SOURCE_ID, method, очередь и retry совместимы. Все данные/события синтетические в тестах; приватные настройки не читались и не менялись.
+
+Analytics: catalog_open при Hero и catalog_submit после подтверждённого ok используют {model:all}; false/error не даёт submit. Счётчик113423850, goal names и остальная аналитика прежние. Queue acceptance также считается ok, без обещания автоматической отправки PDF.
+
+**До merge вручную обновить `server/lib.php` → `private/lib.php` на Beget и проверить совместимость. GitHub Actions этот приватный файл не доставляет. Только затем разрешать публикацию нового frontend.** Config/retry/вебхуки не менять; перенос на сервер этой работой не выполнялся. Новая библиотека совместима с прежними тремя моделями и остальными формами; старую lib нельзя возвращать, пока в очереди есть заявки `catalog_model: all`.
 
 ## 1. Текущая цепочка отправки заявки
 
@@ -83,7 +102,7 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 | `visit` | `src/components/showroom/VisitForm.jsx`, SectionShowroom | showroom/production/video, имя, телефон, call/max, согласие | visit_type | visit_type | `visit_submit`, params `{type: visitType}` |
 | `faq_question` | `src/components/FaqQuestionForm.jsx`, SectionFaq | Обязательный вопрос, имя, телефон, call/max, согласие | question | question | `faq_question_submit` |
 | `quiz` | `src/components/quiz/QuizFinalForm.jsx` | Телефон, имя необязательно, explicit max/telegram/whatsapp/call, согласие | quiz_version v1; quiz_place/area/features/timing/budget, общие metadata | Общие metadata + 6 quiz fields, без legacy business context | `quiz_submit` |
-| `catalog` | `src/components/catalog/CatalogForm.jsx`, CatalogSection/Dialog | Телефон, имя необязательно, call/max, обязательное UI-согласие | catalog_model выбранной модели, общие metadata | C + catalog_model; строгая validation новых enum | `catalog_submit {model}` |
+| `catalog` | `src/components/catalog/CatalogForm.jsx`, CatalogSection/Dialog | Телефон, имя необязательно, call/max, обязательное UI-согласие | catalog_model:all из Hero (прежние три кода поддерживаются), общие metadata | C + catalog_model; строгая validation новых enum | `catalog_submit {model}` |
 | `final` | `src/components/FinalForm.jsx`, SectionFinal | Имя необязательно, телефон, call/max, согласие | Дополнительных бизнес-полей нет | Общие поля | `final_submit` |
 | `calc` | Отдельного React-компонента нет; backend совместимость | Как calculator для внешнего совместимого отправителя | Аналог calculator | Канонизируется в calculator | Автоматической цели backend нет; текущий React использует calculator/calc_submit |
 
@@ -100,7 +119,7 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 | Канонический form | CONTACT / DEAL | TITLE в обычном сценарии UI | SOURCE_ID | SOURCE_DESCRIPTION (точная строка) | Специфика COMMENTS | UTM |
 | --- | --- | --- | --- | --- | --- | --- |
 | quiz | K / D | `Сайт · Квиз` | S | `Квиз · Подбор бани` | Пять доверенных labels ответов, method, серверный запрос, общие metadata | Все5 по mapping |
-| catalog | K / D | `Сайт · Каталог` | S | `Каталог бань` | Форма, доверенная модель, серверный запрос + общие строки | Все 5 по общему mapping |
+| catalog | K / D | Для all: `Сайт · Каталог · Все модели`; иначе `Сайт · Каталог` | S | `Каталог бань` | Форма, общий запрос без модели для all; прежняя модель/запрос для трёх кодов + общие строки | Все 5 по общему mapping |
 | calculator | K / D | `Сайт · Расчёт · <option_shown> · от <price_shown> ₽`; пустые вариант/цена пропускаются | S | `Калькулятор` | Форма, выбранный вариант, показанная цена + общие строки | Все 5 в COMMENTS при наличии; в поля K/D только по respective mapping |
 | business | K / D | `Сайт · Для бизнеса`; build/title также умеют добавить вариант/цену, если они присланы | S | `Калькулятор, для бизнеса` | Форма, компания, комментарий + общие строки | То же |
 | visit | K / D | `Сайт · Запись: шоурум` / `производство` / `видеозвонок`; неизвестный/пустой тип даёт `Сайт · Запись` | S | `Запись на просмотр` | Форма, тип визита + общие строки | То же |
@@ -142,7 +161,7 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 | phone | Нормализованный `+7` и 10 цифр | Нет проверки принадлежности номера/реального оператора |
 | name | string ≤100 символов | Пустое допустимо, CONTACT получает fallback |
 | contact_method | string ≤20 | Старые формы: неизвестный enum не reject. Catalog: обязателен raw string call/max, иначе400 |
-| catalog_model | string ≤20, только catalog | Обязателен podkova-35/podkova-45/podkova-60; raw arrays/objects/numbers/unknown/long отклоняются до обрезания |
+| catalog_model | string ≤20, только catalog | Обязателен all/podkova-35/podkova-45/podkova-60; raw arrays/objects/numbers/unknown/long отклоняются до обрезания |
 | option_shown | string ≤200 | Любая присланная строка, не сверяется с data/calculator.js |
 | price_shown | int либо null | Принимает numeric string/float, дробь обрезается; сумма не задаётся как OPPORTUNITY |
 | visit_type | string ≤20 | Нет обязательности/strict enum даже при form visit |
@@ -401,7 +420,7 @@ Catalog реализован по отдельному UI brief; ниже пер
 ### 9.1. Фактические поля и payload
 
 - `form: catalog` обязателен и определяет запрос server-side.
-- `catalog_model` обязателен: raw string `podkova-35`, `podkova-45` или `podkova-60`; доверенная подпись определяется BV_CATALOG_MODELS.
+- `catalog_model` обязателен: raw string `all`, `podkova-35`, `podkova-45` или `podkova-60`; доверенная подпись определяется BV_CATALOG_MODELS.
 - Телефон обязателен, имя необязательно, contact_method call/max обязателен в новом server контракте.
 - Согласие обязательно UI, как в существующих формах. Сейчас оно не передаётся/не хранится; если требуется журнал согласия, это отдельное расширение общего контракта и политики, не «уже имеющаяся» функция.
 - Стандартные UTM/page/submitted_at/elapsed_ms/website; referrer добавляет helper.
@@ -410,7 +429,7 @@ Catalog реализован по отдельному UI brief; ниже пер
 ```json
 {
   "form": "catalog",
-  "catalog_model": "podkova-45",
+  "catalog_model": "all",
   "phone": "+70000000000",
   "name": "Тест",
   "contact_method": "max",
@@ -428,7 +447,7 @@ Catalog реализован по отдельному UI brief; ниже пер
 
 ### 9.2. CRM, COMMENTS, analytics
 
-BV_FORMS catalog: label «Каталог бань», title «Каталог». SOURCE_DESCRIPTION → этот label, TITLE → «Сайт · Каталог», SOURCE_ID → прежнее правило канала. COMMENTS → пример раздела 6.3, строка «Запрос: Отправить каталог бань» формируется только сервером. CONTACT/воронка/ответственный/UTM/способ связи — общий mapping.
+BV_FORMS catalog: label «Каталог бань», title «Каталог». SOURCE_DESCRIPTION → этот label, TITLE → «Сайт · Каталог · Все модели» для all, «Сайт · Каталог» для прежних моделей; SOURCE_ID → прежнее правило канала. COMMENTS → пример раздела 6.3, для all строка «Запрос: Каталог всех моделей» без интересующей модели, для старых кодов «Запрос: Отправить каталог бань» и название модели; строки формируются только сервером. CONTACT/воронка/ответственный/UTM/способ связи — общий mapping.
 
 Analytics: `catalog_submit` после ok, `catalog_open` при открытии формы и `catalog_plan_open` при открытии планировки; все три с `{model}`; не считать open/submit-click конверсией принятой заявки. Цель submit может означать queue acceptance. Не отправлять name/phone/COMMENTS в Метрику.
 
@@ -541,3 +560,16 @@ DOM harness:35 проверок карточек/null цены, plan→form, м�
 Quiz DOM49, catalog regression DOM42, phone22/handler213, build/diff прошли. HTTP mocked и dialog polyfilled не заменяют реальный browser QA. Chrome в окружении падает с139; screenshot pack отсутствует. Netlify и production не использовались.
 
 **ДО MERGE: server/lib.php → private/lib.php на Beget вручную.** Config/retry менять не требуется. Новый endpoint и frontend публикуются только после совместимой private lib; Actions её не доставляет. Цели quiz нужно проверить/создать в кабинете Метрики. Подробности ограничений/QA/payload/выпуска — QUIZ_IMPLEMENTATION.md.
+
+## Проверки CTA от 20.10.2026
+
+- `npm run build`: успешно, 103 модуля; package.json/lock и зависимости приложения не изменены.
+- `php server/tests/phone.test.php`: 22 проверки; `php server/tests/handler.test.php`: 228 проверок на PHP8.3.6 с curl/mbstring. Добавлены all/call/MAX, точные CRM-поля, все UTM, неизвестные enum, общий каталог в queue/retry; старые три модели и остальные формы проходят.
+- `scripts/tests/quiz.dom.mjs`: 100 проверок; `scripts/tests/cta.dom.mjs`: 54 проверки полного App в React StrictMode. Проверены новые CTA, reset/resume, focus, отсутствие двойных целей/submit, сохранение контактов, late success/error при новой попытке и общий HTTP-lock. HTTP mocked; dialog polyfilled.
+- `scripts/tests/cta.browser.mjs`: 121 проверка в реальном Chromium153 на локальном Vite production build, ширины360/390/768/1024/1440. Загружен Onest; проверены карточки/CTA, горизонтальный overflow, открытие без прокрутки, native dialog/focus/Escape, возврат focus, планировки/backdrop и общий catalog payload. Скриншоты Hero/карточек/формы/планировки/квиза просмотрены выборочно. Новых визуальных изменений сверх задания не внесено.
+- `git diff --check`: без ошибок. Browser запускает Vite preview только на127.0.0.1; HTTP формы mocked, production Метрика/CRM/карты/embeds блокируются. Public deployment не создавался.
+- Это не проверка production Beget/Bitrix24, живого счётчика, внешней карты, реальных iOS/Safari/Android или полного CLS-аудита. Прежние записи о недоступности Chrome относятся к октябрьским проверкам до этой актуализации.
+
+QA-зависимости установлены вне repo. Команды DOM: `BV_JSDOM_PATH=/path/to/jsdom/lib/api.js node scripts/tests/quiz.dom.mjs` и аналогично `cta.dom.mjs`. Browser: после build выполнить `BV_PLAYWRIGHT_PATH=/path/to/playwright-core/index.mjs BV_CHROMIUM_PATH=/path/to/chromium node scripts/tests/cta.browser.mjs`; шрифт может загружаться из Google Fonts либо из локального QA-кеша через `BV_FONT_CACHE`. PHP CLI/extensions могут быть предоставлены через PATH; тесты сами поднимают локальные HTTP/REST stubs.
+
+**Release gate:** вручную доставить совместимый `server/lib.php` как `private/lib.php` на Beget и проверить старые формы; затем, только после разрешения владельца, merge/frontend deployment. При наличии all jobs не откатывать private lib к версии без all. В этой работе main, production, private config и Beget не изменялись; merge/auto-merge/deploy не выполнялись.

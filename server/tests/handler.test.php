@@ -239,12 +239,35 @@ foreach ($catalogModels as $code => $label) {
     check("catalog $code: модель не в CONTACT/OPPORTUNITY, клиентские поля игнорируются", !isset($contact['catalog_model']) && !isset($deal['OPPORTUNITY']) && !isset($deal['UF_CRM_FAKE']) && !str_contains(json_encode($deal), 'CLIENT'));
 }
 
+// Hero requests the whole catalog, never inventing a selected model.
+foreach (['call' => 'Звонок', 'max' => 'MAX'] as $method => $methodLabel) {
+    resetStub('ok');
+    $source = $method === 'call' ? 'yandex' : 'google';
+    [$c, $b] = post(catalogLead('all', [
+        'contact_method' => $method, 'utm_source' => $source,
+        'utm_content' => 'hero', 'utm_term' => 'баня',
+        'TITLE' => 'CLIENT TITLE', 'COMMENTS' => 'CLIENT COMMENTS', 'request_text' => 'CLIENT REQUEST',
+    ]));
+    $calls = stubCalls();
+    $contact = json_decode(substr($calls[1] ?? '', strlen('crm.contact.add ')), true)['fields'] ?? [];
+    $deal = json_decode(substr($calls[2] ?? '', strlen('crm.deal.add ')), true)['fields'] ?? [];
+    $expected = "Форма: Каталог бань\nЗапрос: Каталог всех моделей\nСпособ связи: $methodLabel"
+        . "\nСтраница: https://banivyatki.ru/\nПереход с: https://yandex.ru/\nВремя отправки: 05.10.2026 14:12 (МСК)"
+        . "\nМетки: utm_source=$source, utm_medium=cpc, utm_campaign=test, utm_content=hero, utm_term=баня";
+    check("catalog all/$method: CONTACT → один DEAL", $c === 200 && $b === '{"ok":true}' && count($calls) === 3 && ($contact['PHONE'][0]['VALUE'] ?? '') === '+79123456789' && ($deal['CONTACT_ID'] ?? 0) > 0);
+    check("catalog all/$method: точные TITLE/SOURCE_DESCRIPTION/COMMENTS", ($deal['TITLE'] ?? '') === 'Сайт · Каталог · Все модели' && ($deal['SOURCE_DESCRIPTION'] ?? '') === 'Каталог бань' && ($deal['COMMENTS'] ?? '') === $expected);
+    check("catalog all/$method: нет конкретной модели или client labels", !str_contains($deal['COMMENTS'] ?? '', 'Интересующая модель:') && !str_contains($deal['COMMENTS'] ?? '', 'Подкова') && !str_contains(json_encode($deal), 'CLIENT') && !isset($contact['catalog_model']));
+    check("catalog all/$method: связь и SOURCE_ID", ($deal['UF_CRM_METHOD'] ?? '') === ($method === 'call' ? '11' : '12') && ($deal['SOURCE_ID'] ?? '') === ($source === 'yandex' ? 'DIRECT' : 'WEB'));
+    check("catalog all/$method: UTM контакта и сделки", ($contact['UTM_SOURCE'] ?? '') === $source && ($contact['UTM_MEDIUM'] ?? '') === 'cpc' && ($deal['UTM_SOURCE'] ?? '') === $source && ($deal['UTM_MEDIUM'] ?? '') === 'cpc' && ($deal['UTM_CAMPAIGN'] ?? '') === 'test' && ($deal['UTM_CONTENT'] ?? '') === 'hero' && ($deal['UTM_TERM'] ?? '') === 'баня');
+}
+
 // Raw values must not be coerced/truncated to a valid enum.
 $invalidCatalog = [
     ['catalog_model' => 'unknown'], ['catalog_model' => null], ['catalog_model' => ''],
     ['catalog_model' => 35], ['catalog_model' => true], ['catalog_model' => ['podkova-35']],
     ['catalog_model' => ['id' => 'podkova-35']], ['catalog_model' => str_repeat('x', 300)],
     ['catalog_model' => 'podkova-35 '], ['catalog_model' => 'PODKOVA-35'],
+    ['catalog_model' => 'ALL'], ['catalog_model' => 'all '], ['catalog_model' => ['all']],
     ['contact_method' => 'telegram'], ['contact_method' => null], ['contact_method' => ''],
     ['contact_method' => 1], ['contact_method' => true], ['contact_method' => ['call']],
     ['contact_method' => ['id' => 'call']], ['contact_method' => str_repeat('call', 100)],
@@ -269,7 +292,8 @@ check('catalog неверный телефон →400 bad_phone', $c === 400 && 
 
 // Each model survives private JSON queue and CLI retry unchanged.
 resetStub('error');
-foreach ($catalogModels as $code => $label) {
+$queuedCatalogModels = $catalogModels + ['all' => 'Каталог всех моделей'];
+foreach ($queuedCatalogModels as $code => $label) {
     $before = queueFiles();
     [$c, $b] = post(catalogLead($code));
     $newFiles = array_values(array_diff(queueFiles(), $before));
@@ -284,11 +308,13 @@ foreach (stubCalls() as $call) {
         $retryDeals[] = json_decode(substr($call, strlen('crm.deal.add ')), true)['fields'];
     }
 }
-check('catalog retry: три заявки отправлены, queue пуста', $catalogRetryRc === 0 && count(queueFiles()) === 0 && count($retryDeals) === 3);
+check('catalog retry: четыре заявки отправлены, queue пуста', $catalogRetryRc === 0 && count(queueFiles()) === 0 && count($retryDeals) === 4);
 foreach ($catalogModels as $code => $label) {
     $matching = array_filter($retryDeals, static fn ($d) => $d['TITLE'] === 'Сайт · Каталог' && $d['SOURCE_DESCRIPTION'] === 'Каталог бань' && str_contains($d['COMMENTS'], "Интересующая модель: $label\nЗапрос: Отправить каталог бань"));
     check("catalog retry $code: модель/контекст сохранены", count($matching) === 1);
 }
+$allDeals = array_filter($retryDeals, static fn ($d) => $d['TITLE'] === 'Сайт · Каталог · Все модели' && $d['SOURCE_DESCRIPTION'] === 'Каталог бань' && str_contains($d['COMMENTS'], "Форма: Каталог бань\nЗапрос: Каталог всех моделей") && !str_contains($d['COMMENTS'], 'Интересующая модель:') && $d['SOURCE_ID'] === 'DIRECT' && $d['UTM_CAMPAIGN'] === 'test' && $d['UF_CRM_METHOD'] === '11');
+check('catalog retry all: общий каталог/канал/связь/UTM сохранены', count($allDeals) === 1);
 
 // --- Quiz v1: endpoint schema, trusted labels, channel and retry. ---
 function quizLead(array $extra = []): array

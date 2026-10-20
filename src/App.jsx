@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import Header from './components/Header.jsx'
 import SectionHero from './components/SectionHero.jsx'
 import CatalogSection from './components/catalog/CatalogSection.jsx'
@@ -16,15 +17,17 @@ import SectionFinal from './components/SectionFinal.jsx'
 import Footer from './components/Footer.jsx'
 
 export default function App() {
+  const catalogRef = useRef(null)
+  const quizRef = useRef(null)
   return (
     <div className="relative">
       <Header />
       <main>
-        <SectionHero />
-        <CatalogSection />
+        <SectionHero onCatalogOpen={(opener) => catalogRef.current?.openCatalog(opener)} />
+        <CatalogSection ref={catalogRef} onCalculate={(model, opener) => quizRef.current?.startNew(model.crmCode, opener)} />
         <SectionWorks />
         <SectionReviews />
-        <QuizSection />
+        <QuizSection ref={quizRef} />
         <SectionLocations />
         <SectionCalculator />
         <SectionBenefits />

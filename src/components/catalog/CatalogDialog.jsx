@@ -2,15 +2,15 @@ import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 // Native dialog provides an inert background and keyboard focus containment.
-// Closing restores focus to the original card opener.
-export default function CatalogDialog({ title, kind, onClose, children }) {
+// Capture the opener before the form autofocuses its phone field.
+export default function CatalogDialog({ title, kind, onClose, openerRef, children }) {
   const titleId = useId()
   const dialogRef = useRef(null)
   const backdropPress = useRef(false)
 
   useEffect(() => {
     const dialog = dialogRef.current
-    const opener = document.activeElement
+    const opener = openerRef?.current || document.activeElement
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     dialog.showModal()
@@ -19,7 +19,7 @@ export default function CatalogDialog({ title, kind, onClose, children }) {
       document.body.style.overflow = overflow
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true })
     }
-  }, [])
+  }, [openerRef])
 
   if (kind === 'plan') {
     return createPortal(

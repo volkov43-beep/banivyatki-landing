@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import Button from '../Button.jsx'
 import { photoSrc } from '../ResponsivePhoto.jsx'
 import { track } from '../../lib/track.js'
+import { submitLead } from '../../lib/submitLead.js'
 import { QUIZ_TITLE, QUIZ_SUBTITLE, QUIZ_SUCCESS_TITLE, QUIZ_QUESTIONS, emptyQuizState, readQuizState, saveQuizState, validQuizAnswer } from '../../data/quiz.js'
 import QuizDialog from './QuizDialog.jsx'
 import QuizStep from './QuizStep.jsx'
@@ -10,28 +11,72 @@ import QuizFloatingReminder from './QuizFloatingReminder.jsx'
 
 const emptyContactDraft = () => ({ phone: '', name: '', contact: '', consent: false })
 
-export default function QuizSection() {
+export default function QuizSection({ ref }) {
   const [state, setState] = useState(readQuizState)
   // Memory only: keep contacts separate from the persisted quiz progress.
   const [contactDraft, setContactDraft] = useState(emptyContactDraft)
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const attemptRef = useRef(0)
+  const visibleRef = useRef(false)
+  // One HTTP request across attempts, even when the old final form unmounts.
+  const sendingRef = useRef(false)
+  const [requestPending, setRequestPending] = useState(false)
+  const alive = useRef(true)
   const openerRef = useRef(null)
   const launchRef = useRef(null)
   const startedAt = useRef(Date.now())
   useEffect(() => { saveQuizState(state) }, [state])
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+  function resetAttempt() {
+    startedAt.current = Date.now()
+    attemptRef.current += 1
+    setAttempt(attemptRef.current)
+    setState({ ...emptyQuizState(state.started), widget: 'expanded' })
+    setContactDraft(emptyContactDraft())
+  }
   function start(source) {
+    if (visibleRef.current) return
+    visibleRef.current = true
     if (!mounted || state.completed) startedAt.current = Date.now()
-    if (state.completed) { setState({ ...emptyQuizState(state.started), widget: 'expanded' }); setContactDraft(emptyContactDraft()); setAttempt((n) => n + 1) }
+    if (state.completed) resetAttempt()
     else setState((s) => ({ ...s, widget: s.widget === 'hidden' ? 'expanded' : s.widget }))
     openerRef.current = document.activeElement
     setMounted(true)
     setOpen(true)
     track('quiz_open', { source })
   }
+  useImperativeHandle(ref, () => ({
+    startNew(model, opener) {
+      if (visibleRef.current) return
+      visibleRef.current = true
+      resetAttempt()
+      openerRef.current = opener
+      setMounted(true)
+      setOpen(true)
+      track('quiz_open', { source: 'catalog_card', model })
+    },
+  }))
+  async function send(payload) {
+    if (sendingRef.current) return { ok: false, error: 'pending' }
+    const requestAttempt = attemptRef.current
+    sendingRef.current = true
+    setRequestPending(true)
+    const result = await submitLead(payload)
+    sendingRef.current = false
+    if (!alive.current) return result
+    setRequestPending(false)
+    if (result.ok) {
+      track('quiz_submit')
+      // A late response belongs to its original attempt, never to a new run.
+      if (attemptRef.current === requestAttempt) success()
+    }
+    return result
+  }
   function close() {
-    if (!open) return
+    if (!visibleRef.current) return
+    visibleRef.current = false
     if (!state.completed) track('quiz_close', { step: Math.min(state.step + 1, 5) })
     setState((s) => ({ ...s, widget: s.completed ? 'hidden' : s.widget }))
     setOpen(false)
@@ -69,7 +114,7 @@ export default function QuizSection() {
       </section>
       {mounted && <QuizDialog open={open} finalStep={state.step >= 5} title={state.completed ? QUIZ_SUCCESS_TITLE : question?.title || 'Готово — подберём подходящие варианты'} onClose={close} openerRef={openerRef} fallbackRef={launchRef}>
         {state.step < 5 ? open && <QuizStep key={state.step} question={question} step={state.step} value={state.answers[question.field]} onAnswer={answer} onNext={next} onBack={() => setState((s) => ({ ...s, step: s.step - 1 }))} />
-          : <QuizFinalForm key={attempt} startedAt={startedAt.current} answers={state.answers} contactDraft={contactDraft} onContactChange={(patch) => setContactDraft((draft) => ({ ...draft, ...patch }))} onSuccess={success} onBack={() => setState((s) => ({ ...s, step: 4 }))} />}
+          : <QuizFinalForm key={attempt} startedAt={startedAt.current} answers={state.answers} contactDraft={contactDraft} onContactChange={(patch) => setContactDraft((draft) => ({ ...draft, ...patch }))} onSubmitLead={send} requestPending={requestPending} onSuccess={success} onBack={() => setState((s) => ({ ...s, step: 4 }))} />}
       </QuizDialog>}
       {!state.completed && <div hidden={open}><QuizFloatingReminder state={state.widget} step={state.step} onOpen={start} onCollapse={() => setState((s) => ({ ...s, widget: 'compact' }))} /></div>}
     </>

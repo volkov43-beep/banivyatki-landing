@@ -31,6 +31,7 @@ const BV_FORM_ALIASES = ['calc' => 'calculator'];
 const BV_VISIT_TYPES = ['showroom' => 'Шоурум', 'production' => 'Производство', 'video' => 'Видеозвонок'];
 const BV_CONTACT_METHODS = ['call' => 'Звонок', 'max' => 'MAX'];
 const BV_CATALOG_MODELS = [
+    'all' => 'Каталог всех моделей',
     'podkova-35' => 'Подкова 3,5 м',
     'podkova-45' => 'Подкова 4,5 м',
     'podkova-60' => 'Подкова 6 м',
@@ -324,6 +325,10 @@ function bv_deal_title(array $lead): string
             $type = BV_VISIT_TYPES[$lead['visit_type']] ?? '';
             $parts[] = $type !== '' ? 'Запись: ' . mb_strtolower($type) : 'Запись';
             break;
+        case 'catalog':
+            $parts[] = BV_FORMS[$form]['title'];
+            if ($lead['catalog_model'] === 'all') $parts[] = 'Все модели';
+            break;
         default:
             $parts[] = BV_FORMS[$form]['title'];
     }
@@ -355,8 +360,12 @@ function bv_deal_comments(array $cfg, array $lead, bool $contactFound, ?int $con
     }
     $lines[] = 'Форма: ' . BV_FORMS[$lead['form']]['label'];
     if ($lead['form'] === 'catalog') {
-        $lines[] = 'Интересующая модель: ' . BV_CATALOG_MODELS[$lead['catalog_model']];
-        $lines[] = 'Запрос: Отправить каталог бань';
+        if ($lead['catalog_model'] === 'all') {
+            $lines[] = 'Запрос: Каталог всех моделей';
+        } else {
+            $lines[] = 'Интересующая модель: ' . BV_CATALOG_MODELS[$lead['catalog_model']];
+            $lines[] = 'Запрос: Отправить каталог бань';
+        }
     }
     if ($lead['form'] === 'quiz') {
         foreach (BV_QUIZ_FIELDS as $key => $spec) {

@@ -1,5 +1,7 @@
 export const CATALOG_TITLE = 'Выберите свою баню'
 export const CATALOG_SUBTITLE = 'Три размера под разные задачи и участок'
+// A request context, not a fourth product card or a preselected quiz answer.
+export const CATALOG_ALL = { id: 'all', crmCode: 'all', title: 'Каталог всех моделей' }
 
 // All approved masters share this aspect ratio. Keep the entire composition.
 export const CATALOG_IMAGE_RATIO = '2048/1529'
