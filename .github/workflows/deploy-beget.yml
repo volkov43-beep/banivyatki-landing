@@ -1,5 +1,6 @@
 # Сборка и выкладка сайта на хостинг Beget (banivyatki.ru) по FTP.
-# Запускается при пуше в main или вручную («Run workflow»).
+# ВРЕМЕННО ОТКЛЮЧЕНО при пушах в main из-за аварии Beget.
+# Сохранено только для ручного запуска («Run workflow») при явном восстановлении Beget.
 #
 # Секреты репозитория (Settings → Secrets and variables → Actions):
 #   VITE_YMAPS_KEY — ключ Яндекс Карт, передаётся в сборку;
@@ -14,8 +15,6 @@
 name: Deploy to Beget
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
