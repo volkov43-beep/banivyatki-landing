@@ -1,0 +1,55 @@
+# Temporary recovery workflow: build the existing Vite site into a downloadable ZIP.
+# No FTP/SFTP credentials or automatic deployment. Upload contents manually in ispmanager.
+# GitHub artifact includes hidden files such as dist/.htaccess.
+name: Build site ZIP for REG.RU
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build production site with existing Yandex Maps key
+        env:
+          VITE_YMAPS_KEY: ${{ secrets.VITE_YMAPS_KEY }}
+        run: |
+          if [ -z "$VITE_YMAPS_KEY" ]; then
+            echo "VITE_YMAPS_KEY is missing: refusing to build a site without maps" >&2
+            exit 1
+          fi
+          npm run build
+      - name: Validate upload contents
+        run: |
+          test -f dist/index.html
+          test -f dist/privacy/index.html
+          test -f dist/api/lead.php
+          test -f dist/.htaccess
+          test -f dist/robots.txt
+          test ! -e dist/private/config.php
+          test ! -e dist/config.php
+          if grep -rq "banivyatki-landing" dist; then
+            echo "Legacy GitHub Pages base path found in output" >&2
+            exit 1
+          fi
+      - name: Downloadable site archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: banivyatki-reg-ru-site
+          path: dist/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
