@@ -99,7 +99,7 @@ jobs:
               print('Read-only FTPS preflight passed. No server files were changed.')
           PY
       - name: Check target and required secrets before REG.RU deployment
-        if: github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')
+        if: (github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_DEPLOY_MODE == 'dry-run')
         env:
           REG_FTP_SERVER: ${{ secrets.REG_FTP_SERVER }}
           REG_FTP_USERNAME: ${{ secrets.REG_FTP_USERNAME }}
@@ -118,6 +118,21 @@ jobs:
               exit 1
               ;;
           esac
+      - name: Preview REG.RU deployment on PR (dry-run only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_DEPLOY_MODE == 'dry-run'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.REG_FTP_SERVER }}
+          username: ${{ secrets.REG_FTP_USERNAME }}
+          password: ${{ secrets.REG_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ vars.REG_FTP_DIR }}
+          dry-run: true
+          dangerous-clean-slate: false
+          security: strict
+          log-level: standard
       - name: Publish to REG.RU over FTPS (dry-run or live)
         if: github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
