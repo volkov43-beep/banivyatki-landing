@@ -1,7 +1,8 @@
-# Temporary recovery workflow: build the existing Vite site into a downloadable ZIP.
-# No FTP/SFTP credentials or automatic deployment. Upload contents manually in ispmanager.
-# GitHub artifact includes hidden files such as dist/.htaccess.
-name: Build site ZIP for REG.RU
+# CI/CD for banivyatki.ru on REG.RU.
+# Build on PR and main; deployment is gated by REG_DEPLOY_MODE: off (default),
+# dry-run, live. No FTP user creation or file uploads by the owner.
+# Keep all secrets on GitHub, not in source code.
+name: Build and deploy site to REG.RU
 
 on:
   pull_request:
@@ -13,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: banivyatki-reg-ru-deploy
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,29 +28,29 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Build production site with existing Yandex Maps key
+      - name: Build production site with Yandex Maps key
         env:
           VITE_YMAPS_KEY: ${{ secrets.VITE_YMAPS_KEY }}
         run: |
           if [ -z "$VITE_YMAPS_KEY" ]; then
-            echo "VITE_YMAPS_KEY is missing: refusing to build a site without maps" >&2
+            echo "VITE_YMAPS_KEY is missing: refusing to build without the configured maps key" >&2
             exit 1
           fi
           npm run build
-      - name: Validate upload contents
+      - name: Validate public files only
         run: |
           test -f dist/index.html
           test -f dist/privacy/index.html
           test -f dist/api/lead.php
           test -f dist/.htaccess
           test -f dist/robots.txt
-          test ! -e dist/private/config.php
+          test ! -e dist/private
           test ! -e dist/config.php
           if grep -rq "banivyatki-landing" dist; then
-            echo "Legacy GitHub Pages base path found in output" >&2
+            echo "Unexpected legacy base path in dist" >&2
             exit 1
           fi
-      - name: Downloadable site archive
+      - name: Keep downloadable backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: banivyatki-reg-ru-site
@@ -53,3 +58,38 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+      - name: Check target and required secrets before REG.RU deployment
+        if: github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')
+        env:
+          REG_FTP_SERVER: ${{ secrets.REG_FTP_SERVER }}
+          REG_FTP_USERNAME: ${{ secrets.REG_FTP_USERNAME }}
+          REG_FTP_PASSWORD: ${{ secrets.REG_FTP_PASSWORD }}
+          REG_FTP_DIR: ${{ vars.REG_FTP_DIR }}
+        run: |
+          if [ -z "$REG_FTP_SERVER" ] || [ -z "$REG_FTP_USERNAME" ] || [ -z "$REG_FTP_PASSWORD" ]; then
+            echo "REG.RU FTPS secrets are incomplete; deployment refused" >&2
+            exit 1
+          fi
+          # FTP-visible path depends on the account home, not on the OS shell path.
+          case "$REG_FTP_DIR" in
+            */banivyatki.ru/) ;;
+            *)
+              echo "REG_FTP_DIR must end in /banivyatki.ru/; deployment refused" >&2
+              exit 1
+              ;;
+          esac
+      - name: Publish to REG.RU over FTPS (dry-run or live)
+        if: github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.REG_FTP_SERVER }}
+          username: ${{ secrets.REG_FTP_USERNAME }}
+          password: ${{ secrets.REG_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ vars.REG_FTP_DIR }}
+          dry-run: ${{ vars.REG_DEPLOY_MODE == 'dry-run' }}
+          dangerous-clean-slate: false
+          security: strict
+          log-level: minimal
