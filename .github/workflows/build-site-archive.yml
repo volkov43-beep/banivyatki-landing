@@ -1,0 +1,150 @@
+# CI/CD for banivyatki.ru on REG.RU.
+# Build on PR and main; deployment is gated by REG_DEPLOY_MODE: off (default),
+# dry-run, live. No FTP user creation or file uploads by the owner.
+# Keep all secrets on GitHub, not in source code.
+name: Build and deploy site to REG.RU
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: banivyatki-reg-ru-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build production site with Yandex Maps key
+        env:
+          VITE_YMAPS_KEY: ${{ secrets.VITE_YMAPS_KEY }}
+        run: |
+          if [ -z "$VITE_YMAPS_KEY" ]; then
+            echo "VITE_YMAPS_KEY is missing: refusing to build without the configured maps key" >&2
+            exit 1
+          fi
+          npm run build
+      - name: Validate public files only
+        run: |
+          test -f dist/index.html
+          test -f dist/privacy/index.html
+          test -f dist/api/lead.php
+          test -f dist/.htaccess
+          test -f dist/robots.txt
+          test ! -e dist/private
+          test ! -e dist/config.php
+          if grep -rq "banivyatki-landing" dist; then
+            echo "Unexpected legacy base path in dist" >&2
+            exit 1
+          fi
+      - name: Keep downloadable backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: banivyatki-reg-ru-site
+          path: dist/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Verify REG.RU FTPS and locate public directory (read-only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          REG_FTP_SERVER: ${{ secrets.REG_FTP_SERVER }}
+          REG_FTP_USERNAME: ${{ secrets.REG_FTP_USERNAME }}
+          REG_FTP_PASSWORD: ${{ secrets.REG_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import ssl
+          import sys
+          from ftplib import FTP_TLS, all_errors
+          host = os.environ.get('REG_FTP_SERVER', '')
+          user = os.environ.get('REG_FTP_USERNAME', '')
+          password = os.environ.get('REG_FTP_PASSWORD', '')
+          if not all((host, user, password)):
+              sys.exit('REG.RU credentials absent: read-only FTPS preflight cannot run')
+          with FTP_TLS(context=ssl.create_default_context(), timeout=25) as ftp:
+              ftp.connect(host, 21)
+              ftp.login(user, password)
+              ftp.prot_p()
+              origin = ftp.pwd()
+              print('FTPS/TLS authenticated; checking possible document roots without uploads')
+              found = []
+              for candidate in ('./www/banivyatki.ru/', './banivyatki.ru/', '/www/banivyatki.ru/'):
+                  try:
+                      ftp.cwd(origin)
+                      ftp.cwd(candidate)
+                      names = [name.rsplit('/', 1)[-1] for name in ftp.nlst()]
+                      if 'index.html' in names:
+                          print('Confirmed FTP site path:', candidate, '(index.html present)')
+                          found.append(candidate)
+                      else:
+                          print('Directory exists but index.html not seen:', candidate)
+                  except all_errors:
+                      print('Not accessible at:', candidate)
+              if not found:
+                  sys.exit('Could not confirm FTP document root; do not enable REG_DEPLOY_MODE=live')
+              print('Read-only FTPS preflight passed. No server files were changed.')
+          PY
+      - name: Check target and required secrets before REG.RU deployment
+        if: (github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_DEPLOY_MODE == 'dry-run')
+        env:
+          REG_FTP_SERVER: ${{ secrets.REG_FTP_SERVER }}
+          REG_FTP_USERNAME: ${{ secrets.REG_FTP_USERNAME }}
+          REG_FTP_PASSWORD: ${{ secrets.REG_FTP_PASSWORD }}
+          REG_FTP_DIR: ${{ vars.REG_FTP_DIR }}
+        run: |
+          if [ -z "$REG_FTP_SERVER" ] || [ -z "$REG_FTP_USERNAME" ] || [ -z "$REG_FTP_PASSWORD" ]; then
+            echo "REG.RU FTPS secrets are incomplete; deployment refused" >&2
+            exit 1
+          fi
+          # FTP-visible path depends on the account home, not on the OS shell path.
+          case "$REG_FTP_DIR" in
+            */banivyatki.ru/) ;;
+            *)
+              echo "REG_FTP_DIR must end in /banivyatki.ru/; deployment refused" >&2
+              exit 1
+              ;;
+          esac
+      - name: Preview REG.RU deployment on PR (dry-run only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_DEPLOY_MODE == 'dry-run'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.REG_FTP_SERVER }}
+          username: ${{ secrets.REG_FTP_USERNAME }}
+          password: ${{ secrets.REG_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ vars.REG_FTP_DIR }}
+          dry-run: true
+          dangerous-clean-slate: false
+          security: strict
+          log-level: standard
+      - name: Publish to REG.RU over FTPS (dry-run or live)
+        if: github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.REG_FTP_SERVER }}
+          username: ${{ secrets.REG_FTP_USERNAME }}
+          password: ${{ secrets.REG_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ vars.REG_FTP_DIR }}
+          dry-run: ${{ vars.REG_DEPLOY_MODE == 'dry-run' }}
+          dangerous-clean-slate: false
+          security: strict
+          log-level: minimal
