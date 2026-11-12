@@ -1,6 +1,7 @@
 import PhotoSlot from './PhotoSlot.jsx'
 import ResponsivePhoto from './ResponsivePhoto.jsx'
 import AnnotatedPhoto, { PhotoTag } from './AnnotatedPhoto.jsx'
+import { requestVisit } from '../lib/visit.js'
 import Button from './Button.jsx'
 
 /**
@@ -189,7 +190,7 @@ function SectionDivider({ children }) {
   )
 }
 
-export default function SectionInside() {
+export default function SectionInside({ invitation }) {
   let row = 0
   return (
     <section aria-labelledby="inside-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">
@@ -247,10 +248,16 @@ export default function SectionInside() {
         {/* Приглашение проверить — единственная кнопка на экране */}
         <div className="mt-6 flex flex-col items-center border-t-2 border-accent pt-8 text-center">
           <p className="max-w-measure text-lead">
-            Всё, что здесь написано, можно проверить: приезжайте в шоурум и посмотрите вживую.
+            {invitation?.text ?? 'Всё, что здесь написано, можно проверить: приезжайте в шоурум и посмотрите вживую.'}
           </p>
-          <Button as="a" href="#showroom" arrow fullMobile className="mt-8">
-            Посмотреть баню вживую
+          <Button
+            as="a" href={invitation ? '#visit-form' : '#showroom'} arrow fullMobile className="mt-8"
+            onClick={invitation ? event => {
+              event.preventDefault()
+              requestVisit(invitation.type)
+            } : undefined}
+          >
+            {invitation?.button ?? 'Посмотреть баню вживую'}
           </Button>
         </div>
       </div>

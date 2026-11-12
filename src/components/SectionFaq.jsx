@@ -13,16 +13,16 @@ import { requestVisit } from '../lib/visit.js'
  * Под списком — карточка с формой вопроса (FaqQuestionForm).
  */
 
-/** Ссылка на форму записи (#visit-form): плавная прокрутка и «Шоурум» в форме, цель visit_button с type "faq". */
+/** Ссылка на форму записи (#visit-form): прокрутка и региональный способ показа, цель visit_button с type "faq". */
 const VISIT_FORM_HREF = '#visit-form'
 
-function handleVisitLink(e) {
+function handleVisitLink(e, visitType) {
   e.preventDefault()
-  requestVisit('showroom', 'faq')
+  requestVisit(visitType, 'faq')
 }
 
 /** Текст с ссылками вида [текст](#id) → React-узлы. */
-function renderText(text) {
+function renderText(text, visitType) {
   const parts = text.split(/(\[[^\]]+\]\(#[^)]+\))/g)
   return parts.map((part, i) => {
     const m = part.match(/^\[([^\]]+)\]\((#[^)]+)\)$/)
@@ -31,7 +31,7 @@ function renderText(text) {
       <a
         key={i}
         href={m[2]}
-        onClick={m[2] === VISIT_FORM_HREF ? handleVisitLink : undefined}
+        onClick={m[2] === VISIT_FORM_HREF ? event => handleVisitLink(event, visitType) : undefined}
         className="underline decoration-muted underline-offset-4"
       >
         {m[1]}
@@ -40,10 +40,10 @@ function renderText(text) {
   })
 }
 
-function Answer({ item }) {
+function Answer({ item, visitType }) {
   return (
     <div className="max-w-measure pb-6 pr-10 text-body">
-      {item.text && <p>{renderText(item.text)}</p>}
+      {item.text && <p>{renderText(item.text, visitType)}</p>}
       {item.list && (
         <ul className={`list-none p-0 ${item.text ? 'mt-3' : ''}`}>
           {item.list.map((line) => (
@@ -59,7 +59,7 @@ function Answer({ item }) {
   )
 }
 
-export default function SectionFaq({ answers }) {
+export default function SectionFaq({ answers, visitType = 'showroom' }) {
   const items = answers ? FAQ.map(item => answers[item.n] ? { ...item, text: answers[item.n] } : item) : FAQ
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -98,7 +98,7 @@ export default function SectionFaq({ answers }) {
                   <span className="absolute left-0 top-1/2 h-0.5 w-6 -translate-y-1/2 bg-accent" />
                 </span>
               </summary>
-              <Answer item={item} />
+              <Answer item={item} visitType={visitType} />
             </details>
           ))}
         </div>

@@ -1,16 +1,16 @@
 /**
  * Блок «Посмотрите баню до покупки»: три способа увидеть Подкову.
- * Тексты, адреса и подписи к фото — только здесь. Фото лежат в public/photos
+ * Базовые тексты, адреса и общие подписи к фото. Фото лежат в public/photos
  * в двух ширинах: `<name>-1280.webp` и `<name>-640.webp`, пропорция 4:3.
  *
- * VISIT_TYPES — варианты переключателя в форме записи; id совпадает с id
- * карточки и уходит в заявку как visit_type.
+ * label используется в переключателе формы. id уходит в заявку как visit_type.
  */
 export const VISIT_TITLE = 'Посмотрите баню до покупки'
 export const VISIT_SUBTITLE = 'Три способа — выбирайте удобный'
 
 export const SHOWROOM = {
   id: 'showroom',
+  label: 'Шоурум',
   photo: { name: 'shourum-menedzher', alt: 'Менеджер показывает баню-Подкову в шоуруме' },
   title: 'Приезжайте в шоурум',
   address: 'Киров, ул. Ленина, 71Б',
@@ -27,6 +27,8 @@ export const SHOWROOM = {
 
 export const PRODUCTION = {
   id: 'production',
+  label: 'Производство',
+  reverse: true,
   photo: { name: 'proizvodstvo-5-gotova', alt: 'Готовая баня-Подкова в цеху перед отгрузкой' },
   title: 'Приезжайте на производство',
   address: 'Киров, Северное Кольцо',
@@ -47,17 +49,15 @@ export const PRODUCTION = {
 
 export const VIDEO = {
   id: 'video',
+  label: 'Видеозвонок',
+  compact: true,
   photo: { name: 'video-zvonok', alt: 'Видеозвонок: менеджер показывает парную по телефону' },
   title: 'Покажем по видеосвязи',
   text: 'Далеко ехать? Менеджер проведёт вас по шоуруму по видеосвязи: покажет парную, печь и отделку вблизи и ответит на вопросы. Удобно, если вы в другом районе или регионе.',
   button: 'Договориться о видеозвонке',
 }
 
-export const VISIT_TYPES = [
-  { id: 'showroom', label: 'Шоурум' },
-  { id: 'production', label: 'Производство' },
-  { id: 'video', label: 'Видеозвонок' },
-]
+export const VISIT_CARDS = [SHOWROOM, PRODUCTION, VIDEO]
 
 export const VISIT_FORM = {
   title: 'Запишитесь на показ',

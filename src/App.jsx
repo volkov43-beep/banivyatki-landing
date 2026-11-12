@@ -41,12 +41,12 @@ export default function App({ region = REGIONS.kirov }) {
         <SectionLocations settings={region.map} />
         {region.delivery && <SectionDelivery delivery={region.delivery} />}
         <SectionCalculator cardsBySeason={prices.cards} delivery={region.delivery} />
-        <SectionBenefits timeBenefit={region.delivery?.timeBenefit} />
+        <SectionBenefits texts={region.benefits} />
         <SectionComparison />
-        <SectionInside />
-        <SectionProcess installationStep={region.delivery?.installationStep} />
-        <SectionShowroom />
-        <SectionFaq answers={region.faqAnswers?.(prices.minimum)} />
+        <SectionInside invitation={region.visit?.inside} />
+        <SectionProcess process={region.process} />
+        <SectionShowroom visit={region.visit} />
+        <SectionFaq visitType={region.visit?.cards[0].id} answers={region.faqAnswers?.(prices.minimum)} />
         <SectionFinal />
       </main>
       <Footer />

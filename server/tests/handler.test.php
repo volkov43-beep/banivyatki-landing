@@ -216,6 +216,20 @@ resetStub('ok');
 post(lead(['form' => 'visit', 'visit_type' => 'showroom', 'utm_source' => 'google', 'contact_method' => 'max', 'price_shown' => null, 'option_shown' => '']));
 $deal = json_decode(substr(stubCalls()[2], strlen('crm.deal.add ')), true)['fields'];
 check('visit: «Сайт · Запись: шоурум», источник сайта, тип визита, MAX', $deal['TITLE'] === 'Сайт · Запись: шоурум' && $deal['SOURCE_ID'] === 'WEB' && str_contains($deal['COMMENTS'], "Тип визита: Шоурум") && $deal['UF_CRM_METHOD'] === '12' && $deal['SOURCE_DESCRIPTION'] === 'Запись на просмотр', json_encode($deal, JSON_UNESCAPED_UNICODE));
+foreach (['/', '/syktyvkar/'] as $path) {
+    foreach (['video' => 'Видеозвонок', 'production' => 'Производство', 'showroom' => 'Шоурум'] as $type => $label) {
+        resetStub('ok');
+        $url = 'https://banivyatki.ru' . $path;
+        [$status] = post(lead(['form' => 'visit', 'visit_type' => $type, 'page_url' => $url, 'option_shown' => '', 'price_shown' => null]));
+        $deal = lastDeal();
+        check("visit $path $type: одна сделка, способ показа, страница и UTM",
+            $status === 200 && count(stubCalls()) === 3
+            && $deal['TITLE'] === 'Сайт · Запись: ' . mb_strtolower($label)
+            && str_contains($deal['COMMENTS'], 'Тип визита: ' . $label)
+            && str_contains($deal['COMMENTS'], 'Страница: ' . $url)
+            && $deal['UTM_CAMPAIGN'] === 'test');
+    }
+}
 resetStub('ok');
 post(lead(['form' => 'faq_question', 'question' => 'Сколько ждать?', 'price_shown' => null, 'option_shown' => '', 'name' => '']));
 $calls = stubCalls();
