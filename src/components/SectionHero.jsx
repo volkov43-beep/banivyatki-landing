@@ -159,9 +159,9 @@ export default function SectionHero({ region, minimum, onCatalogOpen }) {
             {hero.subtitle}
           </p>
 
-          <p className="mt-8 whitespace-nowrap leading-none lg:mt-6">
-            <span className="text-[32px] font-bold text-accent">{formatPrice(minimum)}</span>
-            {hero.priceSuffix && <span className="text-[20px]"> {hero.priceSuffix}</span>}
+          <p className="mt-8 leading-none lg:mt-6">
+            <span className="whitespace-nowrap text-[32px] font-bold text-accent">{formatPrice(minimum)}</span>
+            {hero.priceSuffix && <> <span className="whitespace-nowrap text-[20px]">{hero.priceSuffix}</span></>}
           </p>
           {hero.priceNote && (
             <p className="mt-2 max-w-[43ch] text-[15px] leading-snug">{hero.priceNote}</p>

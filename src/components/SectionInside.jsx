@@ -174,7 +174,7 @@ function DrainPhoto() {
 
 /**
  * Разделитель раздела: капсула с названием по центру, линии до краёв.
- * Текст не переносится, поэтому на узких телефонах капсула компактнее:
+ * На узких телефонах капсула компактнее. Если шрифт шире, разрешён перенос:
  * «Мелочи, которые замечаешь потом» при 13 px не оставляет места линиям
  * уже 480 px (до 479 — 12 px, до 379 — 11 px, до 359 — 10 px).
  */
@@ -182,7 +182,7 @@ function SectionDivider({ children }) {
   return (
     <div className="flex items-center gap-3 max-[479px]:gap-2 max-[359px]:gap-1.5 md:gap-4">
       <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-muted" />
-      <h3 className="whitespace-nowrap rounded-full border-[1.5px] border-accent px-[18px] py-[7px] text-[13px] font-bold uppercase leading-none tracking-[0.08em] text-accent max-[479px]:px-[14px] max-[479px]:text-[12px] max-[479px]:tracking-[0.06em] max-[379px]:text-[11px] max-[359px]:px-[10px] max-[359px]:text-[10px] max-[359px]:tracking-[0.04em]">
+      <h3 className="min-w-0 text-center rounded-full border-[1.5px] border-accent px-[18px] py-[7px] text-[13px] font-bold uppercase leading-none tracking-[0.08em] text-accent max-[479px]:px-[14px] max-[479px]:text-[12px] max-[479px]:tracking-[0.06em] max-[379px]:text-[11px] max-[359px]:px-[10px] max-[359px]:text-[10px] max-[359px]:tracking-[0.04em]">
         {children}
       </h3>
       <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-muted" />
