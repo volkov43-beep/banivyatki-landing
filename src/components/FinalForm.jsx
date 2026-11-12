@@ -34,6 +34,7 @@ export default function FinalForm() {
   const [trap, setTrap] = useState('')
   const [status, setStatus] = useState('idle') // idle | sending | done | error
   const [touched, setTouched] = useState(false)
+  const sending = useRef(false)
   const mountedAt = useRef(Date.now())
   const when = callbackWhen()
 
@@ -45,6 +46,7 @@ export default function FinalForm() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (sending.current) return
     setTouched(true)
     if (!phoneOk || !consent) return
 
@@ -66,6 +68,7 @@ export default function FinalForm() {
       website: trap,
     }
 
+    sending.current = true
     setStatus('sending')
     try {
       const result = await submitLead(payload)
@@ -73,6 +76,7 @@ export default function FinalForm() {
       track('final_submit')
       setStatus('done')
     } catch {
+      sending.current = false
       setStatus('error')
     }
   }

@@ -39,6 +39,7 @@ export default function FaqQuestionForm() {
   const [trap, setTrap] = useState('')
   const [status, setStatus] = useState('idle') // idle | sending | done | error
   const [touched, setTouched] = useState(false)
+  const sending = useRef(false)
   const mountedAt = useRef(Date.now())
   const when = callbackWhen()
 
@@ -51,6 +52,7 @@ export default function FaqQuestionForm() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (sending.current) return
     setTouched(true)
     if (!questionOk || !phoneOk || !consent) return
 
@@ -73,6 +75,7 @@ export default function FaqQuestionForm() {
       website: trap,
     }
 
+    sending.current = true
     setStatus('sending')
     try {
       const result = await submitLead(payload)
@@ -80,6 +83,7 @@ export default function FaqQuestionForm() {
       track('faq_question_submit')
       setStatus('done')
     } catch {
+      sending.current = false
       setStatus('error')
     }
   }

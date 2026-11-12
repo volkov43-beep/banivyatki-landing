@@ -44,17 +44,17 @@ return [
 PHP;
 file_put_contents("$priv/config.php", $configPhp);
 
-function startServer(string $cmd, array $env = []): array
+function startServer(array $cmd, array $env = []): array
 {
     $proc = proc_open($cmd, [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes, null, $env + getenv());
     usleep(400000);
     return [$proc];
 }
 // opcache выключен: тест подменяет config.php чаще, чем раз в 2 секунды
-$php = 'php -d opcache.enable=0 ';
-[$srvSite] = startServer($php . '-S 127.0.0.1:8090 -t ' . escapeshellarg($pub));
-[$srvStub] = startServer($php . '-S 127.0.0.1:8091 ' . escapeshellarg("$root/server/tests/bitrix-stub.php"), ['BV_STUB_DIR' => $stub]);
-[$srvPriv] = startServer($php . '-S 127.0.0.1:8092 -t ' . escapeshellarg($priv));
+$php = ['php', '-d', 'opcache.enable=0', '-S'];
+[$srvSite] = startServer([...$php, '127.0.0.1:8090', '-t', $pub]);
+[$srvStub] = startServer([...$php, '127.0.0.1:8091', "$root/server/tests/bitrix-stub.php"], ['BV_STUB_DIR' => $stub]);
+[$srvPriv] = startServer([...$php, '127.0.0.1:8092', '-t', $priv]);
 
 register_shutdown_function(static function () use ($srvSite, $srvStub, $srvPriv, $tmp): void {
     foreach ([$srvSite, $srvStub, $srvPriv] as $p) {
@@ -138,6 +138,11 @@ function logText(): string
 }
 
 resetStub('ok');
+if (($argv[1] ?? '') === '--browser') {
+    putenv("BV_STUB_CALLS=$stub/calls.log");
+    passthru('node ' . escapeshellarg("$root/scripts/tests/crm.browser.mjs"), $result);
+    exit($result);
+}
 
 // --- метод, origin, JSON ---
 [$c, $b] = http('GET', 'http://127.0.0.1:8090/api/lead.php');
@@ -187,11 +192,49 @@ $expectedComments = "Форма: Калькулятор\nВыбранный ва
 check('сделка: COMMENTS построчно, время по МСК', ($deal['COMMENTS'] ?? '') === $expectedComments, json_encode($deal['COMMENTS'] ?? '', JSON_UNESCAPED_UNICODE));
 check('журнал: sent, deal=555, без телефона и имени', str_contains(logText(), 'result=sent deal=555 contact=101:new') && !str_contains(logText(), '9123456789') && !str_contains(logText(), 'Тест'), logText());
 
+// The quote in the captured REST request must match what the buyer selected.
+foreach ([
+    ['3 м', 'тёплый сезон', 293000, 363000],
+    ['4–4,5 м', 'тёплый сезон', 330000, 400000],
+    ['6 м', 'тёплый сезон', 374000, 444000],
+    ['3 м', 'круглый год', 333000, 403000],
+    ['3,5–4,5 м', 'круглый год', 363000, 433000],
+    ['6 м', 'круглый год', 515000, 585000],
+] as [$size, $season, $kirovPrice, $komiPrice]) {
+    foreach (['/' => $kirovPrice, '/syktyvkar/' => $komiPrice] as $path => $amount) {
+        resetStub('ok');
+        $option = "$size, $season";
+        $formatted = 'от ' . number_format($amount, 0, ',', ' ') . ' ₽';
+        $page = 'https://banivyatki.ru' . $path . '?utm_source=yandex';
+        [$status] = post(lead(['price_shown' => $amount, 'option_shown' => $option, 'page_url' => $page]));
+        $deal = lastDeal();
+        check("calculator $path $option: one deal with displayed quote", $status === 200
+            && count(stubCalls()) === 3 && $deal['TITLE'] === ($path === '/' ? '' : 'Сыктывкар · ') . "Сайт · Расчёт · $option · $formatted"
+            && str_contains($deal['COMMENTS'], "Выбранный вариант: $option\nПоказанная цена: $formatted\n")
+            && str_contains($deal['COMMENTS'], "Страница: $page\n") && $deal['UTM_SOURCE'] === 'yandex'
+            && $deal['UTM_CAMPAIGN'] === 'test');
+    }
+}
+
 // --- остальные формы: названия и источник «сайт» ---
 resetStub('ok');
 post(lead(['form' => 'visit', 'visit_type' => 'showroom', 'utm_source' => 'google', 'contact_method' => 'max', 'price_shown' => null, 'option_shown' => '']));
 $deal = json_decode(substr(stubCalls()[2], strlen('crm.deal.add ')), true)['fields'];
 check('visit: «Сайт · Запись: шоурум», источник сайта, тип визита, MAX', $deal['TITLE'] === 'Сайт · Запись: шоурум' && $deal['SOURCE_ID'] === 'WEB' && str_contains($deal['COMMENTS'], "Тип визита: Шоурум") && $deal['UF_CRM_METHOD'] === '12' && $deal['SOURCE_DESCRIPTION'] === 'Запись на просмотр', json_encode($deal, JSON_UNESCAPED_UNICODE));
+foreach (['/', '/syktyvkar/'] as $path) {
+    foreach (['video' => 'Видеозвонок', 'production' => 'Производство', 'showroom' => 'Шоурум'] as $type => $label) {
+        resetStub('ok');
+        $url = 'https://banivyatki.ru' . $path;
+        [$status] = post(lead(['form' => 'visit', 'visit_type' => $type, 'page_url' => $url, 'option_shown' => '', 'price_shown' => null]));
+        $deal = lastDeal();
+        check("visit $path $type: одна сделка, способ показа, страница и UTM",
+            $status === 200 && count(stubCalls()) === 3
+            && $deal['TITLE'] === ($path === '/' ? '' : 'Сыктывкар · ') . 'Сайт · Запись: ' . mb_strtolower($label)
+            && str_contains($deal['COMMENTS'], 'Тип визита: ' . $label)
+            && str_contains($deal['COMMENTS'], 'Страница: ' . $url)
+            && $deal['UTM_CAMPAIGN'] === 'test');
+    }
+}
 resetStub('ok');
 post(lead(['form' => 'faq_question', 'question' => 'Сколько ждать?', 'price_shown' => null, 'option_shown' => '', 'name' => '']));
 $calls = stubCalls();
@@ -363,6 +406,16 @@ foreach (['max' => 'MAX', 'telegram' => 'Telegram', 'whatsapp' => 'WhatsApp', 'c
 resetStub('ok');
 post(quizLead(['quiz_features' => 'terrace,year_round,terrace,outside_firebox,year_round']));
 check('quiz CSV canonical order and dedup', str_contains(lastDeal()['COMMENTS'], "Особенности: Утепление для круглого года, Топка с улицы, Терраса / крыльцо\n"));
+foreach ([
+    'under_420' => 'До 420 тыс. ₽', '420_570' => '420–570 тыс. ₽',
+    '570_770' => '570–770 тыс. ₽', 'over_770' => 'Более 770 тыс. ₽',
+    'unsure' => 'Пока не определился', 'skipped' => 'Не ответил',
+] as $budget => $label) {
+    resetStub('ok');
+    [$status] = post(quizLead(['quiz_budget' => $budget, 'page_url' => 'https://banivyatki.ru/syktyvkar/']));
+    check("quiz Komi $budget → $label", $status === 200 && count(stubCalls()) === 3
+        && str_contains(lastDeal()['COMMENTS'], "Бюджет: $label\n"));
+}
 $quizInvalid = [
     ['quiz_version' => 'v2'], ['quiz_place' => 'skipped'], ['contact_method' => 'email'],
     ['quiz_features' => 'unsure,terrace'], ['quiz_features' => 'skipped,year_round'],
@@ -398,6 +451,16 @@ resetStub('ok');
 exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $quizRetryOut, $quizRetryRc);
 check('quiz retry preserves exact context, drains queue', $quizRetryRc === 0 && count(queueFiles()) === 0 && (lastDeal()['COMMENTS'] ?? '') === $quizExpected && lastDeal()['TITLE'] === 'Сайт · Квиз');
 check('quiz public logs contain no name/phone/answers', !str_contains(logText(), '9123456789') && !str_contains(logText(), 'Тест') && !str_contains(logText(), 'year_round'));
+
+resetStub('error');
+[$status] = post(quizLead(['quiz_budget' => '420_570', 'page_url' => 'https://banivyatki.ru/syktyvkar/']));
+check('quiz Komi budget queued', $status === 200 && count(queueFiles()) === 1);
+resetStub('ok');
+exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $komiRetryOut, $komiRetryRc);
+check('quiz Komi retry decodes original budget', $komiRetryRc === 0 && count(queueFiles()) === 0
+    && str_contains(lastDeal()['COMMENTS'], "Бюджет: 420–570 тыс. ₽\n"));
+
+require __DIR__ . '/regional-cases.php';
 
 // --- повторное обращение ---
 resetStub('found');

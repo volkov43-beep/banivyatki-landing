@@ -14,7 +14,7 @@
  * scheme 'accent' — на светлой карточке (рамка muted, выбранный accent
  *   с текстом ink, невыбранный прозрачный с текстом ink) — карточка вопроса FAQ.
  */
-export default function Segmented({ label, options, value, onChange, full = false, size = 'md', scheme = 'light' }) {
+export default function Segmented({ label, options, value, onChange, full = false, size = 'md', scheme = 'light', stackOnNarrow = false }) {
   const small = size === 'sm' || size === 'xs'
   const tiny = size === 'xs'
   const dark = scheme === 'dark'
@@ -30,7 +30,7 @@ export default function Segmented({ label, options, value, onChange, full = fals
     <div
       role="radiogroup"
       aria-label={label}
-      className={`grid rounded-md border p-1 ${dark ? 'border-muted-on-dark' : 'border-muted'} ${box}`}
+      className={`grid rounded-md border p-1 ${dark ? 'border-muted-on-dark' : 'border-muted'} ${box}${stackOnNarrow ? ' max-[374px]:flex max-[374px]:h-auto max-[374px]:flex-col max-[374px]:[&>button]:min-h-11' : ''}`}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => {

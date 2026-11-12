@@ -14,10 +14,55 @@ const fontUrls = fontCache ? (await readFile(path.join(fontCache, 'urls.txt'), '
 const browser = await chromium.launch({ executablePath: process.env.BV_CHROMIUM_PATH, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
 let checks = 0
 const check = (name, value) => { assert.ok(value, name); checks++ }
-const widths = [360, 390, 768, 1024, 1440]
+const viewports = [[320, 568], [360, 740], [375, 812], [390, 844], [768, 1024], [1024, 768], [1280, 720], [1440, 900]]
+
+async function checkHero(page, width, regional) {
+  const hero = page.locator('#top')
+  const cta = hero.getByRole('button', { name: 'Получить каталог', exact: true })
+  const expectedPrice = regional ? 'от 363 000 ₽' : 'от 293 000 ₽'
+  const subtitle = regional
+    ? 'Производим в Кирове. Доставляем готовой и устанавливаем на вашем участке в Республике Коми.'
+    : 'Привозим готовой и устанавливаем за 1 день.'
+  const label = `${width}px ${regional ? 'Сыктывкар' : 'Киров'}`
+  for (const text of [expectedPrice, subtitle, '5,0', 'Авито', '41 отзыв']) {
+    check(`${label}: ${text}`, await hero.getByText(text, { exact: true }).isVisible())
+  }
+  const geography = hero.getByText('Сыктывкар и Республика Коми', { exact: true })
+  const note = hero.getByText('Стоимость доставки и установки уточним по адресу вашего участка.', { exact: true })
+  check(`${label}: geography`, await geography.count() === Number(regional))
+  check(`${label}: delivery note`, await note.count() === Number(regional))
+  check(`${label}: Hero photo decoded`, await hero.locator('picture img').evaluate(img => img.complete && img.naturalWidth > 0))
+  check(`${label}: no horizontal overflow`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  check(`${label}: price fits`, await hero.getByText(expectedPrice, { exact: true }).evaluate(el => {
+    const rect = el.getBoundingClientRect()
+    return rect.left >= 0 && rect.right <= innerWidth
+  }))
+
+  const facts = hero.getByRole('list')
+  const badge = hero.getByRole('group', { name: 'Рейтинг Авито' })
+  const mobileRegional = regional && width < 1024
+  const offer = [
+    ...(regional ? [geography] : []),
+    hero.getByRole('heading', { level: 1 }),
+    hero.getByText(subtitle, { exact: true }),
+    hero.getByText(expectedPrice, { exact: true }),
+    ...(regional ? [note] : []),
+  ]
+  const sequence = [...offer, ...(mobileRegional ? [cta, facts, badge] : [facts, badge, cta])]
+  const boxes = await Promise.all(sequence.map(element => element.boundingBox()))
+  check(`${label}: offer, CTA, facts and Avito badge follow the required visual order without overlaps`,
+    boxes.every((box, i) => box && box.width > 0 && box.height > 0 && (i === 0 || box.y >= boxes[i - 1].y + boxes[i - 1].height - 1)))
+  check(`${label}: one native Hero button, including hidden elements`, await hero.locator('button').count() === 1 && await cta.count() === 1)
+  check(`${label}: both facts in order`, (await facts.getByRole('listitem').allTextContents()).join(' / ') === '1000+ бань с 2012 года / Гарантия 5 лет')
+  if (mobileRegional) {
+    const noteBox = await note.boundingBox(), buttonBox = await cta.boundingBox()
+    const gap = buttonBox.y - (noteBox.y + noteBox.height)
+    check(`${label}: comfortable gap directly below delivery note`, gap >= 16 && gap <= 32)
+  }
+}
 try {
-  for (const width of widths) {
-    const context = await browser.newContext({ viewport: { width, height: 900 } })
+  for (const [width, height] of viewports) {
+    const context = await browser.newContext({ viewport: { width, height } })
     const page = await context.newPage(), errors = [], payloads = []
     page.on('pageerror', error => errors.push(error.message))
     await page.addInitScript(() => {
@@ -48,8 +93,41 @@ try {
         else await route.continue()
       } else await route.abort() // No production analytics, CRM, maps or embeds.
     })
+    await page.goto(`${base}/syktyvkar/?utm_source=yandex&utm_medium=cpc`, { waitUntil: 'networkidle' })
+    await page.evaluate(() => document.fonts.ready)
+    await checkHero(page, width, true)
+    await page.screenshot({ path: path.join(output, `regional-viewport-${width}.png`) })
+    const regionalButton = page.locator('#top').getByRole('button', { name: 'Получить каталог', exact: true })
+    await page.locator('header a[href^="tel:"]').focus()
+    await page.keyboard.press('Tab')
+    check(`${width}: Tab reaches the regional CTA after the header`, await regionalButton.evaluate(el => el === document.activeElement))
+    await regionalButton.scrollIntoViewIfNeeded()
+    check(`${width}: regional CTA unobstructed after scrolling`, await regionalButton.evaluate(el => {
+      const r = el.getBoundingClientRect()
+      return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight &&
+        el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))
+    }))
+    await page.keyboard.press('Enter')
+    const regionalModal = page.locator('dialog[open]')
+    await regionalModal.getByText('Каталог всех моделей', { exact: true }).waitFor()
+    check(`${width}: regional CTA opens one catalog`, await regionalModal.count() === 1 && await page.evaluate(() => window.__qaGoals.filter(g => g.goal === 'catalog_open' && g.params.model === 'all').length === 1))
+    if (width === 390) {
+      await regionalModal.locator('input[type=tel]').fill('+79991234567')
+      await regionalModal.locator('input[type=checkbox]').check()
+      await page.evaluate(() => { window.__qaClock += 4000 })
+      await regionalModal.getByRole('button', { name: 'Получить каталог', exact: true }).click()
+      await regionalModal.getByRole('status').waitFor()
+      check('regional catalog sends one request, URL, UTM and accepted goal', payloads.length === 1 &&
+        payloads[0].form === 'catalog' && payloads[0].catalog_model === 'all' &&
+        new URL(payloads[0].page_url).pathname === '/syktyvkar/' && payloads[0].utm_source === 'yandex' && payloads[0].utm_medium === 'cpc' &&
+        await page.evaluate(() => window.__qaGoals.filter(g => g.goal === 'catalog_submit' && g.params.model === 'all').length === 1))
+    }
+    await page.keyboard.press('Escape')
+    await page.waitForFunction(() => !document.querySelector('dialog[open]'))
+    check(`${width}: regional CTA focus restored`, await regionalButton.evaluate(el => el === document.activeElement))
     await page.goto(base, { waitUntil: 'networkidle' })
     await page.evaluate(() => document.fonts.ready)
+    await checkHero(page, width, false)
     check(`${width}: Onest loaded`, await page.evaluate(() => [...document.fonts].some(f => f.family === 'Onest' && f.status === 'loaded')))
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)
     check(`${width}: no page horizontal overflow`, !await overflow())

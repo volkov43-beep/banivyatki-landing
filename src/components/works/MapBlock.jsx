@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { OBJECTS, KIROV_LABEL, PLACES_LINE } from '../../data/objects.js'
 import { loadYmaps } from '../../lib/ymaps.js'
 import { track } from '../../lib/track.js'
@@ -6,17 +6,10 @@ import { requestCalcOpen } from '../../lib/calc.js'
 import Button from '../Button.jsx'
 
 /**
- * Карта «Где стоят наши бани» — нижняя, тёмная (ink) часть блока «Наши
- * работы» (SectionWorks): маленький заголовок, подзаголовок, карта, строка
- * «А ещё» и одна строка главных мест мелким шрифтом. Текст surface,
- * второстепенный muted-on-dark.
- * Раньше была отдельным экраном; карта, данные, поведение и цели те же.
- *
- * Карта — Яндекс Карты, JavaScript API v3. Ключ из VITE_YMAPS_KEY (сборка).
- * Без ключа, без сети, при исчерпанном лимите или ошибке API карты нет:
- * вместо подзаголовка и карты — текст о том, где стоят бани, и главная
- * кнопка «Рассчитать доставку» в калькулятор (цель map_fallback_cta). Что
- * карта не загрузилась, человеку не пишем.
+ * Яндекс Карты, JavaScript API v3. Ключ из VITE_YMAPS_KEY (сборка).
+ * Без региональных настроек действуют исходные точки, камера и переход
+ * в калькулятор. Региональные настройки задают географию, быстрые переходы
+ * и подписи. При недоступной карте названия мест остаются видимыми.
  *
  * Скрипт API грузится только когда блок подходит к экрану (запас 300 px)
  * и один раз за визит: тариф бесплатный, лимит загрузок в сутки небольшой.
@@ -48,17 +41,17 @@ const KIROV = OBJECTS.find((p) => p.group === 'kirov')
 const OBLAST = OBJECTS.filter((p) => p.group === 'oblast')
 const FAR = OBJECTS.filter((p) => p.group === 'far')
 
-/** Общий вид («Вся Кировская область») — все точки kirov и oblast, с запасом. */
-const HOME_BOUNDS = (() => {
-  const pts = [KIROV, ...OBLAST]
-  const lats = pts.map((p) => p.lat)
-  const lons = pts.map((p) => p.lon)
-  const pad = 0.35
+function boundsFor(points, lonPadding, latPadding) {
+  const lats = points.map(p => p.lat)
+  const lons = points.map(p => p.lon)
   return [
-    [Math.min(...lons) - pad, Math.max(...lats) + pad],
-    [Math.max(...lons) + pad, Math.min(...lats) - pad],
+    [Math.min(...lons) - lonPadding, Math.max(...lats) + latPadding],
+    [Math.max(...lons) + lonPadding, Math.min(...lats) - latPadding],
   ]
-})()
+}
+
+/** Общий вид («Вся Кировская область») — все точки kirov и oblast, с запасом. */
+const HOME_BOUNDS = boundsFor([KIROV, ...OBLAST], 0.35, 0.35)
 
 /**
  * Приглушённый стиль карты в тон сайту: бежево-серая суша, меньше подписей и POI.
@@ -90,12 +83,7 @@ const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))
 const START_BOUNDS = (() => {
   const names = ['Киров и пригороды', 'Кирово-Чепецк', 'Слободской', 'Кумёны', 'Нолинск']
   const pts = names.map((name) => OBJECTS.find((p) => p.name === name))
-  const lats = pts.map((p) => p.lat)
-  const lons = pts.map((p) => p.lon)
-  return [
-    [Math.min(...lons) - 0.2, Math.max(...lats) + 0.12],
-    [Math.max(...lons) + 0.2, Math.min(...lats) - 0.12],
-  ]
+  return boundsFor(pts, 0.2, 0.12)
 })()
 
 /**
@@ -143,8 +131,7 @@ function reportMapError(err) {
 let warnedNoKey = false
 
 /** DOM-элемент точки: золотой кружок с обводкой, подпись по клику. */
-function makePoint(place, isKirov) {
-  const label = isKirov ? KIROV_LABEL : place.name
+function makePoint(label, isKirov) {
   const el = document.createElement('button')
   el.type = 'button'
   el.className = `bv-map-point${isKirov ? ' bv-map-point--big' : ''}`
@@ -157,7 +144,9 @@ function makePoint(place, isKirov) {
   return el
 }
 
-export default function MapBlock() {
+export default function MapBlock({ settings }) {
+  const regionalBounds = useMemo(() => settings && boundsFor(settings.featured, 0.35, 0.35), [settings])
+  const Heading = settings ? 'h2' : 'h3'
   const wrapRef = useRef(null)
   const mapEl = useRef(null)
   const mapRef = useRef(null)
@@ -219,7 +208,7 @@ export default function MapBlock() {
       // На телефоне до первого касания без drag: одним пальцем прокручивается страница
       const waitTap = coarse && !hintSeen()
       const map = new YMap(mapEl.current, {
-        location: { bounds: START_BOUNDS },
+        location: { bounds: regionalBounds ?? START_BOUNDS },
         zoomRounding: 'smooth',
         // Без scrollZoom: колесо прокручивает страницу
         behaviors: !coarse ? ['drag', 'dblClick'] : waitTap ? ['pinchZoom', 'dblClick'] : DRAG_BEHAVIORS,
@@ -233,9 +222,11 @@ export default function MapBlock() {
         map.addChild(new YMapControls({ position: 'right' }).addChild(new YMapZoomControl({})))
       }
 
-      for (const place of OBJECTS) {
+      for (const place of settings?.points ?? OBJECTS) {
         const isKirov = place.group === 'kirov'
-        const el = makePoint(place, isKirov)
+        const defaultLabel = isKirov ? KIROV_LABEL : place.name
+        const label = settings?.featured.includes(place) ? settings.pointLabel(place) : defaultLabel
+        const el = makePoint(label, isKirov)
         map.addChild(
           new YMapMarker(
             {
@@ -269,14 +260,14 @@ export default function MapBlock() {
         mapRef.current = null
       }
     }
-  }, [shouldLoad])
+  }, [shouldLoad, settings, regionalBounds])
 
   function flyTo(place) {
     mapRef.current?.setLocation({ center: [place.lon, place.lat], zoom: 9, duration: 700 })
     track('map_far_click', { name: place.name })
   }
   function goHome() {
-    mapRef.current?.setLocation({ bounds: HOME_BOUNDS, duration: 700 })
+    mapRef.current?.setLocation({ bounds: regionalBounds ?? HOME_BOUNDS, duration: 700 })
   }
 
   // Касание карты (тап, а не начало прокрутки) снимает подложку и включает drag.
@@ -317,16 +308,19 @@ export default function MapBlock() {
 
   return (
     <div id="map" aria-labelledby="map-title">
-      <h3 id="map-title" className="text-center text-[22px] font-bold leading-[1.2]">
-        Где стоят наши бани
-      </h3>
+      <Heading id="map-title" className="text-center text-[22px] font-bold leading-[1.2]">
+        {settings?.title ?? 'Где стоят наши бани'}
+      </Heading>
+      {settings && <p className="mx-auto mt-3 max-w-measure text-center text-body">{settings.subtitle}</p>}
 
       {showMap ? (
         <>
-          <p className="mx-auto mt-3 max-w-measure text-center text-body">
-            Возим и ставим бани по Кировской области, в Коми и дальше — от Краснодара до Нарьян-Мара. На карте —
-            места, где стоят наши бани.
-          </p>
+          {!settings && (
+            <p className="mx-auto mt-3 max-w-measure text-center text-body">
+              Возим и ставим бани по Кировской области, в Коми и дальше — от Краснодара до Нарьян-Мара. На карте —
+              места, где стоят наши бани.
+            </p>
+          )}
 
           <div ref={wrapRef} className="mt-8 md:mt-10">
             <div className="relative" {...tapHandlers}>
@@ -334,7 +328,7 @@ export default function MapBlock() {
               <div
                 ref={mapEl}
                 className="h-[360px] overflow-hidden rounded-md bg-[rgba(244,234,223,0.06)] lg:h-[480px]"
-                aria-label="Карта: где стоят наши бани"
+                aria-label={settings?.title ?? 'Карта: где стоят наши бани'}
                 role={status === 'ready' ? undefined : 'img'}
               />
               {/* Подложка с подсказкой (только телефон, до первого касания). Касания проходят
@@ -344,14 +338,14 @@ export default function MapBlock() {
                 <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-md bg-[rgba(26,21,18,0.3)]">
                   <span
                     className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[rgba(26,21,18,0.88)] px-4 py-2 text-label text-surface"
-                    style={{ top: HINT_TOP }}
+                    style={{ top: settings ? '50%' : HINT_TOP }}
                   >
                     Нажмите, чтобы двигать карту
                   </span>
                 </div>
               )}
             </div>
-            {status === 'ready' && (
+            {!settings && status === 'ready' && (
               <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-body">
                 <p>
                   <span className="text-muted-on-dark">А ещё: </span>
@@ -375,10 +369,10 @@ export default function MapBlock() {
 
             {/* Главные места одной строкой; остальные — только точками на карте.
                 Точка-разделитель приклеена к предыдущему месту неразрывным пробелом. */}
-            <p className="mt-6 max-w-measure text-label leading-[1.6] text-muted-on-dark">{PLACES_LINE.join('\u00a0· ')}</p>
+            {!settings && <p className="mt-6 max-w-measure text-label leading-[1.6] text-muted-on-dark">{PLACES_LINE.join('\u00a0· ')}</p>}
           </div>
         </>
-      ) : (
+      ) : !settings && (
         // Запасной вариант без карты: текст и кнопка в калькулятор, о карте ни слова
         <div className="mx-auto mt-4 flex max-w-measure flex-col items-center text-center">
           <p className="text-body">
@@ -388,6 +382,33 @@ export default function MapBlock() {
           <Button arrow fullMobile className="mt-8" onClick={fallbackCta}>
             Рассчитать доставку
           </Button>
+        </div>
+      )}
+      {settings && (
+        <div className="mt-5 flex flex-col items-center gap-4 text-center">
+          {status === 'ready' ? (
+            <>
+              <ul aria-label="Места установки" className="flex flex-wrap justify-center gap-2">
+                {settings.featured.map(place => (
+                  <li key={place.name}>
+                    <Button variant="secondary" scheme="dark" size="md" onClick={() => flyTo(place)}>
+                      {place.name}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              <Button variant="link" size="md" className="min-h-11 px-2" onClick={goHome}>
+                {settings.resetLabel}
+              </Button>
+            </>
+          ) : (
+            <p className="text-body">{settings.featured.map(place => place.name).join(', ')}.</p>
+          )}
+          {!showMap && (
+            <Button as="a" href="#final" arrow fullMobile onClick={() => track('map_fallback_cta')}>
+              {settings.contactLabel}
+            </Button>
+          )}
         </div>
       )}
     </div>

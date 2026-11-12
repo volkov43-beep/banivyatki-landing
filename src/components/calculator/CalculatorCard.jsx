@@ -38,7 +38,7 @@ function CardPhoto({ card }) {
  * Фото 4:3 с явными width/height и aspect-ratio: место зарезервировано,
  * при переключении сезона карточки не прыгают, пока грузится новый кадр.
  */
-export default function CalculatorCard({ card, selected, insulated, tabIndex, onSelect, cardRef }) {
+export default function CalculatorCard({ card, deliveryNote, selected, insulated, tabIndex, onSelect, cardRef }) {
   return (
     <div
       ref={cardRef}
@@ -78,8 +78,8 @@ export default function CalculatorCard({ card, selected, insulated, tabIndex, on
       <h3 className="mt-4 text-[20px] font-bold leading-tight">{card.title}</h3>
       <p className="mt-1 text-[15px] text-muted">{card.size}</p>
       <p className="mt-3 text-[28px] font-bold leading-none text-accent">{formatPrice(card.price)}</p>
-      <p className="mt-3 text-[15px] leading-snug">{card.inside}</p>
-      <p className="mb-5 mt-2 text-label text-muted">{card.delivery}</p>
+      <p className={`mt-3 text-[15px] leading-snug${deliveryNote ? '' : ' mb-5'}`}>{card.inside}</p>
+      {deliveryNote && <p className="mb-5 mt-2 text-label text-muted">{deliveryNote}</p>}
 
       <span
         aria-hidden="true"

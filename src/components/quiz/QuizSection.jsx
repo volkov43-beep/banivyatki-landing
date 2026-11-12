@@ -3,7 +3,7 @@ import Button from '../Button.jsx'
 import { photoSrc } from '../ResponsivePhoto.jsx'
 import { track } from '../../lib/track.js'
 import { submitLead } from '../../lib/submitLead.js'
-import { QUIZ_TITLE, QUIZ_SUBTITLE, QUIZ_SUCCESS_TITLE, QUIZ_QUESTIONS, emptyQuizState, readQuizState, saveQuizState, validQuizAnswer } from '../../data/quiz.js'
+import { QUIZ_TITLE, QUIZ_SUBTITLE, QUIZ_SUCCESS_TITLE, DEFAULT_QUIZ, emptyQuizState, readQuizState, saveQuizState, validQuizAnswer } from '../../data/quiz.js'
 import QuizDialog from './QuizDialog.jsx'
 import QuizStep from './QuizStep.jsx'
 import QuizFinalForm from './QuizFinalForm.jsx'
@@ -11,8 +11,9 @@ import QuizFloatingReminder from './QuizFloatingReminder.jsx'
 
 const emptyContactDraft = () => ({ phone: '', name: '', contact: '', consent: false })
 
-export default function QuizSection({ ref }) {
-  const [state, setState] = useState(readQuizState)
+export default function QuizSection({ ref, config = DEFAULT_QUIZ }) {
+  const { questions } = config
+  const [state, setState] = useState(() => readQuizState(config))
   // Memory only: keep contacts separate from the persisted quiz progress.
   const [contactDraft, setContactDraft] = useState(emptyContactDraft)
   const [open, setOpen] = useState(false)
@@ -27,7 +28,7 @@ export default function QuizSection({ ref }) {
   const openerRef = useRef(null)
   const launchRef = useRef(null)
   const startedAt = useRef(Date.now())
-  useEffect(() => { saveQuizState(state) }, [state])
+  useEffect(() => { saveQuizState(state, config) }, [state, config])
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   function resetAttempt() {
     startedAt.current = Date.now()
@@ -83,10 +84,10 @@ export default function QuizSection({ ref }) {
   }
   function answer(value) {
     if (!state.started) track('quiz_start')
-    setState((s) => ({ ...s, started: true, answers: { ...s.answers, [QUIZ_QUESTIONS[s.step].field]: value } }))
+    setState((s) => ({ ...s, started: true, answers: { ...s.answers, [questions[s.step].field]: value } }))
   }
   function next(value) {
-    const q = QUIZ_QUESTIONS[state.step]
+    const q = questions[state.step]
     if (!q || !validQuizAnswer(q, value)) return
     track('quiz_step', { step: state.step + 1, question: q.id })
     setState((s) => ({ ...s, started: true, step: s.step + 1, answers: { ...s.answers, [q.field]: value } }))
@@ -94,7 +95,7 @@ export default function QuizSection({ ref }) {
   function success() {
     setState((s) => ({ ...s, completed: true, answers: {}, step: 5, widget: 'hidden' }))
   }
-  const question = QUIZ_QUESTIONS[state.step]
+  const question = questions[state.step]
   return (
     <>
       <section id="quiz" aria-labelledby="quiz-title" className="bg-surface py-section-y text-ink md:py-section-y-lg">

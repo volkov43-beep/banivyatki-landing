@@ -13,16 +13,16 @@ import { requestVisit } from '../lib/visit.js'
  * Под списком — карточка с формой вопроса (FaqQuestionForm).
  */
 
-/** Ссылка на форму записи (#visit-form): плавная прокрутка и «Шоурум» в форме, цель visit_button с type "faq". */
+/** Ссылка на форму записи (#visit-form): прокрутка и региональный способ показа, цель visit_button с type "faq". */
 const VISIT_FORM_HREF = '#visit-form'
 
-function handleVisitLink(e) {
+function handleVisitLink(e, visitType) {
   e.preventDefault()
-  requestVisit('showroom', 'faq')
+  requestVisit(visitType, 'faq')
 }
 
 /** Текст с ссылками вида [текст](#id) → React-узлы. */
-function renderText(text) {
+function renderText(text, visitType) {
   const parts = text.split(/(\[[^\]]+\]\(#[^)]+\))/g)
   return parts.map((part, i) => {
     const m = part.match(/^\[([^\]]+)\]\((#[^)]+)\)$/)
@@ -31,7 +31,7 @@ function renderText(text) {
       <a
         key={i}
         href={m[2]}
-        onClick={m[2] === VISIT_FORM_HREF ? handleVisitLink : undefined}
+        onClick={m[2] === VISIT_FORM_HREF ? event => handleVisitLink(event, visitType) : undefined}
         className="underline decoration-muted underline-offset-4"
       >
         {m[1]}
@@ -40,30 +40,32 @@ function renderText(text) {
   })
 }
 
-function Answer({ item }) {
+function Answer({ item, visitType }) {
   return (
     <div className="max-w-measure pb-6 pr-10 text-body">
-      {item.text && <p>{renderText(item.text)}</p>}
+      {item.text && <p>{renderText(item.text, visitType)}</p>}
       {item.list && (
         <ul className={`list-none p-0 ${item.text ? 'mt-3' : ''}`}>
           {item.list.map((line) => (
             <li key={line} className="flex items-start">
               <span aria-hidden="true" className="mr-3 mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-              <span>{line}</span>
+              <span>{renderText(line, visitType)}</span>
             </li>
           ))}
         </ul>
       )}
-      {item.after && <p className="mt-3">{item.after}</p>}
+      {item.after && <p className="mt-3">{renderText(item.after, visitType)}</p>}
     </div>
   )
 }
 
-export default function SectionFaq() {
+export default function SectionFaq({ answers, additionalQuestions = [], visitType = 'showroom' }) {
+  const baseItems = answers ? FAQ.map(item => answers[item.n] ? { ...item, text: answers[item.n] } : item) : FAQ
+  const items = baseItems.concat(additionalQuestions)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: FAQ.map((item) => ({
+    mainEntity: items.map((item) => ({
       '@type': 'Question',
       name: item.q,
       acceptedAnswer: { '@type': 'Answer', text: plainAnswer(item) },
@@ -78,7 +80,7 @@ export default function SectionFaq() {
         </h2>
 
         <div className="mt-12 border-b border-muted md:mt-16">
-          {FAQ.map((item) => (
+          {items.map((item) => (
             <details
               key={item.n}
               className="group border-t border-muted"
@@ -97,7 +99,7 @@ export default function SectionFaq() {
                   <span className="absolute left-0 top-1/2 h-0.5 w-6 -translate-y-1/2 bg-accent" />
                 </span>
               </summary>
-              <Answer item={item} />
+              <Answer item={item} visitType={visitType} />
             </details>
           ))}
         </div>
@@ -108,7 +110,7 @@ export default function SectionFaq() {
         </div>
       </div>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replaceAll('<', '\\u003c') }} />
     </section>
   )
 }

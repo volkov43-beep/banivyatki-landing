@@ -49,7 +49,8 @@ const STEPS = [
 
 const SUMMARY = 'Ваша часть — оставить телефон, выбрать баню и показать, где её поставить.'
 
-export default function SectionProcess() {
+export default function SectionProcess({ process }) {
+  const steps = process?.steps ?? STEPS
   return (
     <section id="process" aria-labelledby="process-title" className="bg-forest py-section-y text-surface md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
@@ -61,7 +62,7 @@ export default function SectionProcess() {
         </p>
 
         <ol className="mt-12 list-none p-0 md:mt-16">
-          {STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <li
               key={step.title}
               className="grid grid-cols-[2rem_1fr] gap-x-3 border-t border-muted-on-dark py-8 lg:grid-cols-[6rem_1fr] lg:gap-x-8 lg:py-10"
@@ -102,7 +103,7 @@ export default function SectionProcess() {
 
         {/* Итог и единственная кнопка на экране — к калькулятору */}
         <div className="flex flex-col items-center border-t border-muted-on-dark pt-8 text-center">
-          <p className="max-w-measure text-[22px] font-bold leading-[1.2]">{SUMMARY}</p>
+          <p className="max-w-measure text-[22px] font-bold leading-[1.2]">{process?.summary ?? SUMMARY}</p>
           <Button as="a" href="#calculator" onClick={() => track('process_cta_click')} arrow fullMobile className="mt-8">
             Рассчитать стоимость
           </Button>

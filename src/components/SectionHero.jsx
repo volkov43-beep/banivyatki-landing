@@ -15,8 +15,8 @@
  * не резалось краем. Тексту дана мягкая тень без чёткого края.
  *
  * Порядок в колонке: заголовок, подзаголовок, цена, факты, плашка рейтинга
- * Авито, кнопка — на всех ширинах (рядом с кнопкой плашка в колонку 557 px
- * на 1440 не помещается, поэтому над ней). Плашка
+ * Авито, кнопка. В региональном варианте до 1024 px кнопка стоит
+ * сразу после пояснения под ценой. Плашка
  * (данные SOURCES.avito из data/reviews.js): название площадки словами, оценка
  * крупно, звёзды контуром (RatingStars outline), число оценок мелко; без
  * ссылки и без логотипа. Факт «5,0 на Авито» из списка фактов ушёл в плашку.
@@ -26,7 +26,7 @@
  * с фоном коротким переходом в ink.
  */
 import { useEffect, useRef, useState } from 'react'
-import { MIN_PRICE, formatPrice } from '../data/calculator.js'
+import { formatPrice } from '../data/calculator.js'
 import { SOURCES } from '../data/reviews.js'
 import Button from './Button.jsx'
 import RatingStars from './RatingStars.jsx'
@@ -47,6 +47,8 @@ const FACTS = [
 function RatingBadge({ source, className = '' }) {
   return (
     <div
+      role="group"
+      aria-label={`Рейтинг ${source.name}`}
       className={`inline-flex items-center gap-3 self-start rounded-md border border-[rgba(244,234,223,0.22)] bg-[rgba(20,14,10,0.35)] px-4 py-2.5 backdrop-blur-[6px] ${className}`}
     >
       <span className="text-[28px] font-bold leading-none">{source.rating}</span>
@@ -61,7 +63,11 @@ function RatingBadge({ source, className = '' }) {
   )
 }
 
-export default function SectionHero({ onCatalogOpen }) {
+export default function SectionHero({ region, minimum, onCatalogOpen }) {
+  const { hero } = region
+  const catalogButtonPlacement = hero.geography
+    ? 'order-first mb-6 lg:order-none lg:mb-0 lg:mt-4'
+    : 'mt-5 lg:mt-4'
   // «Дыхание» кнопки: один раз, когда она впервые попала в поле зрения;
   // не запускается, если до этого навели или нажали, и при reduced-motion.
   const ctaRef = useRef(null)
@@ -86,9 +92,9 @@ export default function SectionHero({ onCatalogOpen }) {
   }, [])
 
   return (
-    <section id="top" aria-labelledby="hero-title" className="relative bg-ink text-surface">
+    <section id="top" aria-labelledby="hero-title" className="relative bg-ink text-surface lg:grid">
       {/* Картинка */}
-      <div className="relative h-[46vh] min-h-[300px] lg:h-[clamp(640px,90vh,900px)]">
+      <div className="relative h-[46vh] min-h-[300px] lg:col-start-1 lg:row-start-1 lg:h-auto lg:min-h-[clamp(640px,90vh,900px)]">
         <picture>
           <source media="(max-width: 1023px)" srcSet={PHOTO.mobile} />
           <source
@@ -136,8 +142,11 @@ export default function SectionHero({ onCatalogOpen }) {
       </div>
 
       {/* Колонка текста: на телефоне под картинкой, на компьютере поверх неё слева */}
-      <div className="px-5 pb-12 pt-6 lg:absolute lg:inset-y-0 lg:left-0 lg:right-[58%] lg:flex lg:p-0 lg:pl-gutter-lg lg:pt-20 lg:[text-shadow:0_1px_24px_rgba(0,0,0,0.35)]">
+      <div className="px-5 pb-12 pt-6 lg:relative lg:col-start-1 lg:row-start-1 lg:flex lg:w-[42%] lg:p-0 lg:pl-gutter-lg lg:pt-20 lg:[text-shadow:0_1px_24px_rgba(0,0,0,0.35)]">
         <div className="lg:my-auto lg:max-w-[560px] lg:pb-[4vh]">
+          {hero.geography && (
+            <p className="mb-2 text-[15px] font-bold leading-snug">{hero.geography}</p>
+          )}
           <h1
             id="hero-title"
             className="text-[clamp(30px,8vw,38px)] font-bold leading-[1.05] lg:text-[clamp(40px,3.38vw,49px)]"
@@ -147,35 +156,37 @@ export default function SectionHero({ onCatalogOpen }) {
           </h1>
 
           <p className="mt-5 text-[20px] leading-[1.4] opacity-[0.85]">
-            Привозим готовой и устанавливаем за 1 день.
+            {hero.subtitle}
           </p>
 
-          <p className="mt-8 whitespace-nowrap leading-none lg:mt-6">
-            <span className="text-[32px] font-bold text-accent">{formatPrice(MIN_PRICE)}</span>{' '}
-            <span className="text-[20px]">под ключ</span>
+          <p className={`mt-8 leading-none lg:mt-6${hero.priceSuffix ? ' max-[359px]:-mr-5' : ''}`}>
+            <span className="whitespace-nowrap text-[32px] font-bold text-accent">{formatPrice(minimum)}</span>
+            {hero.priceSuffix && <><wbr /><span className="whitespace-nowrap text-[20px]"> {hero.priceSuffix}</span></>}
           </p>
+          {hero.priceNote && (
+            <p className="mt-2 max-w-[43ch] text-[15px] leading-snug">{hero.priceNote}</p>
+          )}
 
-          <ul className="mt-8 flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:mt-6 lg:flex-col lg:gap-2 lg:text-[16px]">
-            {FACTS.map((fact) => {
-              const inner = (
-                <>
-                  <b className="font-bold">{fact.strong}</b>{' '}
-                  <span className="opacity-75">{fact.rest}</span>
-                </>
-              )
-              return (
-                /* Точка и пункт не разрываются переносом: перенос идёт целым пунктом */
-                <li key={fact.strong} className="flex items-start whitespace-nowrap">
-                  <span aria-hidden="true" className="mr-3 mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  <span>{inner}</span>
-                </li>
-              )
-            })}
-          </ul>
+          <div className={`flex flex-col ${hero.geography ? 'mt-6 [reading-flow:flex-visual]' : 'mt-8 lg:mt-6'}`}>
+            <ul className="flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:flex-col lg:gap-2 lg:text-[16px]">
+              {FACTS.map((fact) => {
+                const inner = (
+                  <>
+                    <b className="font-bold">{fact.strong}</b>{' '}
+                    <span className="opacity-75">{fact.rest}</span>
+                  </>
+                )
+                return (
+                  /* Точка и пункт не разрываются переносом: перенос идёт целым пунктом */
+                  <li key={fact.strong} className="flex items-start whitespace-nowrap">
+                    <span aria-hidden="true" className="mr-3 mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                    <span>{inner}</span>
+                  </li>
+                )
+              })}
+            </ul>
 
-          {/* Плашка рейтинга под фактами, кнопка под плашкой */}
-          <div className="mt-6 flex flex-col gap-5 lg:gap-4">
-            <RatingBadge source={SOURCES.avito} />
+            <RatingBadge source={SOURCES.avito} className="mt-6" />
             <Button
               onClick={(event) => onCatalogOpen(event.currentTarget)}
               arrow
@@ -184,7 +195,7 @@ export default function SectionHero({ onCatalogOpen }) {
               onMouseEnter={cancelBreathe}
               onPointerDown={cancelBreathe}
               onFocus={cancelBreathe}
-              className={`self-start${breathe ? ' bv-breathe' : ''}`}
+              className={`self-start ${catalogButtonPlacement}${breathe ? ' bv-breathe' : ''}`}
             >
               Получить каталог
             </Button>

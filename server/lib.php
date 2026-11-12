@@ -65,6 +65,8 @@ const BV_QUIZ_FIELDS = [
     'quiz_budget' => ['label' => 'Бюджет', 'options' => [
         'under_350' => 'До 350 тыс. ₽', '350_500' => '350–500 тыс. ₽',
         '500_700' => '500–700 тыс. ₽', 'over_700' => 'Более 700 тыс. ₽',
+        'under_420' => 'До 420 тыс. ₽', '420_570' => '420–570 тыс. ₽',
+        '570_770' => '570–770 тыс. ₽', 'over_770' => 'Более 770 тыс. ₽',
         'unsure' => 'Пока не определился', 'skipped' => 'Не ответил',
     ]],
 ];
@@ -254,6 +256,26 @@ function bv_quiz_valid(array $data, string $form): bool
     return true;
 }
 
+/** Регион страницы обращения. Пустая строка сохраняет общий формат сделки. */
+function bv_landing_region(mixed $pageUrl): string
+{
+    if (!is_string($pageUrl) || preg_match('/[\x00-\x20\x7f]/', $pageUrl)) {
+        return '';
+    }
+    $address = substr($pageUrl, 0, strcspn($pageUrl, '?#'));
+    $parts = parse_url($address);
+    if (strtolower($parts['scheme'] ?? '') !== 'https'
+        || !in_array(strtolower($parts['host'] ?? ''), ['banivyatki.ru', 'www.banivyatki.ru'], true)
+        || !in_array($parts['path'] ?? '', ['/syktyvkar', '/syktyvkar/', '/syktyvkar/index.html'], true)) {
+        return '';
+    }
+    // Сверяем исходную запись: parse_url допускает, например, хвост после цифр порта.
+    // Только host или host:443. Пользовательские реквизиты также исключены.
+    $origin = $parts['scheme'] . '://' . $parts['host'];
+    return ($address === $origin . $parts['path'] || $address === $origin . ':443' . $parts['path'])
+        ? 'syktyvkar' : '';
+}
+
 /**
  * Собирает заявку для отправки: только известные поля, обрезанные по длине.
  * $phone уже нормализован, $form — каноническое имя.
@@ -274,6 +296,7 @@ function bv_build_lead(array $data, string $phone, string $form): array
         'question'       => bv_str($data, 'question', 2000),
         'company'        => bv_str($data, 'company', 200),
         'comment'        => bv_str($data, 'comment', 2000),
+        'landing_region' => bv_landing_region($data['page_url'] ?? null),
         'page_url'       => bv_str($data, 'page_url', 500),
         'referrer'       => bv_str($data, 'referrer', 500),
         'submitted_at'   => bv_str($data, 'submitted_at', 40),
@@ -308,7 +331,7 @@ function bv_format_price(int $price): string
 /** Название сделки: «Сайт · Расчёт · 4–4,5 м, тёплый сезон · от 330 000 ₽». */
 function bv_deal_title(array $lead): string
 {
-    $parts = ['Сайт'];
+    $parts = ($lead['landing_region'] ?? '') === 'syktyvkar' ? ['Сыктывкар', 'Сайт'] : ['Сайт'];
     $form = $lead['form'];
     switch ($form) {
         case 'calculator':
@@ -353,7 +376,11 @@ function bv_submitted_text(string $iso): string
 /** Комментарий к сделке: строки, пустые пропускаются. */
 function bv_deal_comments(array $cfg, array $lead, bool $contactFound, ?int $contactId): string
 {
-    $lines = [];
+    $lines = ($lead['landing_region'] ?? '') === 'syktyvkar' ? [
+        'Лендинг: Сыктывкар / Республика Коми',
+        'Условия: региональная стоимость',
+        'Уточнить населённый пункт, адрес доставки и условия установки.',
+    ] : [];
     if ($contactFound && $contactId) {
         $portal = rtrim((string) ($cfg['portal_url'] ?? ''), '/');
         $lines[] = 'Повторное обращение' . ($portal !== '' ? ': ' . $portal . '/crm/contact/details/' . $contactId . '/' : '');
@@ -399,7 +426,7 @@ function bv_deal_comments(array $cfg, array $lead, bool $contactFound, ?int $con
     if ($lead['comment'] !== '') {
         $lines[] = 'Комментарий: ' . $lead['comment'];
     }
-    if ($lead['page_url'] !== '') {
+    if (($lead['page_url'] ?? '') !== '') {
         $lines[] = 'Страница: ' . $lead['page_url'];
     }
     if ($lead['referrer'] !== '') {
@@ -526,6 +553,8 @@ function bv_bitrix_call(array $cfg, string $method, array $params): array
  */
 function bv_send_lead(array $cfg, array $lead): array
 {
+    // Старые записи очереди содержат только сохранённый page_url.
+    $lead['landing_region'] ??= bv_landing_region($lead['page_url'] ?? null);
     $contactId = isset($lead['contact_id']) ? (int) $lead['contact_id'] : 0;
     $found = (bool) ($lead['contact_found'] ?? false);
 

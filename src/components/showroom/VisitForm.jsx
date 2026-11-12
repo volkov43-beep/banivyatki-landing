@@ -6,7 +6,7 @@ import { track } from '../../lib/track.js'
 import { getUtm } from '../../lib/utm.js'
 import { callbackWhen } from '../../lib/callback.js'
 import { formatPhone, isCompletePhone, normalizePhone } from '../../lib/phone.js'
-import { VISIT_TYPES, VISIT_FORM } from '../../data/visit.js'
+import { VISIT_FORM } from '../../data/visit.js'
 import { PHONE } from '../../data/calculator.js'
 
 const BASE = import.meta.env.BASE_URL
@@ -32,7 +32,7 @@ const fieldClass =
  *
  * ref — на карточку: блок прокручивает к ней по кнопкам в карточках.
  */
-export default function VisitForm({ ref, visitType, onVisitTypeChange }) {
+export default function VisitForm({ ref, visit, options, visitType, onVisitTypeChange }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [contact, setContact] = useState('call')
@@ -40,6 +40,7 @@ export default function VisitForm({ ref, visitType, onVisitTypeChange }) {
   const [trap, setTrap] = useState('')
   const [status, setStatus] = useState('idle') // idle | sending | done | error
   const [touched, setTouched] = useState(false)
+  const sending = useRef(false)
   const mountedAt = useRef(Date.now())
   const when = callbackWhen()
 
@@ -51,6 +52,7 @@ export default function VisitForm({ ref, visitType, onVisitTypeChange }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (sending.current) return
     setTouched(true)
     if (!phoneOk || !consent) return
 
@@ -73,6 +75,7 @@ export default function VisitForm({ ref, visitType, onVisitTypeChange }) {
       website: trap,
     }
 
+    sending.current = true
     setStatus('sending')
     try {
       const result = await submitLead(payload)
@@ -80,6 +83,7 @@ export default function VisitForm({ ref, visitType, onVisitTypeChange }) {
       track('visit_submit', { type: visitType })
       setStatus('done')
     } catch {
+      sending.current = false
       setStatus('error')
     }
   }
@@ -87,21 +91,28 @@ export default function VisitForm({ ref, visitType, onVisitTypeChange }) {
   const error = (text) => <span className="mt-1 block text-label text-alert-on-dark">{text}</span>
 
   return (
-    <div ref={ref} id="visit-form" className="scroll-mt-6 rounded-md bg-forest p-5 text-surface md:p-8">
+    <div
+      ref={ref}
+      id="visit-form"
+      role={visit ? 'region' : undefined}
+      aria-label={visit?.formTitle}
+      tabIndex={visit ? -1 : undefined}
+      className="scroll-mt-6 rounded-md bg-forest p-5 text-surface md:p-8"
+    >
       {status === 'done' ? (
         <p role="status" className="text-center text-title">
           Заявка отправлена. Менеджер перезвонит {when}.
         </p>
       ) : (
         <>
-          <h3 className="text-center text-[24px] font-bold leading-[1.2]">{VISIT_FORM.title}</h3>
+          <h3 className="text-center text-[24px] font-bold leading-[1.2]">{visit?.formTitle ?? VISIT_FORM.title}</h3>
           <p className="mt-2 text-center text-body text-muted-on-dark">
-            Менеджер перезвонит {when} и согласует удобное время
+            {visit?.formDescription ?? `Менеджер перезвонит ${when} и согласует удобное время`}
           </p>
 
           <form onSubmit={handleSubmit} noValidate className="mt-6">
             <div className="flex flex-col gap-4">
-              <Segmented label="Способ показа" options={VISIT_TYPES} value={visitType} onChange={onVisitTypeChange} size="xs" full scheme="dark" />
+              <Segmented label="Способ показа" options={options} value={visitType} onChange={onVisitTypeChange} stackOnNarrow size="xs" full scheme="dark" />
 
               {/* От 1024 px имя и телефон в одну строку */}
               <div className="grid gap-4 lg:grid-cols-2">
