@@ -4,7 +4,7 @@ import CalculatorCard from './calculator/CalculatorCard.jsx'
 import LeadForm from './calculator/LeadForm.jsx'
 import ReviewCard from './ReviewCard.jsx'
 import Button from './Button.jsx'
-import { SEASONS, CARDS, WARM_NOTES, QUOTE, BUSINESS, formatPrice } from '../data/calculator.js'
+import { SEASONS, WARM_NOTES, QUOTE, BUSINESS, formatPrice } from '../data/calculator.js'
 import { BUSINESS_REVIEW } from '../data/reviews.js'
 import { track } from '../lib/track.js'
 import { onCalcRequest } from '../lib/calc.js'
@@ -48,7 +48,7 @@ function isInView(el) {
  * видит цену выбранного размера и соседние варианты; форма остаётся ниже,
  * без автопрокрутки и подсветки.
  */
-export default function SectionCalculator({ delivery }) {
+export default function SectionCalculator({ cardsBySeason, delivery }) {
   const [tab, setTab] = useState('self')
   const [season, setSeason] = useState('warm')
   const [selectedId, setSelectedId] = useState(null)
@@ -63,7 +63,7 @@ export default function SectionCalculator({ delivery }) {
   const cardRefs = useRef([])
   const timers = useRef([])
 
-  const cards = CARDS[season]
+  const cards = cardsBySeason[season]
   const selected = cards.find((c) => c.id === selectedId) || null
   const insulated = season === 'year'
 
@@ -134,7 +134,7 @@ export default function SectionCalculator({ delivery }) {
           if (sectionRef.current) scrollToElement(sectionRef.current)
           return
         }
-        const card = CARDS[nextSeason]?.find((c) => c.id === cardId)
+        const card = cardsBySeason[nextSeason]?.find((c) => c.id === cardId)
         if (!card) return
         changeTab('self')
         changeSeason(nextSeason)
@@ -210,7 +210,7 @@ export default function SectionCalculator({ delivery }) {
                 <CalculatorCard
                   key={card.id}
                   card={card}
-                  deliveryNote={delivery?.cardNote}
+                  deliveryNote={delivery?.calculatorNote ? null : card.delivery}
                   insulated={insulated}
                   selected={card.id === selectedId}
                   tabIndex={selectedIndex === -1 ? (index === 0 ? 0 : -1) : card.id === selectedId ? 0 : -1}

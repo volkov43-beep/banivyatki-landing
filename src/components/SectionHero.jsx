@@ -26,7 +26,7 @@
  * с фоном коротким переходом в ink.
  */
 import { useEffect, useRef, useState } from 'react'
-import { MIN_PRICE, formatPrice } from '../data/calculator.js'
+import { formatPrice } from '../data/calculator.js'
 import { SOURCES } from '../data/reviews.js'
 import Button from './Button.jsx'
 import RatingStars from './RatingStars.jsx'
@@ -63,8 +63,8 @@ function RatingBadge({ source, className = '' }) {
   )
 }
 
-export default function SectionHero({ region, onCatalogOpen }) {
-  const { hero, priceAdjustment } = region
+export default function SectionHero({ region, minimum, onCatalogOpen }) {
+  const { hero } = region
   const catalogButtonPlacement = hero.geography
     ? 'order-first mb-6 lg:order-none lg:mb-0 lg:mt-4'
     : 'mt-5 lg:mt-4'
@@ -160,7 +160,7 @@ export default function SectionHero({ region, onCatalogOpen }) {
           </p>
 
           <p className="mt-8 whitespace-nowrap leading-none lg:mt-6">
-            <span className="text-[32px] font-bold text-accent">{formatPrice(MIN_PRICE + priceAdjustment)}</span>
+            <span className="text-[32px] font-bold text-accent">{formatPrice(minimum)}</span>
             {hero.priceSuffix && <span className="text-[20px]"> {hero.priceSuffix}</span>}
           </p>
           {hero.priceNote && (

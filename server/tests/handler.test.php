@@ -187,6 +187,30 @@ $expectedComments = "Форма: Калькулятор\nВыбранный ва
 check('сделка: COMMENTS построчно, время по МСК', ($deal['COMMENTS'] ?? '') === $expectedComments, json_encode($deal['COMMENTS'] ?? '', JSON_UNESCAPED_UNICODE));
 check('журнал: sent, deal=555, без телефона и имени', str_contains(logText(), 'result=sent deal=555 contact=101:new') && !str_contains(logText(), '9123456789') && !str_contains(logText(), 'Тест'), logText());
 
+// The quote in the captured REST request must match what the buyer selected.
+foreach ([
+    ['3 м', 'тёплый сезон', 293000, 363000],
+    ['4–4,5 м', 'тёплый сезон', 330000, 400000],
+    ['6 м', 'тёплый сезон', 374000, 444000],
+    ['3 м', 'круглый год', 333000, 403000],
+    ['3,5–4,5 м', 'круглый год', 363000, 433000],
+    ['6 м', 'круглый год', 515000, 585000],
+] as [$size, $season, $kirovPrice, $komiPrice]) {
+    foreach (['/' => $kirovPrice, '/syktyvkar/' => $komiPrice] as $path => $amount) {
+        resetStub('ok');
+        $option = "$size, $season";
+        $formatted = 'от ' . number_format($amount, 0, ',', ' ') . ' ₽';
+        $page = 'https://banivyatki.ru' . $path . '?utm_source=yandex';
+        [$status] = post(lead(['price_shown' => $amount, 'option_shown' => $option, 'page_url' => $page]));
+        $deal = lastDeal();
+        check("calculator $path $option: one deal with displayed quote", $status === 200
+            && count(stubCalls()) === 3 && $deal['TITLE'] === "Сайт · Расчёт · $option · $formatted"
+            && str_contains($deal['COMMENTS'], "Выбранный вариант: $option\nПоказанная цена: $formatted\n")
+            && str_contains($deal['COMMENTS'], "Страница: $page\n") && $deal['UTM_SOURCE'] === 'yandex'
+            && $deal['UTM_CAMPAIGN'] === 'test');
+    }
+}
+
 // --- остальные формы: названия и источник «сайт» ---
 resetStub('ok');
 post(lead(['form' => 'visit', 'visit_type' => 'showroom', 'utm_source' => 'google', 'contact_method' => 'max', 'price_shown' => null, 'option_shown' => '']));
@@ -363,6 +387,16 @@ foreach (['max' => 'MAX', 'telegram' => 'Telegram', 'whatsapp' => 'WhatsApp', 'c
 resetStub('ok');
 post(quizLead(['quiz_features' => 'terrace,year_round,terrace,outside_firebox,year_round']));
 check('quiz CSV canonical order and dedup', str_contains(lastDeal()['COMMENTS'], "Особенности: Утепление для круглого года, Топка с улицы, Терраса / крыльцо\n"));
+foreach ([
+    'under_420' => 'До 420 тыс. ₽', '420_570' => '420–570 тыс. ₽',
+    '570_770' => '570–770 тыс. ₽', 'over_770' => 'Более 770 тыс. ₽',
+    'unsure' => 'Пока не определился', 'skipped' => 'Не ответил',
+] as $budget => $label) {
+    resetStub('ok');
+    [$status] = post(quizLead(['quiz_budget' => $budget, 'page_url' => 'https://banivyatki.ru/syktyvkar/']));
+    check("quiz Komi $budget → $label", $status === 200 && count(stubCalls()) === 3
+        && str_contains(lastDeal()['COMMENTS'], "Бюджет: $label\n"));
+}
 $quizInvalid = [
     ['quiz_version' => 'v2'], ['quiz_place' => 'skipped'], ['contact_method' => 'email'],
     ['quiz_features' => 'unsure,terrace'], ['quiz_features' => 'skipped,year_round'],
@@ -398,6 +432,14 @@ resetStub('ok');
 exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $quizRetryOut, $quizRetryRc);
 check('quiz retry preserves exact context, drains queue', $quizRetryRc === 0 && count(queueFiles()) === 0 && (lastDeal()['COMMENTS'] ?? '') === $quizExpected && lastDeal()['TITLE'] === 'Сайт · Квиз');
 check('quiz public logs contain no name/phone/answers', !str_contains(logText(), '9123456789') && !str_contains(logText(), 'Тест') && !str_contains(logText(), 'year_round'));
+
+resetStub('error');
+[$status] = post(quizLead(['quiz_budget' => '420_570', 'page_url' => 'https://banivyatki.ru/syktyvkar/']));
+check('quiz Komi budget queued', $status === 200 && count(queueFiles()) === 1);
+resetStub('ok');
+exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $komiRetryOut, $komiRetryRc);
+check('quiz Komi retry decodes original budget', $komiRetryRc === 0 && count(queueFiles()) === 0
+    && str_contains(lastDeal()['COMMENTS'], "Бюджет: 420–570 тыс. ₽\n"));
 
 // --- повторное обращение ---
 resetStub('found');

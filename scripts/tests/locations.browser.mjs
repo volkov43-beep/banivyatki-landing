@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { build, preview } from 'vite'
 import { OBJECTS, KIROV_LABEL } from '../../src/data/objects.js'
-import { CARDS, formatPrice } from '../../src/data/calculator.js'
+import { CARDS, MIN_PRICE, formatPrice } from '../../src/data/calculator.js'
 import { FAQ, plainAnswer } from '../../src/data/faq.js'
 import { REGIONS } from '../../src/data/regions.js'
 
@@ -147,23 +147,26 @@ async function checkPage(page, regional, width) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   const faq = page.locator('#faq')
   const schema = JSON.parse(await faq.locator('script').textContent())
+  const overrides = regional ? komi.faqAnswers(MIN_PRICE + komi.priceAdjustment) : {}
   for (const [i, item] of FAQ.entries()) {
-    const override = regional ? komi.delivery.faqAnswers[item.n] : undefined
-    assert.equal(schema.mainEntity[i].acceptedAnswer.text, override ?? plainAnswer(item))
+    const override = overrides[item.n]
+    const expected = plainAnswer(override ? { ...item, text: override } : item)
+    assert.equal(schema.mainEntity[i].acceptedAnswer.text, expected)
     if (item.n === 7 || override) {
       const answer = faq.locator('details').nth(i)
       await answer.locator('summary').click()
-      assert.equal(await answer.locator('div > p').first().innerText(), override ?? plainAnswer(item))
+      assert.equal(await answer.locator('div > p').first().innerText(), expected)
     }
   }
   const calc = page.locator('#calculator')
+  if (regional) assert.equal(await calc.getByText(komi.delivery.calculatorNote, { exact: true }).count(), 1)
   for (const season of ['warm','year']) {
     if (season === 'year') await calc.getByRole('radio', { name: 'Круглый год, включая морозы' }).click()
     const cards = calc.getByRole('radiogroup', { name: 'Вариант бани' }).getByRole('radio')
     for (const [i, card] of CARDS[season].entries()) {
-      const price = await cards.nth(i).getByText(formatPrice(card.price), { exact: true }).count()
+      const price = await cards.nth(i).getByText(formatPrice(card.price + (regional ? komi.priceAdjustment : 0)), { exact: true }).count()
       assert.equal(price, 1)
-      assert.ok(await cards.nth(i).getByText(regional ? komi.delivery.cardNote : card.delivery, { exact: true }).isVisible())
+      if (!regional) assert.ok(await cards.nth(i).getByText(card.delivery, { exact: true }).isVisible())
     }
   }
 }

@@ -27,6 +27,17 @@ export const QUIZ_QUESTIONS = [
     ['over_700', 'Более 700 тыс. ₽'], ['unsure', 'Пока не определился'],
   ]) },
 ]
+export const DEFAULT_QUIZ = { storageKey: QUIZ_STORAGE_KEY, questions: QUIZ_QUESTIONS }
+
+export function makeRegionalQuiz(regionId, budgetRanges) {
+  return {
+    storageKey: QUIZ_STORAGE_KEY + '_' + regionId,
+    questions: QUIZ_QUESTIONS.map(question => question.id === 'budget'
+      ? { ...question, options: [...options(budgetRanges), ...question.options.filter(option => option.code === 'unsure')] }
+      : question),
+  }
+}
+
 export const QUIZ_CONTACT_METHODS = options([['max', 'MAX'], ['telegram', 'Telegram'], ['whatsapp', 'WhatsApp'], ['call', 'Позвонить']])
 
 export function validQuizAnswer(question, value) {
@@ -47,20 +58,20 @@ export function toggleQuizFeature(value, code) {
 export function emptyQuizState(started = false) {
   return { version: QUIZ_VERSION, step: 0, answers: {}, widget: 'hidden', completed: false, started }
 }
-export function readQuizState() {
+export function readQuizState({ storageKey, questions } = DEFAULT_QUIZ) {
   const initial = emptyQuizState()
   try {
-    const saved = JSON.parse(sessionStorage.getItem(QUIZ_STORAGE_KEY))
+    const saved = JSON.parse(sessionStorage.getItem(storageKey))
     if (!saved || saved.version !== QUIZ_VERSION) return initial
     if (saved.completed === true) return { ...initial, completed: true, started: saved.started === true }
     const answers = {}
-    for (const q of QUIZ_QUESTIONS) if (validQuizAnswer(q, saved.answers?.[q.field])) answers[q.field] = saved.answers[q.field]
-    const firstMissing = QUIZ_QUESTIONS.findIndex((q) => !answers[q.field])
+    for (const q of questions) if (validQuizAnswer(q, saved.answers?.[q.field])) answers[q.field] = saved.answers[q.field]
+    const firstMissing = questions.findIndex((q) => !answers[q.field])
     const limit = firstMissing < 0 ? 5 : firstMissing
     const step = Number.isInteger(saved.step) ? Math.max(0, Math.min(saved.step, limit)) : 0
     return { ...initial, step, answers, started: saved.started === true, widget: ['expanded', 'compact'].includes(saved.widget) ? saved.widget : 'hidden' }
   } catch { return initial }
 }
-export function saveQuizState(state) {
-  try { sessionStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(state)) } catch { /* Memory-only fallback. */ }
+export function saveQuizState(state, { storageKey } = DEFAULT_QUIZ) {
+  try { sessionStorage.setItem(storageKey, JSON.stringify(state)) } catch { /* Memory-only fallback. */ }
 }
