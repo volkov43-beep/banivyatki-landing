@@ -112,7 +112,7 @@ export default function VisitForm({ ref, visit, options, visitType, onVisitTypeC
 
           <form onSubmit={handleSubmit} noValidate className="mt-6">
             <div className="flex flex-col gap-4">
-              <Segmented label="Способ показа" options={options} value={visitType} onChange={onVisitTypeChange} stackOnNarrow={Boolean(visit)} size="xs" full scheme="dark" />
+              <Segmented label="Способ показа" options={options} value={visitType} onChange={onVisitTypeChange} stackOnNarrow size="xs" full scheme="dark" />
 
               {/* От 1024 px имя и телефон в одну строку */}
               <div className="grid gap-4 lg:grid-cols-2">

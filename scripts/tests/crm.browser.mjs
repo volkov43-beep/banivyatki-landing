@@ -72,6 +72,8 @@ async function checkSubmission(scenario, regional, seq) {
   const errors = []
   page.on('pageerror', err => errors.push(err.message))
   const payloads = []
+  let releaseFailure
+  const firstResponse = new Promise(resolve => { releaseFailure = resolve })
   const form = ['all','model'].includes(scenario) ? 'catalog' : scenario
   const goal = goals[form]
   const direct = seq % 3 !== 0
@@ -94,11 +96,15 @@ async function checkSubmission(scenario, regional, seq) {
       if (u.pathname === '/api/lead.php') {
         assert.equal(route.request().method(), 'POST')
         payloads.push(route.request().postDataJSON())
-        if (payloads.length === 1) return route.fulfill({ status: 503, json: { ok: false } })
+        if (payloads.length === 1) {
+          await firstResponse
+          return route.fulfill({ status: 503, json: { ok: false } })
+        }
         const response = await page.request.post('http://127.0.0.1:8090/api/lead.php', {
           data: route.request().postDataBuffer(),
           headers: { 'Content-Type': 'application/json', Origin: origin, 'X-Test-IP': '10.1.0.' + seq },
         })
+        assert.equal(response.status(), 200, 'local PHP accepted the valid retry')
         return route.fulfill({ response })
       }
       if (scenario === 'model' && u.pathname === pathname) return route.fulfill({ contentType: 'text/html',
@@ -112,14 +118,30 @@ async function checkSubmission(scenario, regional, seq) {
     await page.goto(url)
     const section = await openForm(page, scenario, regional)
     const fields = section.locator('form')
-    await fields.locator('[type=tel]').fill('+79991234567')
-    await fields.locator('[type=checkbox]').check()
+    const phone = fields.locator('[type=tel]')
+    const consent = fields.locator('[type=checkbox]')
+    await phone.fill('123')
+    await consent.check()
+    await fields.evaluate(el => el.requestSubmit())
+    assert.equal(payloads.length, 0, 'incomplete phone')
+    await phone.fill('+79991234567')
+    const formattedPhone = await phone.inputValue()
+    await consent.uncheck()
+    await fields.evaluate(el => el.requestSubmit())
+    assert.equal(payloads.length, 0, 'missing consent')
+    await consent.check()
     await page.evaluate(() => { window.extraTime = 4000 })
     const submit = fields.locator('[type=submit]')
     const successes = () => page.evaluate(name => window.goals.filter(g => g.name === name), goal)
     const before = (await calls()).length
     await submit.click()
+    try {
+      await fields.locator('[type=submit]:disabled').waitFor()
+      await fields.evaluate(el => el.requestSubmit())
+    } finally { releaseFailure() }
     await section.getByRole('alert').waitFor()
+    assert.equal(await phone.inputValue(), formattedPhone)
+    assert.equal(await consent.isChecked(), true)
     assert.equal(payloads.length, 1)
     assert.deepEqual(await successes(), [])
     assert.equal((await calls()).length, before)

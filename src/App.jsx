@@ -34,6 +34,7 @@ export default function App({ region = REGIONS.kirov }) {
           minimum={prices.minimum}
           priceLabel={region.workPriceLabel}
           priceNote={region.workPriceNote}
+          workCalc={region.workCalc}
           installationCaption={region.delivery?.installationCaption}
         />
         <SectionReviews />

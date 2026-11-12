@@ -19,7 +19,7 @@ import { EQUIPMENT_VISIBLE, formatWorkPrice } from '../../data/works.js'
  * Карточка — flex-колонка: в ряду сетки все одной высоты, цена и кнопка
  * прижаты к низу (mt-auto), фото и подписи — сверху.
  */
-export default function WorkCard({ work, priceLabel, onOpen, onCalc }) {
+export default function WorkCard({ work, priceLabel, calcLabel = 'Рассчитать такую', onOpen, onCalc }) {
   const [photo] = work.photos
   const [expanded, setExpanded] = useState(false)
   const listId = useId()
@@ -66,7 +66,7 @@ export default function WorkCard({ work, priceLabel, onOpen, onCalc }) {
           {work.price != null && <p className="text-title text-price">{formatWorkPrice(work.price)}</p>}
           {work.calc && (
             <Button variant="secondary" scheme="light" size="md" onClick={() => onCalc(work)} className="mt-3">
-              Рассчитать такую
+              {calcLabel}
             </Button>
           )}
         </div>

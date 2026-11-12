@@ -191,6 +191,9 @@ async function visit(base, regional, size, mode) {
     await map.scrollIntoViewIfNeeded()
     if (mode === 'ready') {
       await checkReady(page, regional, width)
+      if (output && regional && [320, 1440].includes(width)) {
+        await map.screenshot({ path: path.join(output, 'komi-map-controls-stub-' + width + '.png') })
+      }
       if (regional) {
         assert.ok(await map.locator('button').evaluateAll(els => els.every(el => {
           const b = el.getBoundingClientRect()

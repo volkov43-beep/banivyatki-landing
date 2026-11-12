@@ -7,7 +7,7 @@ import { requestCalc } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 
 /** Карточки работ. Существующая карта вынесена после квиза в SectionLocations. */
-export default function SectionWorks({ works, minimum, installationCaption, priceLabel, priceNote }) {
+export default function SectionWorks({ works, minimum, installationCaption, priceLabel, priceNote, workCalc }) {
   const projects = installationCaption
     ? works.map(work => work.id === 'ustanovka' ? { ...work, caption: installationCaption } : work)
     : works
@@ -33,7 +33,7 @@ export default function SectionWorks({ works, minimum, installationCaption, pric
 
         <ul className="mt-12 grid list-none grid-cols-1 gap-x-4 gap-y-8 p-0 min-[600px]:grid-cols-2 md:mt-16 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-10">
           {projects.map((work) => (
-            <WorkCard key={work.id} work={work} priceLabel={priceLabel} onOpen={openPhoto} onCalc={calc} />
+            <WorkCard key={work.id} work={work} priceLabel={priceLabel} calcLabel={workCalc?.label} onOpen={openPhoto} onCalc={calc} />
           ))}
         </ul>
 
@@ -41,6 +41,7 @@ export default function SectionWorks({ works, minimum, installationCaption, pric
           {WORKS_NOTE.before}
           <span className="text-price">{formatPrice(minimum)}</span>
           {WORKS_NOTE.after}
+          {workCalc && <span className="mt-2 block">{workCalc.note}</span>}
         </p>
       </div>
 

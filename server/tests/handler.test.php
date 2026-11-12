@@ -44,17 +44,17 @@ return [
 PHP;
 file_put_contents("$priv/config.php", $configPhp);
 
-function startServer(string $cmd, array $env = []): array
+function startServer(array $cmd, array $env = []): array
 {
     $proc = proc_open($cmd, [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes, null, $env + getenv());
     usleep(400000);
     return [$proc];
 }
 // opcache выключен: тест подменяет config.php чаще, чем раз в 2 секунды
-$php = 'php -d opcache.enable=0 ';
-[$srvSite] = startServer($php . '-S 127.0.0.1:8090 -t ' . escapeshellarg($pub));
-[$srvStub] = startServer($php . '-S 127.0.0.1:8091 ' . escapeshellarg("$root/server/tests/bitrix-stub.php"), ['BV_STUB_DIR' => $stub]);
-[$srvPriv] = startServer($php . '-S 127.0.0.1:8092 -t ' . escapeshellarg($priv));
+$php = ['php', '-d', 'opcache.enable=0', '-S'];
+[$srvSite] = startServer([...$php, '127.0.0.1:8090', '-t', $pub]);
+[$srvStub] = startServer([...$php, '127.0.0.1:8091', "$root/server/tests/bitrix-stub.php"], ['BV_STUB_DIR' => $stub]);
+[$srvPriv] = startServer([...$php, '127.0.0.1:8092', '-t', $priv]);
 
 register_shutdown_function(static function () use ($srvSite, $srvStub, $srvPriv, $tmp): void {
     foreach ([$srvSite, $srvStub, $srvPriv] as $p) {

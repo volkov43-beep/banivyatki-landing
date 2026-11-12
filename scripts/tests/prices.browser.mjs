@@ -95,6 +95,10 @@ async function verifyLayout(page, region, width) {
   if (komi) assert.equal(answer, 'Баня-Подкова для Сыктывкара и Республики Коми стоит от 363 000 ₽. Цена зависит от размера и комплектации. Примерную стоимость можно посмотреть в калькуляторе. Условия доставки и установки уточним по адресу вашего участка.')
   assert.equal(await faq.locator('a').getAttribute('href'), '#calculator')
   assert.doesNotMatch(await page.locator('#catalog').innerText(), /₽/)
+  const calcLabel = komi ? 'Рассчитать базовую комплектацию' : 'Рассчитать такую'
+  const explanation = 'Калькулятор покажет базовую стоимость бани выбранного размера. Комплектацию как на фото рассчитает менеджер.'
+  assert.equal(await works.getByText(explanation, { exact: true }).count(), komi ? 1 : 0)
+  assert.equal(await works.getByRole('button', { name: calcLabel, exact: true }).count(), 5)
   const projects = works.locator('li')
   assert.equal(await projects.count(), 6)
   assert.doesNotMatch(await projects.last().innerText(), /₽|Аналогичная комплектация/)
@@ -102,7 +106,7 @@ async function verifyLayout(page, region, width) {
   for (const [i, amount] of region.works.entries()) {
     const project = projects.nth(i)
     await fits(project.getByText(rub(amount), { exact: true }))
-    await project.getByRole('button', { name: 'Рассчитать такую' }).click()
+    await project.getByRole('button', { name: calcLabel, exact: true }).click()
     const index = workTargets[i]
     assert.equal(await cards.nth(index % 3).getAttribute('aria-checked'), 'true')
     assert.ok(normalize(await summary.innerText()).endsWith('от ' + rub(region.cards[index])))

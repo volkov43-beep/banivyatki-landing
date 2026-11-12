@@ -19,7 +19,40 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring
+          coverage: none
+      - run: npm ci
+      - name: Install isolated test dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/bv-tests" --no-save --package-lock=false jsdom@26.1.0 playwright-core@1.56.1
+          node "$RUNNER_TEMP/bv-tests/node_modules/playwright-core/cli.js" install --with-deps chromium
+          echo "BV_PLAYWRIGHT_PATH=$RUNNER_TEMP/bv-tests/node_modules/playwright-core/index.mjs" >> "$GITHUB_ENV"
+          echo "BV_JSDOM_PATH=$RUNNER_TEMP/bv-tests/node_modules/jsdom/lib/api.js" >> "$GITHUB_ENV"
+      - name: Test both landings and local CRM stub
+        run: |
+          npm run build
+          node scripts/tests/cta.dom.mjs
+          node scripts/tests/quiz.dom.mjs
+          node scripts/tests/faq.dom.mjs
+          node scripts/tests/prices.browser.mjs
+          node scripts/tests/release.browser.mjs
+          php server/tests/phone.test.php
+          php server/tests/handler.test.php
+          php server/tests/handler.test.php --browser
   build:
+    needs: regression
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,12 +73,14 @@ jobs:
       - name: Validate public files only
         run: |
           test -f dist/index.html
+          test -f dist/syktyvkar/index.html
           test -f dist/privacy/index.html
           test -f dist/api/lead.php
           test -f dist/.htaccess
           test -f dist/robots.txt
           test ! -e dist/private
           test ! -e dist/config.php
+          node scripts/tests/public-build.mjs
           if grep -rq "banivyatki-landing" dist; then
             echo "Unexpected legacy base path in dist" >&2
             exit 1

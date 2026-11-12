@@ -39,6 +39,7 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
   const [status, setStatus] = useState('idle') // idle | sending | done | error
   const [touched, setTouched] = useState(false)
   const [donePromise, setDonePromise] = useState('')
+  const sending = useRef(false)
   const mountedAt = useRef(Date.now())
   const promise = callbackPromise()
 
@@ -51,6 +52,7 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (sending.current) return
     setTouched(true)
     if (!phoneOk || !consent) return
 
@@ -80,6 +82,7 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
       website: trap,
     }
 
+    sending.current = true
     setStatus('sending')
     try {
       const result = await submitLead(payload)
@@ -89,6 +92,7 @@ export default function LeadForm({ variant, lead = {}, submitLabel, goal, formRe
       setStatus('done')
       onSuccess?.()
     } catch {
+      sending.current = false
       setStatus('error')
     }
   }

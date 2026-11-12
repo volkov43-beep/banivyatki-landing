@@ -9,7 +9,7 @@ const { chromium } = await import(process.env.BV_PLAYWRIGHT_PATH || 'playwright-
 const server = await preview({ logLevel: 'silent', preview: { host: '127.0.0.1', port: 0 } })
 const base = 'http://127.0.0.1:' + server.httpServer.address().port
 const browser = await chromium.launch({ executablePath: process.env.BV_CHROMIUM_PATH, args: ['--no-sandbox','--disable-dev-shm-usage'] })
-const sizes = [[320,568],[360,740],[375,812],[390,844],[768,1024],[1024,768],[1280,720],[1440,900]]
+const sizes = [[320,568],[360,740],[374,812],[375,812],[390,844],[768,1024],[1024,768],[1280,720],[1440,900]]
 const labels = { video: 'Видеозвонок', production: 'Производство', showroom: 'Шоурум' }
 const routes = ['/', '/syktyvkar/']
 const utm = { utm_source: 'yandex', utm_medium: 'cpc', utm_campaign: 'visit-test', utm_content: 'video', utm_term: 'баня' }
@@ -176,13 +176,16 @@ async function checkLayout({ page, io }, pathname, width) {
     const text = document.createRange()
     text.selectNodeContents(el)
     const { left, right, top, bottom } = text.getBoundingClientRect()
-    return { left, right, top, bottom, label: el.textContent, x: el.getBoundingClientRect().x, w: el.clientWidth }
+    return { left, right, top, bottom, h: el.clientHeight, label: el.textContent, x: el.getBoundingClientRect().x, w: el.clientWidth }
   }))
   for (const [i, box] of textBoxes.entries()) {
     assert.ok(box.left >= 0 && box.right <= width)
-    // The baseline Kirov selector already crowds two labels at 320px.
-    if (regional || width > 320) assert.ok(i === 0 || textBoxes[i - 1].right < box.left || textBoxes[i - 1].bottom < box.top, JSON.stringify(textBoxes))
-    if (regional) assert.ok(box.left >= box.x && box.right <= box.x + box.w, JSON.stringify(textBoxes))
+    assert.ok(box.left >= box.x && box.right <= box.x + box.w, JSON.stringify(textBoxes))
+    if (width <= 374) {
+      assert.ok(box.h >= 44 && (i === 0 || textBoxes[i - 1].bottom < box.top))
+    } else if (i > 0) {
+      assert.ok(textBoxes[i - 1].right < box.left && Math.abs(textBoxes[i - 1].top - box.top) < 2)
+    }
   }
   assert.equal(io.requests.length, 0)
 }
