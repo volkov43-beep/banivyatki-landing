@@ -48,7 +48,7 @@ function isInView(el) {
  * видит цену выбранного размера и соседние варианты; форма остаётся ниже,
  * без автопрокрутки и подсветки.
  */
-export default function SectionCalculator() {
+export default function SectionCalculator({ delivery }) {
   const [tab, setTab] = useState('self')
   const [season, setSeason] = useState('warm')
   const [selectedId, setSelectedId] = useState(null)
@@ -174,6 +174,7 @@ export default function SectionCalculator() {
         </h2>
 
         <p className="mt-6 max-w-measure border-l-2 border-accent pl-6 text-[18px] leading-[1.45]">{QUOTE}</p>
+        {delivery && <p className="mt-4 max-w-measure text-body">{delivery.calculatorNote}</p>}
 
         <div className="mt-8">
           <Segmented label="Для кого баня" options={TABS} value={tab} onChange={changeTab} full />
@@ -209,6 +210,7 @@ export default function SectionCalculator() {
                 <CalculatorCard
                   key={card.id}
                   card={card}
+                  deliveryNote={delivery?.cardNote}
                   insulated={insulated}
                   selected={card.id === selectedId}
                   tabIndex={selectedIndex === -1 ? (index === 0 ? 0 : -1) : card.id === selectedId ? 0 : -1}

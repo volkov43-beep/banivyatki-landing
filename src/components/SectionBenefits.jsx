@@ -12,7 +12,7 @@ import { track } from '../lib/track.js'
  * главная кнопка «Собрать свою баню»: цель benefits_cta и запрос
  * калькулятору без выбора (lib/calc.js): вкладка «Себе», плавная прокрутка.
  */
-export default function SectionBenefits() {
+export default function SectionBenefits({ timeBenefit }) {
   function open() {
     track('benefits_cta')
     requestCalcOpen()
@@ -31,7 +31,7 @@ export default function SectionBenefits() {
             <li key={item.id}>
               <BenefitIcon name={item.icon} />
               <h3 className="mt-5 text-title">{item.title}</h3>
-              <p className="mt-3 text-body text-muted-on-dark">{item.text}</p>
+              <p className="mt-3 text-body text-muted-on-dark">{item.id === 'time' && timeBenefit ? timeBenefit : item.text}</p>
             </li>
           ))}
         </ul>

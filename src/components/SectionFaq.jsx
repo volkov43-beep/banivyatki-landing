@@ -59,11 +59,12 @@ function Answer({ item }) {
   )
 }
 
-export default function SectionFaq() {
+export default function SectionFaq({ answers }) {
+  const items = answers ? FAQ.map(item => answers[item.n] ? { ...item, text: answers[item.n] } : item) : FAQ
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: FAQ.map((item) => ({
+    mainEntity: items.map((item) => ({
       '@type': 'Question',
       name: item.q,
       acceptedAnswer: { '@type': 'Answer', text: plainAnswer(item) },
@@ -78,7 +79,7 @@ export default function SectionFaq() {
         </h2>
 
         <div className="mt-12 border-b border-muted md:mt-16">
-          {FAQ.map((item) => (
+          {items.map((item) => (
             <details
               key={item.n}
               className="group border-t border-muted"

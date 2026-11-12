@@ -34,6 +34,7 @@ const STEPS = [
     you: null, // ничего
   },
   {
+    id: 'installation',
     title: 'Доставка и установка',
     term: '1 день',
     we: 'Привозим готовую баню и ставим на участке. Если манипулятору не подъехать — собираем на месте за 1–2 дня.',
@@ -49,7 +50,10 @@ const STEPS = [
 
 const SUMMARY = 'Ваша часть — оставить телефон, выбрать баню и показать, где её поставить.'
 
-export default function SectionProcess() {
+export default function SectionProcess({ installationStep }) {
+  const steps = installationStep
+    ? STEPS.map(step => step.id === 'installation' ? { ...step, ...installationStep } : step)
+    : STEPS
   return (
     <section id="process" aria-labelledby="process-title" className="bg-forest py-section-y text-surface md:py-section-y-lg">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
@@ -61,7 +65,7 @@ export default function SectionProcess() {
         </p>
 
         <ol className="mt-12 list-none p-0 md:mt-16">
-          {STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <li
               key={step.title}
               className="grid grid-cols-[2rem_1fr] gap-x-3 border-t border-muted-on-dark py-8 lg:grid-cols-[6rem_1fr] lg:gap-x-8 lg:py-10"

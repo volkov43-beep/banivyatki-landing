@@ -7,7 +7,10 @@ import { requestCalc } from '../lib/calc.js'
 import { track } from '../lib/track.js'
 
 /** Карточки работ. Существующая карта вынесена после квиза в SectionLocations. */
-export default function SectionWorks() {
+export default function SectionWorks({ installationCaption }) {
+  const works = installationCaption
+    ? WORKS.map(work => work.id === 'ustanovka' ? { ...work, caption: installationCaption } : work)
+    : WORKS
   const [open, setOpen] = useState(null)
 
   function openPhoto(work) {
@@ -29,7 +32,7 @@ export default function SectionWorks() {
         <p className="mx-auto mt-4 max-w-measure text-center text-lead">{WORKS_SUBTITLE}</p>
 
         <ul className="mt-12 grid list-none grid-cols-1 gap-x-4 gap-y-8 p-0 min-[600px]:grid-cols-2 md:mt-16 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-10">
-          {WORKS.map((work) => (
+          {works.map((work) => (
             <WorkCard key={work.id} work={work} onOpen={openPhoto} onCalc={calc} />
           ))}
         </ul>

@@ -6,6 +6,7 @@ import SectionWorks from './components/SectionWorks.jsx'
 import SectionReviews from './components/SectionReviews.jsx'
 import QuizSection from './components/quiz/QuizSection.jsx'
 import SectionLocations from './components/SectionLocations.jsx'
+import SectionDelivery from './components/SectionDelivery.jsx'
 import SectionCalculator from './components/SectionCalculator.jsx'
 import SectionBenefits from './components/SectionBenefits.jsx'
 import SectionComparison from './components/SectionComparison.jsx'
@@ -26,17 +27,18 @@ export default function App({ region = REGIONS.kirov }) {
       <main>
         <SectionHero region={region} onCatalogOpen={(opener) => catalogRef.current?.openCatalog(opener)} />
         <CatalogSection ref={catalogRef} onCalculate={(model, opener) => quizRef.current?.startNew(model.crmCode, opener)} />
-        <SectionWorks />
+        <SectionWorks installationCaption={region.delivery?.installationCaption} />
         <SectionReviews />
         <QuizSection ref={quizRef} />
-        <SectionLocations />
-        <SectionCalculator />
-        <SectionBenefits />
+        <SectionLocations settings={region.map} />
+        {region.delivery && <SectionDelivery delivery={region.delivery} />}
+        <SectionCalculator delivery={region.delivery} />
+        <SectionBenefits timeBenefit={region.delivery?.timeBenefit} />
         <SectionComparison />
         <SectionInside />
-        <SectionProcess />
+        <SectionProcess installationStep={region.delivery?.installationStep} />
         <SectionShowroom />
-        <SectionFaq />
+        <SectionFaq answers={region.delivery?.faqAnswers} />
         <SectionFinal />
       </main>
       <Footer />
