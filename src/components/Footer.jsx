@@ -18,7 +18,7 @@ const linkClass = 'text-surface no-underline transition-colors duration-150 hove
  * кнопок и форм. Клик по телефону — общая цель phone_click (слушатель
  * в main.jsx), по ВКонтакте — vk_click.
  */
-export default function Footer() {
+export default function Footer({ address = 'Киров, ул. Ленина, 71Б' }) {
   return (
     <footer className="bg-ink py-12 text-[15px] leading-normal text-muted-on-dark md:py-16">
       <div className="mx-auto max-w-container px-gutter md:px-gutter-lg">
@@ -48,7 +48,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <p>Киров, ул. Ленина, 71Б</p>
+            <p>{address}</p>
             <p className="mt-2">
               <a
                 href={VK_URL}

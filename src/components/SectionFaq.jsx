@@ -49,18 +49,19 @@ function Answer({ item, visitType }) {
           {item.list.map((line) => (
             <li key={line} className="flex items-start">
               <span aria-hidden="true" className="mr-3 mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-              <span>{line}</span>
+              <span>{renderText(line, visitType)}</span>
             </li>
           ))}
         </ul>
       )}
-      {item.after && <p className="mt-3">{item.after}</p>}
+      {item.after && <p className="mt-3">{renderText(item.after, visitType)}</p>}
     </div>
   )
 }
 
-export default function SectionFaq({ answers, visitType = 'showroom' }) {
-  const items = answers ? FAQ.map(item => answers[item.n] ? { ...item, text: answers[item.n] } : item) : FAQ
+export default function SectionFaq({ answers, additionalQuestions = [], visitType = 'showroom' }) {
+  const baseItems = answers ? FAQ.map(item => answers[item.n] ? { ...item, text: answers[item.n] } : item) : FAQ
+  const items = baseItems.concat(additionalQuestions)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -109,7 +110,7 @@ export default function SectionFaq({ answers, visitType = 'showroom' }) {
         </div>
       </div>
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replaceAll('<', '\\u003c') }} />
     </section>
   )
 }

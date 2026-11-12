@@ -46,10 +46,14 @@ export default function App({ region = REGIONS.kirov }) {
         <SectionInside invitation={region.visit?.inside} />
         <SectionProcess process={region.process} />
         <SectionShowroom visit={region.visit} />
-        <SectionFaq visitType={region.visit?.cards[0].id} answers={region.faqAnswers?.(prices.minimum)} />
+        <SectionFaq
+          answers={region.faqAnswers?.(prices.minimum)}
+          additionalQuestions={region.additionalFaqQuestions}
+          visitType={region.visit?.cards[0].id}
+        />
         <SectionFinal />
       </main>
-      <Footer />
+      <Footer address={region.footerAddress} />
     </div>
   )
 }

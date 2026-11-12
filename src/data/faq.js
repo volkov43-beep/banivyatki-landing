@@ -132,7 +132,8 @@ export const FAQ = [
 /** Текст ответа без разметки ссылок — для JSON-LD FAQPage. */
 export function plainAnswer(item) {
   const strip = (s) => s.replace(/\[([^\]]+)\]\(#[^)]+\)/g, '$1')
-  return [strip(item.text), ...(item.list || []).map((line) => `— ${line}`), item.after || '']
+  return [item.text, ...(item.list || []).map((line) => `— ${line}`), item.after]
     .filter(Boolean)
+    .map(strip)
     .join('\n')
 }

@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { build, preview } from 'vite'
 import { OBJECTS, KIROV_LABEL } from '../../src/data/objects.js'
-import { CARDS, MIN_PRICE, formatPrice } from '../../src/data/calculator.js'
-import { FAQ, plainAnswer } from '../../src/data/faq.js'
+import { CARDS, formatPrice } from '../../src/data/calculator.js'
+import { checkFaq } from './faq-checks.mjs'
 import { REGIONS } from '../../src/data/regions.js'
 
 const { chromium } = await import(process.env.BV_PLAYWRIGHT_PATH || 'playwright-core')
@@ -145,19 +145,7 @@ async function checkPage(page, regional, width) {
     }
   }
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
-  const faq = page.locator('#faq')
-  const schema = JSON.parse(await faq.locator('script').textContent())
-  const overrides = regional ? komi.faqAnswers(MIN_PRICE + komi.priceAdjustment) : {}
-  for (const [i, item] of FAQ.entries()) {
-    const override = overrides[item.n]
-    const expected = plainAnswer(override ? { ...item, text: override } : item)
-    assert.equal(schema.mainEntity[i].acceptedAnswer.text, expected)
-    if (item.n === 7 || override) {
-      const answer = faq.locator('details').nth(i)
-      await answer.locator('summary').click()
-      assert.equal(await answer.locator('div > p').first().innerText(), expected)
-    }
-  }
+  await checkFaq(page, regional)
   const calc = page.locator('#calculator')
   if (regional) assert.equal(await calc.getByText(komi.delivery.calculatorNote, { exact: true }).count(), 1)
   for (const season of ['warm','year']) {
@@ -237,7 +225,7 @@ try {
     try {
       if (key) for (const size of sizes) {
         for (const regional of [false, true]) await visit(base, regional, size, 'ready')
-        console.log(size.join('×') + ': both maps and delivery layouts passed')
+        console.log(size.join('×') + ': both maps, delivery layouts and complete FAQs passed')
       }
       for (const regional of [false, true]) await visit(base, regional, sizes[0], key ? 'failed' : 'nokey')
     } finally {
