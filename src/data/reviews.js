@@ -21,7 +21,7 @@ export const SOURCES = {
     id: 'avito',
     name: 'Авито',
     rating: '5,0',
-    count: '40 отзывов',
+    count: '41 отзыв',
     icon: 'review-avito', // круглая: public/photos/review-avito-{112,80,56}.webp
     ratingIcon: 'rating-avito', // квадратная: public/photos/rating-avito-128.webp
   },

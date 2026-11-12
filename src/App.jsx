@@ -15,15 +15,16 @@ import SectionShowroom from './components/SectionShowroom.jsx'
 import SectionFaq from './components/SectionFaq.jsx'
 import SectionFinal from './components/SectionFinal.jsx'
 import Footer from './components/Footer.jsx'
+import { REGIONS } from './data/regions.js'
 
-export default function App() {
+export default function App({ region = REGIONS.kirov }) {
   const catalogRef = useRef(null)
   const quizRef = useRef(null)
   return (
     <div className="relative">
       <Header />
       <main>
-        <SectionHero onCatalogOpen={(opener) => catalogRef.current?.openCatalog(opener)} />
+        <SectionHero region={region} onCatalogOpen={(opener) => catalogRef.current?.openCatalog(opener)} />
         <CatalogSection ref={catalogRef} onCalculate={(model, opener) => quizRef.current?.startNew(model.crmCode, opener)} />
         <SectionWorks />
         <SectionReviews />

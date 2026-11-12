@@ -9,9 +9,10 @@ export default defineConfig({
   base: '/',
   build: {
     rollupOptions: {
-      // Две страницы: лендинг и /privacy/
+      // Оба лендинга используют один React-вход и общие ресурсы.
       input: {
         main: resolve(__dirname, 'index.html'),
+        syktyvkar: resolve(__dirname, 'syktyvkar/index.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),
       },
     },

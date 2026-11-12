@@ -61,7 +61,8 @@ function RatingBadge({ source, className = '' }) {
   )
 }
 
-export default function SectionHero({ onCatalogOpen }) {
+export default function SectionHero({ region, onCatalogOpen }) {
+  const { hero, priceAdjustment } = region
   // «Дыхание» кнопки: один раз, когда она впервые попала в поле зрения;
   // не запускается, если до этого навели или нажали, и при reduced-motion.
   const ctaRef = useRef(null)
@@ -86,9 +87,9 @@ export default function SectionHero({ onCatalogOpen }) {
   }, [])
 
   return (
-    <section id="top" aria-labelledby="hero-title" className="relative bg-ink text-surface">
+    <section id="top" aria-labelledby="hero-title" className={`relative bg-ink text-surface lg:grid${hero.geography ? ' bv-hero-regional' : ''}`}>
       {/* Картинка */}
-      <div className="relative h-[46vh] min-h-[300px] lg:h-[clamp(640px,90vh,900px)]">
+      <div className="relative h-[46vh] min-h-[300px] lg:col-start-1 lg:row-start-1 lg:h-auto lg:min-h-[clamp(640px,90vh,900px)]">
         <picture>
           <source media="(max-width: 1023px)" srcSet={PHOTO.mobile} />
           <source
@@ -136,8 +137,11 @@ export default function SectionHero({ onCatalogOpen }) {
       </div>
 
       {/* Колонка текста: на телефоне под картинкой, на компьютере поверх неё слева */}
-      <div className="px-5 pb-12 pt-6 lg:absolute lg:inset-y-0 lg:left-0 lg:right-[58%] lg:flex lg:p-0 lg:pl-gutter-lg lg:pt-20 lg:[text-shadow:0_1px_24px_rgba(0,0,0,0.35)]">
-        <div className="lg:my-auto lg:max-w-[560px] lg:pb-[4vh]">
+      <div className="px-5 pb-12 pt-6 lg:relative lg:col-start-1 lg:row-start-1 lg:flex lg:w-[42%] lg:p-0 lg:pl-gutter-lg lg:pt-20 lg:[text-shadow:0_1px_24px_rgba(0,0,0,0.35)]">
+        <div className="bv-hero-copy lg:my-auto lg:max-w-[560px] lg:pb-[4vh]">
+          {hero.geography && (
+            <p className="bv-hero-geography mb-2 text-[15px] font-bold leading-snug">{hero.geography}</p>
+          )}
           <h1
             id="hero-title"
             className="text-[clamp(30px,8vw,38px)] font-bold leading-[1.05] lg:text-[clamp(40px,3.38vw,49px)]"
@@ -147,13 +151,16 @@ export default function SectionHero({ onCatalogOpen }) {
           </h1>
 
           <p className="mt-5 text-[20px] leading-[1.4] opacity-[0.85]">
-            Привозим готовой и устанавливаем за 1 день.
+            {hero.subtitle}
           </p>
 
           <p className="mt-8 whitespace-nowrap leading-none lg:mt-6">
-            <span className="text-[32px] font-bold text-accent">{formatPrice(MIN_PRICE)}</span>{' '}
-            <span className="text-[20px]">под ключ</span>
+            <span className="text-[32px] font-bold text-accent">{formatPrice(MIN_PRICE + priceAdjustment)}</span>
+            {hero.priceSuffix && <span className="text-[20px]"> {hero.priceSuffix}</span>}
           </p>
+          {hero.priceNote && (
+            <p className="mt-2 max-w-[43ch] text-[15px] leading-snug">{hero.priceNote}</p>
+          )}
 
           <ul className="mt-8 flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:mt-6 lg:flex-col lg:gap-2 lg:text-[16px]">
             {FACTS.map((fact) => {
@@ -174,7 +181,7 @@ export default function SectionHero({ onCatalogOpen }) {
           </ul>
 
           {/* Плашка рейтинга под фактами, кнопка под плашкой */}
-          <div className="mt-6 flex flex-col gap-5 lg:gap-4">
+          <div className="bv-hero-actions mt-6 flex flex-col gap-5 lg:gap-4">
             <RatingBadge source={SOURCES.avito} />
             <Button
               onClick={(event) => onCatalogOpen(event.currentTarget)}
