@@ -138,6 +138,11 @@ function logText(): string
 }
 
 resetStub('ok');
+if (($argv[1] ?? '') === '--browser') {
+    putenv("BV_STUB_CALLS=$stub/calls.log");
+    passthru('node ' . escapeshellarg("$root/scripts/tests/crm.browser.mjs"), $result);
+    exit($result);
+}
 
 // --- метод, origin, JSON ---
 [$c, $b] = http('GET', 'http://127.0.0.1:8090/api/lead.php');
@@ -204,7 +209,7 @@ foreach ([
         [$status] = post(lead(['price_shown' => $amount, 'option_shown' => $option, 'page_url' => $page]));
         $deal = lastDeal();
         check("calculator $path $option: one deal with displayed quote", $status === 200
-            && count(stubCalls()) === 3 && $deal['TITLE'] === "Сайт · Расчёт · $option · $formatted"
+            && count(stubCalls()) === 3 && $deal['TITLE'] === ($path === '/' ? '' : 'Сыктывкар · ') . "Сайт · Расчёт · $option · $formatted"
             && str_contains($deal['COMMENTS'], "Выбранный вариант: $option\nПоказанная цена: $formatted\n")
             && str_contains($deal['COMMENTS'], "Страница: $page\n") && $deal['UTM_SOURCE'] === 'yandex'
             && $deal['UTM_CAMPAIGN'] === 'test');
@@ -224,7 +229,7 @@ foreach (['/', '/syktyvkar/'] as $path) {
         $deal = lastDeal();
         check("visit $path $type: одна сделка, способ показа, страница и UTM",
             $status === 200 && count(stubCalls()) === 3
-            && $deal['TITLE'] === 'Сайт · Запись: ' . mb_strtolower($label)
+            && $deal['TITLE'] === ($path === '/' ? '' : 'Сыктывкар · ') . 'Сайт · Запись: ' . mb_strtolower($label)
             && str_contains($deal['COMMENTS'], 'Тип визита: ' . $label)
             && str_contains($deal['COMMENTS'], 'Страница: ' . $url)
             && $deal['UTM_CAMPAIGN'] === 'test');
@@ -454,6 +459,8 @@ resetStub('ok');
 exec('php ' . escapeshellarg("$priv/retry.php") . ' 2>&1', $komiRetryOut, $komiRetryRc);
 check('quiz Komi retry decodes original budget', $komiRetryRc === 0 && count(queueFiles()) === 0
     && str_contains(lastDeal()['COMMENTS'], "Бюджет: 420–570 тыс. ₽\n"));
+
+require __DIR__ . '/regional-cases.php';
 
 // --- повторное обращение ---
 resetStub('found');

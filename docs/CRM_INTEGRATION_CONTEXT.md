@@ -1,5 +1,11 @@
 # Технический контекст интеграции banivyatki.ru → Битрикс24
 
+## Региональная библиотека в Draft PR №58 · 12 ноября 2026 года
+
+На ветке `feature/syktyvkar-landing` PHP вычисляет `landing_region` по исходному URL до сокращения для комментария. Для Сыктывкара `TITLE` и `COMMENTS` получают согласованную маркировку. Повторный контакт, источник и UTM сохраняют прежние правила. Очередь хранит идентификатор региона, старые записи обрабатываются по сохранённому URL. PHP поддерживает региональные бюджеты квиза v1. Точный контракт, примеры, тесты и последовательность разрешённого в будущем обновления на REG.RU приведены в [документации регионального лендинга](SYKTYVKAR_LANDING.md).
+
+Продакшен-библиотека в этой итерации не менялась. Приведённые далее сведения о Beget и прежних релизах относятся к датам соответствующих записей.
+
 Инвентаризация: **8 октября 2026 года**. Репозиторий `volkov43-beep/banivyatki-landing`, базовый HEAD `bdca6c33b3d9051ec2ae78d32e8721f00ec56005`, актуализация по ветке `feature/sauna-quiz` от main ddcb019. Полный действующий контракт квиза — `docs/QUIZ_IMPLEMENTATION.md`.
 
 Документ основан на текущих React/PHP-файлах, образце конфигурации, тестах и workflow. Действующий сервер, приватный конфиг, Битрикс24, cron и кабинет Метрики не проверялись. Значения секретов, credentials и URL вебхука не приводятся, в том числе в примерах. Все примеры данных ниже синтетические: телефон состоит из нулей, имя/ответы/UTM вымышленные. Имена конфигурационных ключей обозначают структуру, а не раскрывают значения.
@@ -168,6 +174,7 @@ PHP endpoint вычисляет путь `dirname(__DIR__, 2) . '/private/lib.ph
 | question | string ≤2000 | Нет обязательности для faq_question на PHP |
 | company | string ≤200 | Только текст COMMENTS, не COMPANY_ID/CRM COMPANY |
 | comment | string ≤2000 | Общий COMMENTS-текст, не отдельная запись ленты |
+| landing_region | В версии PR №58: `syktyvkar` либо пустая строка | Вычисляет сервер по исходному `page_url`; значение из payload игнорируется. |
 | page_url, referrer | Каждый string ≤500 | Не URL-validation; присланные строки не считаются доверенным доказательством источника |
 | submitted_at | string ≤40 | Дата не отвергается; invalid заменяется серверным временем при форматировании |
 | utm_source, utm_medium, utm_campaign, utm_content, utm_term | Каждый string ≤200 | Пустые сохраняются в lead, но пропускаются в CRM fields/строке меток |
@@ -471,7 +478,7 @@ Analytics: `catalog_submit` после ok, `catalog_open` при открыти�
 - Retry HTTP 404; CLI отправляет jobs и очищает queue; 10-я ошибка → failed; второй retry выходит по lock.
 - 6-й запрос IP →429; очистка старых log; отсутствующий/неполный/синтаксически неверный config и отсутствующая lib.
 
-Stub modes сейчас `ok`, `found`, `error`, `timeout`; error/timeout действуют для любого первого вызова, поэтому не моделируют отдельно «contact создан, затем deal упал». Добавлен явный regression happy path business и catalog cases. Нет полного покрытия strict enum/длинных текстов/oversized body/nested answers/непишущейся очереди/реального browser timeout/случая неопределённого результата deal.add. Локальные PHP-тесты не проверяют React/счётчик/live portal/серверный cron. Handler расширен и запущен на PHP8.3:213 проверок пройдены, phone22 случая пройдены. Добавлено130 quiz cases: enums/CSV/dedup/exclusive/missing/types/lengths/точный COMMENTS/source/queue/retry и приватность логов.
+На дату первоначальной проверки использовались режимы `ok`, `found`, `error`, `timeout`; error/timeout действуют для любого первого вызова, поэтому не моделируют отдельно «contact создан, затем deal упал». Добавлен явный regression happy path business и catalog cases. Нет полного покрытия strict enum/длинных текстов/oversized body/nested answers/непишущейся очереди/реального browser timeout/случая неопределённого результата deal.add. В итерации №7 добавлены режимы `deal_error` и `found_deal_error` для частичного сбоя и повтора с сохранённым контактом. Локальные PHP-тесты не проверяют React/счётчик/live portal/серверный cron. Handler расширен и запущен на PHP8.3:213 проверок пройдены, phone22 случая пройдены. Добавлено130 quiz cases: enums/CSV/dedup/exclusive/missing/types/lengths/точный COMMENTS/source/queue/retry и приватность логов.
 
 Команды выполненной проверки: `php server/tests/phone.test.php`, `php server/tests/handler.test.php`. Handler использует временную копию сайта и локальные PHP-серверы на 8090/8091/8092, требует cURL/mbstring/CLI/proc_open и свободные порты. Не подставлять production webhook в stub tests.
 
