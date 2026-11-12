@@ -15,8 +15,8 @@
  * не резалось краем. Тексту дана мягкая тень без чёткого края.
  *
  * Порядок в колонке: заголовок, подзаголовок, цена, факты, плашка рейтинга
- * Авито, кнопка — на всех ширинах (рядом с кнопкой плашка в колонку 557 px
- * на 1440 не помещается, поэтому над ней). Плашка
+ * Авито, кнопка. В региональном варианте до 1024 px кнопка стоит
+ * сразу после пояснения под ценой. Плашка
  * (данные SOURCES.avito из data/reviews.js): название площадки словами, оценка
  * крупно, звёзды контуром (RatingStars outline), число оценок мелко; без
  * ссылки и без логотипа. Факт «5,0 на Авито» из списка фактов ушёл в плашку.
@@ -47,6 +47,8 @@ const FACTS = [
 function RatingBadge({ source, className = '' }) {
   return (
     <div
+      role="group"
+      aria-label={`Рейтинг ${source.name}`}
       className={`inline-flex items-center gap-3 self-start rounded-md border border-[rgba(244,234,223,0.22)] bg-[rgba(20,14,10,0.35)] px-4 py-2.5 backdrop-blur-[6px] ${className}`}
     >
       <span className="text-[28px] font-bold leading-none">{source.rating}</span>
@@ -63,6 +65,9 @@ function RatingBadge({ source, className = '' }) {
 
 export default function SectionHero({ region, onCatalogOpen }) {
   const { hero, priceAdjustment } = region
+  const catalogButtonPlacement = hero.geography
+    ? 'order-first mb-6 lg:order-none lg:mb-0 lg:mt-4'
+    : 'mt-5 lg:mt-4'
   // «Дыхание» кнопки: один раз, когда она впервые попала в поле зрения;
   // не запускается, если до этого навели или нажали, и при reduced-motion.
   const ctaRef = useRef(null)
@@ -87,7 +92,7 @@ export default function SectionHero({ region, onCatalogOpen }) {
   }, [])
 
   return (
-    <section id="top" aria-labelledby="hero-title" className={`relative bg-ink text-surface lg:grid${hero.geography ? ' bv-hero-regional' : ''}`}>
+    <section id="top" aria-labelledby="hero-title" className="relative bg-ink text-surface lg:grid">
       {/* Картинка */}
       <div className="relative h-[46vh] min-h-[300px] lg:col-start-1 lg:row-start-1 lg:h-auto lg:min-h-[clamp(640px,90vh,900px)]">
         <picture>
@@ -138,9 +143,9 @@ export default function SectionHero({ region, onCatalogOpen }) {
 
       {/* Колонка текста: на телефоне под картинкой, на компьютере поверх неё слева */}
       <div className="px-5 pb-12 pt-6 lg:relative lg:col-start-1 lg:row-start-1 lg:flex lg:w-[42%] lg:p-0 lg:pl-gutter-lg lg:pt-20 lg:[text-shadow:0_1px_24px_rgba(0,0,0,0.35)]">
-        <div className="bv-hero-copy lg:my-auto lg:max-w-[560px] lg:pb-[4vh]">
+        <div className="lg:my-auto lg:max-w-[560px] lg:pb-[4vh]">
           {hero.geography && (
-            <p className="bv-hero-geography mb-2 text-[15px] font-bold leading-snug">{hero.geography}</p>
+            <p className="mb-2 text-[15px] font-bold leading-snug">{hero.geography}</p>
           )}
           <h1
             id="hero-title"
@@ -162,27 +167,26 @@ export default function SectionHero({ region, onCatalogOpen }) {
             <p className="mt-2 max-w-[43ch] text-[15px] leading-snug">{hero.priceNote}</p>
           )}
 
-          <ul className="mt-8 flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:mt-6 lg:flex-col lg:gap-2 lg:text-[16px]">
-            {FACTS.map((fact) => {
-              const inner = (
-                <>
-                  <b className="font-bold">{fact.strong}</b>{' '}
-                  <span className="opacity-75">{fact.rest}</span>
-                </>
-              )
-              return (
-                /* Точка и пункт не разрываются переносом: перенос идёт целым пунктом */
-                <li key={fact.strong} className="flex items-start whitespace-nowrap">
-                  <span aria-hidden="true" className="mr-3 mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  <span>{inner}</span>
-                </li>
-              )
-            })}
-          </ul>
+          <div className={`flex flex-col ${hero.geography ? 'mt-6 [reading-flow:flex-visual]' : 'mt-8 lg:mt-6'}`}>
+            <ul className="flex list-none flex-wrap gap-x-7 gap-y-2 p-0 text-[15px] leading-[1.3] lg:flex-col lg:gap-2 lg:text-[16px]">
+              {FACTS.map((fact) => {
+                const inner = (
+                  <>
+                    <b className="font-bold">{fact.strong}</b>{' '}
+                    <span className="opacity-75">{fact.rest}</span>
+                  </>
+                )
+                return (
+                  /* Точка и пункт не разрываются переносом: перенос идёт целым пунктом */
+                  <li key={fact.strong} className="flex items-start whitespace-nowrap">
+                    <span aria-hidden="true" className="mr-3 mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                    <span>{inner}</span>
+                  </li>
+                )
+              })}
+            </ul>
 
-          {/* Плашка рейтинга под фактами, кнопка под плашкой */}
-          <div className="bv-hero-actions mt-6 flex flex-col gap-5 lg:gap-4">
-            <RatingBadge source={SOURCES.avito} />
+            <RatingBadge source={SOURCES.avito} className="mt-6" />
             <Button
               onClick={(event) => onCatalogOpen(event.currentTarget)}
               arrow
@@ -191,7 +195,7 @@ export default function SectionHero({ region, onCatalogOpen }) {
               onMouseEnter={cancelBreathe}
               onPointerDown={cancelBreathe}
               onFocus={cancelBreathe}
-              className={`self-start${breathe ? ' bv-breathe' : ''}`}
+              className={`self-start ${catalogButtonPlacement}${breathe ? ' bv-breathe' : ''}`}
             >
               Получить каталог
             </Button>

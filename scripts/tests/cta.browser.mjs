@@ -27,20 +27,37 @@ async function checkHero(page, width, regional) {
   for (const text of [expectedPrice, subtitle, '5,0', 'Авито', '41 отзыв']) {
     check(`${label}: ${text}`, await hero.getByText(text, { exact: true }).isVisible())
   }
-  check(`${label}: geography`, await hero.getByText('Сыктывкар и Республика Коми', { exact: true }).count() === Number(regional))
-  check(`${label}: delivery note`, await hero.getByText('Точная стоимость с доставкой и установкой зависит от адреса участка.', { exact: true }).count() === Number(regional))
+  const geography = hero.getByText('Сыктывкар и Республика Коми', { exact: true })
+  const note = hero.getByText('Стоимость доставки и установки уточним по адресу вашего участка.', { exact: true })
+  check(`${label}: geography`, await geography.count() === Number(regional))
+  check(`${label}: delivery note`, await note.count() === Number(regional))
   check(`${label}: Hero photo decoded`, await hero.locator('picture img').evaluate(img => img.complete && img.naturalWidth > 0))
   check(`${label}: no horizontal overflow`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   check(`${label}: price fits`, await hero.getByText(expectedPrice, { exact: true }).evaluate(el => {
     const rect = el.getBoundingClientRect()
     return rect.left >= 0 && rect.right <= innerWidth
   }))
-  if (regional) {
-    check(`${label}: CTA fits initial viewport and is unobstructed`, await cta.evaluate(el => {
-      const r = el.getBoundingClientRect()
-      return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight &&
-        el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))
-    }))
+
+  const facts = hero.getByRole('list')
+  const badge = hero.getByRole('group', { name: 'Рейтинг Авито' })
+  const mobileRegional = regional && width < 1024
+  const offer = [
+    ...(regional ? [geography] : []),
+    hero.getByRole('heading', { level: 1 }),
+    hero.getByText(subtitle, { exact: true }),
+    hero.getByText(expectedPrice, { exact: true }),
+    ...(regional ? [note] : []),
+  ]
+  const sequence = [...offer, ...(mobileRegional ? [cta, facts, badge] : [facts, badge, cta])]
+  const boxes = await Promise.all(sequence.map(element => element.boundingBox()))
+  check(`${label}: offer, CTA, facts and Avito badge follow the required visual order without overlaps`,
+    boxes.every((box, i) => box && box.width > 0 && box.height > 0 && (i === 0 || box.y >= boxes[i - 1].y + boxes[i - 1].height - 1)))
+  check(`${label}: one native Hero button, including hidden elements`, await hero.locator('button').count() === 1 && await cta.count() === 1)
+  check(`${label}: both facts in order`, (await facts.getByRole('listitem').allTextContents()).join(' / ') === '1000+ бань с 2012 года / Гарантия 5 лет')
+  if (mobileRegional) {
+    const noteBox = await note.boundingBox(), buttonBox = await cta.boundingBox()
+    const gap = buttonBox.y - (noteBox.y + noteBox.height)
+    check(`${label}: comfortable gap directly below delivery note`, gap >= 16 && gap <= 32)
   }
 }
 try {
@@ -81,7 +98,16 @@ try {
     await checkHero(page, width, true)
     await page.screenshot({ path: path.join(output, `regional-viewport-${width}.png`) })
     const regionalButton = page.locator('#top').getByRole('button', { name: 'Получить каталог', exact: true })
-    await regionalButton.click()
+    await page.locator('header a[href^="tel:"]').focus()
+    await page.keyboard.press('Tab')
+    check(`${width}: Tab reaches the regional CTA after the header`, await regionalButton.evaluate(el => el === document.activeElement))
+    await regionalButton.scrollIntoViewIfNeeded()
+    check(`${width}: regional CTA unobstructed after scrolling`, await regionalButton.evaluate(el => {
+      const r = el.getBoundingClientRect()
+      return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight &&
+        el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))
+    }))
+    await page.keyboard.press('Enter')
     const regionalModal = page.locator('dialog[open]')
     await regionalModal.getByText('Каталог всех моделей', { exact: true }).waitFor()
     check(`${width}: regional CTA opens one catalog`, await regionalModal.count() === 1 && await page.evaluate(() => window.__qaGoals.filter(g => g.goal === 'catalog_open' && g.params.model === 'all').length === 1))
