@@ -286,11 +286,11 @@ export default function SectionCalculator({ cardsBySeason, delivery }) {
       {showBar && (
         <div className="fixed inset-x-0 bottom-0 z-20 bg-ink pb-[env(safe-area-inset-bottom)] text-surface lg:hidden">
           <div className="flex h-16 items-center justify-between gap-4 px-4">
-            <p className="min-w-0 text-[15px] leading-tight">
+            <p className="shrink-0 text-[15px] leading-tight">
               <span className="block truncate">{selected.size}, </span>
-              <b className="block truncate font-bold text-accent">{formatPrice(selected.price)}</b>
+              <b className="block whitespace-nowrap font-bold text-accent">{formatPrice(selected.price)}</b>
             </p>
-            <Button size="md" onClick={goToForm} className="shrink-0">
+            <Button size="md" onClick={goToForm}>
               Получить расчёт
             </Button>
           </div>

@@ -66,13 +66,20 @@ async function fixture([width, height]) {
 }
 
 async function fits(price) {
-  assert.ok(await price.evaluate(el => {
+  const geometry = await price.evaluate(el => {
     const range = document.createRange()
     range.selectNodeContents(el)
-    const rect = range.getBoundingClientRect(), box = el.getBoundingClientRect()
-    return range.getClientRects().length === 1 && rect.left >= box.left - 1 && rect.right <= box.right + 1 &&
-      rect.left >= 0 && rect.right <= innerWidth && el.scrollWidth <= el.clientWidth + 1
-  }), 'price must fit on one line')
+    const rect = range.getBoundingClientRect()
+    const box = el.getBoundingClientRect()
+    // A fallback font can draw Cyrillic text and ₽ in separate runs on the same line.
+    const fragments = [...range.getClientRects()].filter(r => r.width > 0)
+    const oneLine = fragments.length > 0 && Math.max(...fragments.map(r => r.top)) < Math.min(...fragments.map(r => r.bottom))
+    return { value: el.textContent, oneLine, width: innerWidth, left: rect.left, right: rect.right,
+      boxLeft: box.left, boxRight: box.right, clipped: el.scrollWidth > el.clientWidth + 1 }
+  })
+  assert.ok(geometry.oneLine && !geometry.clipped && geometry.left >= geometry.boxLeft - 1 &&
+    geometry.right <= geometry.boxRight + 1 && geometry.left >= 0 && geometry.right <= geometry.width,
+    'Price must fit on one line: ' + JSON.stringify(geometry))
 }
 
 async function verifyLayout(page, region, width) {
