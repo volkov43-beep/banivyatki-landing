@@ -150,7 +150,16 @@ async function verifyLayout(page, region, width) {
       await fits(stickyPrice)
     }
   }
-  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  const overflow = await page.evaluate(() => {
+    if (document.documentElement.scrollWidth <= innerWidth) return null
+    return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+      elements: [...document.querySelectorAll('body *')].filter(el => {
+        const box = el.getBoundingClientRect()
+        return box.width && box.right > innerWidth + 0.5
+      }).map(el => [el.tagName, el.closest('section')?.id, el.className?.toString().slice(0, 100),
+        Math.round(el.getBoundingClientRect().right)]).slice(0, 16) }
+  })
+  assert.equal(overflow, null, region.path + ' horizontal overflow: ' + JSON.stringify(overflow))
 }
 
 async function checkCalculatorPost({ page, requests }, region, i) {
