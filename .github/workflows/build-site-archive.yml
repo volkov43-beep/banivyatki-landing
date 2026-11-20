@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: ${{ github.ref == 'refs/heads/main' && 'banivyatki-reg-ru-deploy' || format('banivyatki-reg-ru-{0}', github.ref) }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   regression:

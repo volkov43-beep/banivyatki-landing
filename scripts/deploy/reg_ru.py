@@ -150,16 +150,22 @@ def preview(ftp):
     for file in sorted(DIST.rglob("*")):
         if not file.is_file():
             continue
+        name = file.relative_to(DIST).as_posix()
+        # The pinned FTP action excludes Git placeholders from public transfers.
+        if name == "photos/.gitkeep":
+            continue
         try:
-            actual = remote_hash(ftp, file.relative_to(DIST).as_posix())
+            actual = remote_hash(ftp, name)
         except ftplib.error_perm as error:
             if not str(error).startswith("550"):
                 raise
+            print("Absent or unreadable:", name)
             missing += 1  # Servers can also use 550 for an unreadable file.
             continue
         if actual == digest(file.read_bytes()):
             same += 1
         else:
+            print("Different:", name)
             changed += 1
     print(f"Public dry-run: {same} identical, {changed} different, {missing} absent or unreadable; no writes")
 

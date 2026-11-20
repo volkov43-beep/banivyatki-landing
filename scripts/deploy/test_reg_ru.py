@@ -110,6 +110,8 @@ class DeployTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp)
             (dist / "index.html").write_bytes(b"new")
+            (dist / "photos").mkdir()
+            (dist / "photos/.gitkeep").touch()
             ftp = PrivateFTP({"index.html": b"previous"})
             with patch.object(deploy, "DIST", dist):
                 deploy.preview(ftp)
