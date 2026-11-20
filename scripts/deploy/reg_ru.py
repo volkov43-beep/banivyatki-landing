@@ -95,7 +95,10 @@ def open_root(ftp, domain, path):
 
 def private_php(ftp, root, apply):
     private = root.parent / "private"
-    ftp.cwd(str(private))
+    try:
+        ftp.cwd(str(private))
+    except ftplib.error_perm:
+        raise ValueError("Cannot enter the adjacent private directory; check its existence and FTPS access") from None
     if ftp.pwd() != str(private):
         raise ValueError("Private directory resolved outside the expected location")
     # Check the existence of the CRM configuration without transferring its contents.
@@ -213,7 +216,11 @@ def main():
     with ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=30) as ftp:
         print("Opening verified FTPS connection for", args.domain, flush=True)
         ftp.connect(host, 21)
+        print("FTP greeting received; negotiating explicit TLS", flush=True)
+        ftp.auth()
+        print("FTPS certificate and hostname verified;", ftp.sock.version(), "starting account login", flush=True)
         ftp.login(os.environ["FTP_USER"], os.environ["FTP_PASS"])
+        print("FTPS login accepted; requesting protected data channel", flush=True)
         ftp.prot_p()
         print("Checking configured FTP root against the HTTPS site", flush=True)
         root = open_root(ftp, args.domain, path)
@@ -231,6 +238,9 @@ if __name__ == "__main__":
         main()
     except ftplib.all_errors + (ValueError, subprocess.CalledProcessError) as exc:
         # FTP replies can contain paths/usernames. Keep them out of Actions logs.
+        if isinstance(exc, (ftplib.error_perm, ftplib.error_temp)):
+            code = str(exc)[:3]
+            sys.exit("FTP command rejected" + (" (FTP " + code + ")" if code.isdigit() else ""))
         if isinstance(exc, ValueError):
             sys.exit(str(exc))
         sys.exit(f"REG.RU check failed ({type(exc).__name__}). Check the selected host, access and paths.")
