@@ -67,6 +67,13 @@ jobs:
             exit 1
           fi
           npm run build
+      - name: Test both apex sites and www redirects with Apache
+        run: |
+          if [[ ! -x /usr/sbin/apache2 ]]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y apache2-bin
+          fi
+          bash scripts/deploy/check_apache.sh
       - name: Test landings, forms and both domain identities
         run: |
           node scripts/tests/cta.dom.mjs
@@ -99,7 +106,7 @@ jobs:
         id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: banivyatki-reg-ru-site
+          name: ${{ github.run_attempt == 1 && 'banivyatki-reg-ru-site' || format('banivyatki-reg-ru-site-{0}', github.run_attempt) }}
           path: dist/
           include-hidden-files: true
           if-no-files-found: error

@@ -110,3 +110,28 @@ class DeployTest(unittest.TestCase):
             with patch.object(deploy, "DIST", dist):
                 deploy.preview(ftp)
             self.assertEqual(ftp.writes, [])
+
+    def test_https_verification_detects_stale_release(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp)
+            (dist / "api").mkdir()
+            (dist / "syktyvkar").mkdir()
+            (dist / "syktyvkar/index.html").write_bytes(b"region")
+            ftp = PrivateFTP({".htaccess": b"rules", "api/lead.php": b"handler"})
+            for name, content in ftp.data.items():
+                (dist / name).write_bytes(content)
+
+            def response(domain, path, limit):
+                if domain.startswith("www."):
+                    return 301, {"Location": "https://" + deploy.MIRROR + path}, b""
+                if path.startswith("/syktyvkar/?"):
+                    return 200, {}, b"region"
+                self.assertEqual(path, "/api/lead.php")
+                return 405, {}, b'{"ok":false,"error":"method_not_allowed"}'
+
+            with patch.object(deploy, "DIST", dist), patch.object(deploy, "public_get", side_effect=response):
+                deploy.verify(ftp, deploy.MIRROR)
+                (dist / "syktyvkar/index.html").write_bytes(b"next release")
+                with self.assertRaisesRegex(ValueError, "Public release mismatch"):
+                    deploy.verify(ftp, deploy.MIRROR)
+            self.assertEqual(ftp.writes, [])
