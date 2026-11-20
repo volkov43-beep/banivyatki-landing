@@ -1,0 +1,64 @@
+# Temporary PR acceptance exercise. All transfers stay on the ephemeral runner.
+name: PR 59 isolated FTPS failure exercise
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.event.pull_request.number == 59 && github.head_ref == 'deploy/bani-vyatki-reg-ru-20261120'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: healthy
+            port: 2121
+          - host: connection-refused
+            port: 2122
+    name: Fixture · ${{ matrix.host }}
+    steps:
+      - name: Start an isolated TLS-only FTP service
+        run: |
+          mkdir -p web/public dist
+          echo "$GITHUB_SHA" > dist/index.html
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 -keyout "$RUNNER_TEMP/key" -out "$RUNNER_TEMP/ca.pem" -subj /CN=localhost -addext subjectAltName=DNS:localhost,IP:127.0.0.1 2>/dev/null
+          python3 -m venv "$RUNNER_TEMP/drill"
+          "$RUNNER_TEMP/drill/bin/pip" -q install pyftpdlib pyOpenSSL
+          cat > "$RUNNER_TEMP/fixture.py" <<'PY'
+          import os
+          from pyftpdlib.authorizers import DummyAuthorizer
+          from pyftpdlib.handlers import TLS_FTPHandler
+          from pyftpdlib.servers import FTPServer
+          h = TLS_FTPHandler
+          h.authorizer = DummyAuthorizer()
+          h.authorizer.add_user("fixture", "ephemeral", os.path.abspath("web"), perm="elradfmwMT")
+          h.certfile = os.environ["RUNNER_TEMP"] + "/ca.pem"
+          h.keyfile = os.environ["RUNNER_TEMP"] + "/key"
+          h.tls_control_required = h.tls_data_required = True
+          FTPServer(("127.0.0.1", 2121), h).serve_forever()
+          PY
+          "$RUNNER_TEMP/drill/bin/python" "$RUNNER_TEMP/fixture.py" > "$RUNNER_TEMP/ftp.log" 2>&1 &
+          for attempt in {1..20}; do
+            if nc -z 127.0.0.1 2121; then break; fi
+            sleep 1
+          done
+          nc -z 127.0.0.1 2121
+          echo "NODE_EXTRA_CA_CERTS=$RUNNER_TEMP/ca.pem" >> "$GITHUB_ENV"
+      - name: Publish fixture with the production FTPS action
+        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65
+        with:
+          server: 127.0.0.1
+          username: fixture
+          password: ephemeral
+          port: ${{ matrix.port }}
+          protocol: ftps
+          security: strict
+          server-dir: ./public/
+          local-dir: ./dist/
+          dangerous-clean-slate: false
+          log-level: minimal
+      - name: Compare the received release bytes
+        run: cmp dist/index.html web/public/index.html

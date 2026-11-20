@@ -93,10 +93,21 @@ def private_php(ftp, root, apply):
     ftp.cwd(str(private))
     if ftp.pwd() != str(private):
         raise ValueError("Private directory resolved outside the expected location")
+    # Check the existence of the CRM configuration without transferring its contents.
+    ftp.voidcmd("TYPE I")
+    try:
+        config_size = ftp.size("config.php")
+    except ftplib.error_perm:
+        raise ValueError("Cannot confirm private/config.php; check bootstrap and FTPS metadata access") from None
+    if not config_size:
+        raise ValueError("The private CRM configuration is missing or empty")
     changes = {}
     for name in PHP_FILES:
         expected = digest(Path("server", name).read_bytes())
-        actual = remote_hash(ftp, name)
+        try:
+            actual = remote_hash(ftp, name)
+        except ftplib.error_perm:
+            raise ValueError("Cannot read private/" + name + "; check bootstrap and FTPS permissions") from None
         if actual != expected:
             if actual not in known_hashes(name):
                 raise ValueError(name + " differs from reviewed Git history; inspect the server copy")
@@ -189,13 +200,16 @@ def main():
     if not all(os.environ.get(key) for key in ("FTP_HOST", "FTP_USER", "FTP_PASS")):
         raise ValueError("Incomplete FTPS credentials for " + args.domain)
     with ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=30) as ftp:
+        print("Opening verified FTPS connection for", args.domain, flush=True)
         ftp.connect(host, 21)
         ftp.login(os.environ["FTP_USER"], os.environ["FTP_PASS"])
         ftp.prot_p()
+        print("Checking configured FTP root against the HTTPS site", flush=True)
         root = open_root(ftp, args.domain, path)
         if args.action == "verify":
             verify(ftp, args.domain)
         else:
+            print("Checking adjacent private directory and PHP versions", flush=True)
             private_php(ftp, root, args.action == "prepare")
             if args.action == "preview":
                 preview(ftp)

@@ -13,6 +13,13 @@ class PrivateFTP:
         self.data = dict(data)
         self.writes = []
 
+    def voidcmd(self, cmd):
+        assert cmd == "TYPE I"
+
+    def size(self, name):
+        assert name == "config.php"
+        return 256
+
     def cwd(self, value):
         self.directory = value
 
