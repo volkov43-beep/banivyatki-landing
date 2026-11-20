@@ -6,7 +6,6 @@ import { build } from 'esbuild'
 
 const { chromium } = await import(process.env.BV_PLAYWRIGHT_PATH || 'playwright-core')
 assert.ok(process.env.BV_STUB_CALLS, 'Start with handler.test.php --browser')
-const origin = 'https://banivyatki.ru'
 const dist = path.resolve('dist')
 const header = 'Лендинг: Сыктывкар / Республика Коми\nУсловия: региональная стоимость\nУточнить населённый пункт, адрес доставки и условия установки.\n'
 const goals = { catalog: 'catalog_submit', calculator: 'calc_submit', quiz: 'quiz_submit', visit: 'visit_submit',
@@ -67,7 +66,7 @@ async function openForm(page, scenario, regional) {
   }
 }
 
-async function checkSubmission(scenario, regional, seq) {
+async function checkSubmission(origin, scenario, regional, seq) {
   const page = await browser.newPage({ reducedMotion: 'reduce', serviceWorkers: 'block' })
   const errors = []
   page.on('pageerror', err => errors.push(err.message))
@@ -174,14 +173,16 @@ async function checkSubmission(scenario, regional, seq) {
     if (form === 'quiz') assert.ok(deal.COMMENTS.includes('Бюджет: ' + (regional ? '570–770' : '500–700') + ' тыс. ₽'))
     if (form === 'visit') assert.equal(payload.visit_type, 'video')
     assert.deepEqual(errors, [])
-    console.log(pathname + ' ' + scenario + ': failed attempt, accepted retry and one local CRM deal passed')
+    console.log(origin + pathname + ' ' + scenario + ': failed attempt, accepted retry and one local CRM deal passed')
   } finally { await page.close() }
 }
 try {
   let seq = 0
-  for (const regional of [false, true]) {
-    for (const scenario of ['all','model','calculator','business','visit','faq_question','final','quiz']) {
-      await checkSubmission(scenario, regional, ++seq)
+  for (const origin of ['https://banivyatki.ru', 'https://bani-vyatki.ru']) {
+    for (const regional of [false, true]) {
+      for (const scenario of ['all','model','calculator','business','visit','faq_question','final','quiz']) {
+        await checkSubmission(origin, scenario, regional, ++seq)
+      }
     }
   }
 } finally { await browser.close() }

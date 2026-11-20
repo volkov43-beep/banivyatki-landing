@@ -5,7 +5,9 @@
 Исходный код и PR: GitHub, ветка `main`.
 Сборка и публикация: `.github/workflows/build-site-archive.yml` (GitHub Actions).
 Публичные файлы: REG.RU, `/var/www/u3717330/data/www/banivyatki.ru/`.
-Приватный PHP: REG.RU, `/var/www/u3717330/data/www/private/`; **не публикуется GitHub Actions**.
+Приватный PHP находится в `/var/www/u3717330/data/www/private/`. Актуальные проверки двух хостингов, условия обновления двух файлов PHP и режим ручного запуска описаны в [инструкции по двум доменам](REG_RU_MIRROR_DEPLOY.md).
+
+Ниже приведена первоначальная процедура перехода Хост-А с Beget.
 Домен и DNS на время восстановления: banivyatki.ru, DNS Beget; переключать только после приёмки.
 
 В `dist/` должны находиться `index.html`, `.htaccess`, `api/lead.php`,
