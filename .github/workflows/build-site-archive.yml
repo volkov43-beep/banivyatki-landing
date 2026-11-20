@@ -1,7 +1,3 @@
-# CI/CD for banivyatki.ru on REG.RU.
-# Build on PR and main; deployment is gated by REG_DEPLOY_MODE: off (default),
-# dry-run, live. No FTP user creation or file uploads by the owner.
-# Keep all secrets on GitHub, not in source code.
 name: Build and deploy site to REG.RU
 
 on:
@@ -10,18 +6,40 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      preview_only:
+        description: "Read-only preflight on enabled targets"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: banivyatki-reg-ru-deploy
-  cancel-in-progress: false
+  group: ${{ github.ref == 'refs/heads/main' && 'banivyatki-reg-ru-deploy' || format('banivyatki-reg-ru-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   regression:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, mbstring
+          coverage: none
+      - run: |
+          python3 -m unittest discover -s scripts/deploy -p 'test_*.py'
+          php server/tests/phone.test.php
+          php server/tests/handler.test.php
+
+  build:
+    needs: regression
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,27 +58,6 @@ jobs:
           node "$RUNNER_TEMP/bv-tests/node_modules/playwright-core/cli.js" install --with-deps chromium
           echo "BV_PLAYWRIGHT_PATH=$RUNNER_TEMP/bv-tests/node_modules/playwright-core/index.mjs" >> "$GITHUB_ENV"
           echo "BV_JSDOM_PATH=$RUNNER_TEMP/bv-tests/node_modules/jsdom/lib/api.js" >> "$GITHUB_ENV"
-      - name: Test both landings and local CRM stub
-        run: |
-          npm run build
-          node scripts/tests/cta.dom.mjs
-          node scripts/tests/quiz.dom.mjs
-          node scripts/tests/faq.dom.mjs
-          node scripts/tests/prices.browser.mjs
-          node scripts/tests/release.browser.mjs
-          php server/tests/phone.test.php
-          php server/tests/handler.test.php
-          php server/tests/handler.test.php --browser
-  build:
-    needs: regression
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
       - name: Build production site with Yandex Maps key
         env:
           VITE_YMAPS_KEY: ${{ secrets.VITE_YMAPS_KEY }}
@@ -70,6 +67,26 @@ jobs:
             exit 1
           fi
           npm run build
+      - name: Test both apex sites and www redirects with Apache
+        run: |
+          if [[ ! -x /usr/sbin/apache2 ]]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y apache2-bin
+          fi
+          bash scripts/deploy/check_apache.sh
+      - name: Test landings, forms and both domain identities
+        run: |
+          node scripts/tests/cta.dom.mjs
+          node scripts/tests/quiz.dom.mjs
+          node scripts/tests/faq.dom.mjs
+          node scripts/tests/cta.browser.mjs
+          node scripts/tests/visits.browser.mjs
+          node scripts/tests/locations.browser.mjs
+          node scripts/tests/prices.browser.mjs
+          node scripts/tests/release.browser.mjs
+          php server/tests/phone.test.php
+          php server/tests/handler.test.php
+          php server/tests/handler.test.php --browser
       - name: Validate public files only
         run: |
           test -f dist/index.html
@@ -86,100 +103,122 @@ jobs:
             exit 1
           fi
       - name: Keep downloadable backup artifact
+        id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: banivyatki-reg-ru-site
+          name: ${{ github.run_attempt == 1 && 'banivyatki-reg-ru-site' || format('banivyatki-reg-ru-site-{0}', github.run_attempt) }}
           path: dist/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
-      - name: Verify REG.RU FTPS and locate public directory (read-only)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+
+  deploy:
+    name: REG.RU · ${{ matrix.domain }}
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - domain: banivyatki.ru
+            prefix: REG
+          - domain: bani-vyatki.ru
+            prefix: REG_NEW
+    env:
+      DOMAIN: ${{ matrix.domain }}
+      SITE_DIR: ${{ vars[format('{0}_FTP_DIR', matrix.prefix)] }}
+    steps:
+      - name: Select permitted mode
+        id: plan
         env:
-          REG_FTP_SERVER: ${{ secrets.REG_FTP_SERVER }}
-          REG_FTP_USERNAME: ${{ secrets.REG_FTP_USERNAME }}
-          REG_FTP_PASSWORD: ${{ secrets.REG_FTP_PASSWORD }}
+          CONFIGURED: ${{ vars[format('{0}_DEPLOY_MODE', matrix.prefix)] }}
+          PREVIEW_ONLY: ${{ inputs.preview_only }}
+          AUDIT_BRANCH: ${{ github.event.pull_request.number == 59 && github.head_ref == 'deploy/bani-vyatki-reg-ru-20261120' }}
         run: |
-          python3 - <<'PY'
-          import os
-          import ssl
-          import sys
-          from ftplib import FTP_TLS, all_errors
-          host = os.environ.get('REG_FTP_SERVER', '')
-          user = os.environ.get('REG_FTP_USERNAME', '')
-          password = os.environ.get('REG_FTP_PASSWORD', '')
-          if not all((host, user, password)):
-              sys.exit('REG.RU credentials absent: read-only FTPS preflight cannot run')
-          with FTP_TLS(context=ssl.create_default_context(), timeout=25) as ftp:
-              ftp.connect(host, 21)
-              ftp.login(user, password)
-              ftp.prot_p()
-              origin = ftp.pwd()
-              print('FTPS/TLS authenticated; checking possible document roots without uploads')
-              found = []
-              for candidate in ('./www/banivyatki.ru/', './banivyatki.ru/', '/www/banivyatki.ru/'):
-                  try:
-                      ftp.cwd(origin)
-                      ftp.cwd(candidate)
-                      names = [name.rsplit('/', 1)[-1] for name in ftp.nlst()]
-                      if 'index.html' in names:
-                          print('Confirmed FTP site path:', candidate, '(index.html present)')
-                          found.append(candidate)
-                      else:
-                          print('Directory exists but index.html not seen:', candidate)
-                  except all_errors:
-                      print('Not accessible at:', candidate)
-              if not found:
-                  sys.exit('Could not confirm FTP document root; do not enable REG_DEPLOY_MODE=live')
-              print('Read-only FTPS preflight passed. No server files were changed.')
-          PY
-      - name: Check target and required secrets before REG.RU deployment
-        if: (github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_DEPLOY_MODE == 'dry-run')
+          mode="${CONFIGURED:-off}"
+          case "$mode" in off|dry-run|live) ;; *) echo 'Unknown deployment mode'; exit 1 ;; esac
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            if [[ "$mode" == live && "$AUDIT_BRANCH" != true ]]; then mode=off; fi
+            if [[ "$mode" != off ]]; then mode=dry-run; fi
+          elif [[ "$GITHUB_REF" != refs/heads/main || "$PREVIEW_ONLY" == true ]]; then
+            if [[ "$mode" != off ]]; then mode=dry-run; fi
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "DEPLOY_MODE=$mode" >> "$GITHUB_ENV"
+      - name: List missing secondary settings without exposing values
+        if: matrix.prefix == 'REG_NEW' && steps.plan.outputs.mode == 'off'
         env:
-          REG_FTP_SERVER: ${{ secrets.REG_FTP_SERVER }}
-          REG_FTP_USERNAME: ${{ secrets.REG_FTP_USERNAME }}
-          REG_FTP_PASSWORD: ${{ secrets.REG_FTP_PASSWORD }}
-          REG_FTP_DIR: ${{ vars.REG_FTP_DIR }}
+          HOST_SET: ${{ secrets.REG_NEW_FTP_SERVER != '' }}
+          LOGIN_SET: ${{ secrets.REG_NEW_FTP_USERNAME != '' }}
+          PASSWORD_SET: ${{ secrets.REG_NEW_FTP_PASSWORD != '' }}
+          DIR_SET: ${{ vars.REG_NEW_FTP_DIR != '' }}
         run: |
-          if [ -z "$REG_FTP_SERVER" ] || [ -z "$REG_FTP_USERNAME" ] || [ -z "$REG_FTP_PASSWORD" ]; then
-            echo "REG.RU FTPS secrets are incomplete; deployment refused" >&2
+          [[ "$HOST_SET" == true ]] || echo "Missing REG_NEW_FTP_SERVER"
+          [[ "$LOGIN_SET" == true ]] || echo "Missing REG_NEW_FTP_USERNAME"
+          [[ "$PASSWORD_SET" == true ]] || echo "Missing REG_NEW_FTP_PASSWORD"
+          [[ "$DIR_SET" == true ]] || echo "Missing REG_NEW_FTP_DIR"
+      - uses: actions/checkout@v4
+        if: steps.plan.outputs.mode != 'off'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        if: steps.plan.outputs.mode != 'off'
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact }}
+          merge-multiple: true
+          path: dist/
+      - name: Read-only FTPS preview
+        if: steps.plan.outputs.mode == 'dry-run'
+        env:
+          FTP_HOST: ${{ secrets[format('{0}_FTP_SERVER', matrix.prefix)] }}
+          FTP_USER: ${{ secrets[format('{0}_FTP_USERNAME', matrix.prefix)] }}
+          FTP_PASS: ${{ secrets[format('{0}_FTP_PASSWORD', matrix.prefix)] }}
+        run: python3 scripts/deploy/reg_ru.py preview "$DOMAIN"
+      - name: Verify main and update only recognized private PHP
+        if: steps.plan.outputs.mode == 'live' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FTP_HOST: ${{ secrets[format('{0}_FTP_SERVER', matrix.prefix)] }}
+          FTP_USER: ${{ secrets[format('{0}_FTP_USERNAME', matrix.prefix)] }}
+          FTP_PASS: ${{ secrets[format('{0}_FTP_PASSWORD', matrix.prefix)] }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [[ "$current" != "$GITHUB_SHA" ]]; then
+            echo "This release is stale. Run the workflow for the current main."
             exit 1
           fi
-          # FTP-visible path depends on the account home, not on the OS shell path.
-          case "$REG_FTP_DIR" in
-            */banivyatki.ru/) ;;
-            *)
-              echo "REG_FTP_DIR must end in /banivyatki.ru/; deployment refused" >&2
-              exit 1
-              ;;
-          esac
-      - name: Preview REG.RU deployment on PR (dry-run only)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_DEPLOY_MODE == 'dry-run'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+          python3 scripts/deploy/reg_ru.py prepare "$DOMAIN"
+      - name: Publish the verified public artifact
+        if: steps.plan.outputs.mode == 'live' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65 # v4.3.5
         with:
-          server: ${{ secrets.REG_FTP_SERVER }}
-          username: ${{ secrets.REG_FTP_USERNAME }}
-          password: ${{ secrets.REG_FTP_PASSWORD }}
+          server: ${{ secrets[format('{0}_FTP_SERVER', matrix.prefix)] }}
+          username: ${{ secrets[format('{0}_FTP_USERNAME', matrix.prefix)] }}
+          password: ${{ secrets[format('{0}_FTP_PASSWORD', matrix.prefix)] }}
+          server-dir: ${{ env.SITE_DIR }}
           protocol: ftps
           port: 21
-          local-dir: ./dist/
-          server-dir: ${{ vars.REG_FTP_DIR }}
-          dry-run: true
-          dangerous-clean-slate: false
           security: strict
-          log-level: standard
-      - name: Publish to REG.RU over FTPS (dry-run or live)
-        if: github.ref == 'refs/heads/main' && (vars.REG_DEPLOY_MODE == 'dry-run' || vars.REG_DEPLOY_MODE == 'live')
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.REG_FTP_SERVER }}
-          username: ${{ secrets.REG_FTP_USERNAME }}
-          password: ${{ secrets.REG_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
           local-dir: ./dist/
-          server-dir: ${{ vars.REG_FTP_DIR }}
-          dry-run: ${{ vars.REG_DEPLOY_MODE == 'dry-run' }}
           dangerous-clean-slate: false
-          security: strict
           log-level: minimal
+      - name: Verify public HTTPS release and executed PHP
+        if: steps.plan.outputs.mode == 'live'
+        env:
+          FTP_HOST: ${{ secrets[format('{0}_FTP_SERVER', matrix.prefix)] }}
+          FTP_USER: ${{ secrets[format('{0}_FTP_USERNAME', matrix.prefix)] }}
+          FTP_PASS: ${{ secrets[format('{0}_FTP_PASSWORD', matrix.prefix)] }}
+        run: python3 scripts/deploy/reg_ru.py verify "$DOMAIN"
+      - name: Record result
+        if: always()
+        env:
+          MODE: ${{ steps.plan.outputs.mode }}
+          RESULT: ${{ job.status }}
+          ARTIFACT: ${{ needs.build.outputs.artifact }}
+        run: |
+          echo "### $DOMAIN" >> "$GITHUB_STEP_SUMMARY"
+          echo "Mode \`${MODE:-invalid}\` · result \`$RESULT\` · commit \`$GITHUB_SHA\` · artifact \`$ARTIFACT\`." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$MODE" != live ]]; then echo "No production upload." >> "$GITHUB_STEP_SUMMARY"; fi

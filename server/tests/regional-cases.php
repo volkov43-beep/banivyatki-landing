@@ -50,6 +50,8 @@ foreach ($cases as $scenario => $payload) {
 }
 
 $urls = [
+    ['https://bani-vyatki.ru/syktyvkar/', true], ['https://www.bani-vyatki.ru:443/syktyvkar/index.html', true],
+    ['https://bani-vyatki.ru/', false], ['https://bani-vyatki.ru.example.com/syktyvkar/', false],
     [$komiUrl, true], ['https://BANIVYATKI.ru/syktyvkar', true],
     ['HTTPS://WWW.Banivyatki.ru:443/syktyvkar/index.html?a=b#calculator', true],
     [$komiUrl . '?utm_campaign=' . str_repeat('a', 1000) . '#visit-form', true],
@@ -99,6 +101,7 @@ check('returning Komi customer: existing contact and regional header before repe
 foreach ([
     ['deal_error', $komiUrl . '?x=' . str_repeat('a', 800), false, true],
     ['found_deal_error', $komiUrl, true, true],
+    ['deal_error', 'https://bani-vyatki.ru/syktyvkar/', true, true],
     ['deal_error', $homeUrl, true, false],
     ['deal_error', null, true, false],
     ['deal_error', $komiUrl . '?x=' . str_repeat('a', 800) . "\n", false, false],

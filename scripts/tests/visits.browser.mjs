@@ -113,6 +113,9 @@ async function checkLayout({ page, io }, pathname, width) {
     assert.equal(await photos.count(), 1 + (id === 'production' ? 5 : id === 'showroom' ? 4 : 0))
     for (const photo of await photos.all()) {
       await photo.scrollIntoViewIfNeeded()
+      // Lazy responsive images can still be selecting a srcset candidate after scrolling.
+      const image = await photo.elementHandle()
+      await page.waitForFunction(img => img.complete && img.naturalWidth > 0, image, { timeout: 12000 })
       await photo.evaluate(img => img.decode())
       assert.ok(await photo.evaluate(img => img.naturalWidth > 0 && img.alt.length > 0))
     }

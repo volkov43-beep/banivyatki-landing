@@ -153,6 +153,14 @@ check('чужой Origin → 403', $c === 403, "$c $b");
 check('не JSON → 400', $c === 400 && str_contains($b, 'bad_json'), "$c $b");
 [$c, $b] = post(lead(), ['Origin: https://www.banivyatki.ru']);
 check('Origin www → 200', $c === 200 && $b === '{"ok":true}', "$c $b");
+foreach (['https://bani-vyatki.ru', 'https://www.bani-vyatki.ru'] as $origin) {
+    resetStub('ok');
+    [$c, $b] = post(lead(), ['Origin: ' . $origin]);
+    check("Origin $origin → одна сделка", $c === 200 && count(stubCalls()) === 3 && count(queueFiles()) === 0);
+}
+resetStub('ok');
+[$c, $b] = post(lead(), ['Origin: https://bani-vyatki.ru.example.com']);
+check('посторонний Origin → 403 до CRM', $c === 403 && stubCalls() === []);
 [$c, $b] = post(lead(), ['Origin:']);  // без Origin — тоже можно
 check('без Origin → 200', $c === 200, "$c $b");
 

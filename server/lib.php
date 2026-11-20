@@ -265,7 +265,7 @@ function bv_landing_region(mixed $pageUrl): string
     $address = substr($pageUrl, 0, strcspn($pageUrl, '?#'));
     $parts = parse_url($address);
     if (strtolower($parts['scheme'] ?? '') !== 'https'
-        || !in_array(strtolower($parts['host'] ?? ''), ['banivyatki.ru', 'www.banivyatki.ru'], true)
+        || !in_array(strtolower($parts['host'] ?? ''), ['banivyatki.ru', 'www.banivyatki.ru', 'bani-vyatki.ru', 'www.bani-vyatki.ru'], true)
         || !in_array($parts['path'] ?? '', ['/syktyvkar', '/syktyvkar/', '/syktyvkar/index.html'], true)) {
         return '';
     }

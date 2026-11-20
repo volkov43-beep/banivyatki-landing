@@ -17,7 +17,7 @@ declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-const BV_ALLOWED_ORIGINS = ['https://banivyatki.ru', 'https://www.banivyatki.ru'];
+const BV_ALLOWED_ORIGINS = ['https://banivyatki.ru', 'https://www.banivyatki.ru', 'https://bani-vyatki.ru', 'https://www.bani-vyatki.ru'];
 const BV_MIN_ELAPSED_MS = 3000;
 const BV_RATE_LIMIT = 5;
 const BV_RATE_WINDOW = 600;
