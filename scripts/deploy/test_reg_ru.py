@@ -52,6 +52,8 @@ class DeployTest(unittest.TestCase):
     def test_root_and_account(self):
         for domain, host in [(deploy.PRIMARY, "configured-primary"), (deploy.MIRROR, "server38.hosting.reg.ru")]:
             deploy.check_directory(domain, host, "./www/" + domain + "/")
+        for alias in ("./bani-vyatki.ru/", "/bani-vyatki.ru/", "bani-vyatki.ru/"):
+            deploy.check_directory(deploy.MIRROR, "server38.hosting.reg.ru", alias)
         for host, path in [("wrong-host", "./www/bani-vyatki.ru/"),
                            ("server38.hosting.reg.ru", "./www/banivyatki.ru/"),
                            ("server38.hosting.reg.ru", "./www/../www/bani-vyatki.ru/"),
@@ -66,6 +68,8 @@ class DeployTest(unittest.TestCase):
                 deploy.open_root(ftp, deploy.MIRROR, str(self.root))
         with patch.object(deploy, "public_get", return_value=(200, {}, b"a" * 32)):
             self.assertEqual(deploy.open_root(ftp, deploy.MIRROR, str(self.root)), self.root)
+            jailed_root = PurePosixPath("/", deploy.MIRROR)
+            self.assertEqual(deploy.open_root(ftp, deploy.MIRROR, str(jailed_root)), jailed_root)
         self.assertEqual(ftp.writes, [])
 
     def test_preview_then_partial_failure_then_retry(self):

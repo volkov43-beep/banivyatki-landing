@@ -147,6 +147,18 @@ jobs:
           fi
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "DEPLOY_MODE=$mode" >> "$GITHUB_ENV"
+      - name: List missing secondary settings without exposing values
+        if: matrix.prefix == 'REG_NEW' && steps.plan.outputs.mode == 'off'
+        env:
+          HOST_SET: ${{ secrets.REG_NEW_FTP_SERVER != '' }}
+          LOGIN_SET: ${{ secrets.REG_NEW_FTP_USERNAME != '' }}
+          PASSWORD_SET: ${{ secrets.REG_NEW_FTP_PASSWORD != '' }}
+          DIR_SET: ${{ vars.REG_NEW_FTP_DIR != '' }}
+        run: |
+          [[ "$HOST_SET" == true ]] || echo "Missing REG_NEW_FTP_SERVER"
+          [[ "$LOGIN_SET" == true ]] || echo "Missing REG_NEW_FTP_USERNAME"
+          [[ "$PASSWORD_SET" == true ]] || echo "Missing REG_NEW_FTP_PASSWORD"
+          [[ "$DIR_SET" == true ]] || echo "Missing REG_NEW_FTP_DIR"
       - uses: actions/checkout@v4
         if: steps.plan.outputs.mode != 'off'
         with:

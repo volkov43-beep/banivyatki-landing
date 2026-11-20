@@ -64,6 +64,9 @@ def check_directory(domain, host, path):
     # below independently bind this exact, existing directory to the virtual host.
     valid = ("./www/" + domain + "/", "/www/" + domain + "/",
              "/var/www/" + ACCOUNTS[domain] + "/data/www/" + domain + "/")
+    if domain == MIRROR:
+        # A user whose FTP home is the account's www directory sees its children directly.
+        valid += ("./" + domain + "/", "/" + domain + "/", domain + "/")
     if path not in valid:
         raise ValueError("Expected the verified FTP-visible www directory for " + domain)
 
@@ -73,6 +76,8 @@ def open_root(ftp, domain, path):
     root = PurePosixPath(ftp.pwd())
     valid = (PurePosixPath("/www", domain),
              PurePosixPath("/var/www", ACCOUNTS[domain], "data/www", domain))
+    if domain == MIRROR:
+        valid += (PurePosixPath("/", domain),)
     if root not in valid:
         raise ValueError("Unexpected server PWD for " + domain)
     if domain == MIRROR:
