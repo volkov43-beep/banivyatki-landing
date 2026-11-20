@@ -8,6 +8,9 @@ Options -Indexes
 # www.banivyatki.ru → banivyatki.ru
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  # www.bani-vyatki.ru → bani-vyatki.ru (secondary domain)
+  RewriteCond %{HTTP_HOST} ^www\.bani-vyatki\.ru$ [NC]
+  RewriteRule ^(.*)$ https://bani-vyatki.ru/$1 [R=301,L]
   RewriteCond %{HTTP_HOST} ^www\.banivyatki\.ru$ [NC]
   RewriteRule ^(.*)$ https://banivyatki.ru/$1 [R=301,L]
 </IfModule>
