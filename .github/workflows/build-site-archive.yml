@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   regression:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
           php server/tests/handler.test.php --browser
   build:
     needs: regression
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -180,6 +180,59 @@ jobs:
           local-dir: ./dist/
           server-dir: ${{ vars.REG_FTP_DIR }}
           dry-run: ${{ vars.REG_DEPLOY_MODE == 'dry-run' }}
+          dangerous-clean-slate: false
+          security: strict
+          log-level: minimal
+
+      # The hyphenated domain uses a separate REG.RU account, but the same
+      # production dist/ artifact. Missing variables = disabled by default.
+      # This job never copies secrets or source code to a public web root.
+      - name: Validate secondary REG.RU deployment destination
+        if: (github.ref == 'refs/heads/main' && (vars.REG_NEW_DEPLOY_MODE == 'dry-run' || vars.REG_NEW_DEPLOY_MODE == 'live')) || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_NEW_DEPLOY_MODE == 'dry-run')
+        env:
+          REG_NEW_FTP_SERVER: ${{ secrets.REG_NEW_FTP_SERVER }}
+          REG_NEW_FTP_USERNAME: ${{ secrets.REG_NEW_FTP_USERNAME }}
+          REG_NEW_FTP_PASSWORD: ${{ secrets.REG_NEW_FTP_PASSWORD }}
+          REG_NEW_FTP_DIR: ${{ vars.REG_NEW_FTP_DIR }}
+        run: |
+          if [ -z "$REG_NEW_FTP_SERVER" ] || [ -z "$REG_NEW_FTP_USERNAME" ] || [ -z "$REG_NEW_FTP_PASSWORD" ]; then
+            echo "Secondary REG.RU FTPS credentials are incomplete; deployment refused" >&2
+            exit 1
+          fi
+          case "$REG_NEW_FTP_DIR" in
+            */bani-vyatki.ru/) ;;
+            *)
+              echo "REG_NEW_FTP_DIR must end in /bani-vyatki.ru/; deployment refused" >&2
+              exit 1
+              ;;
+          esac
+      - name: Preview secondary REG.RU deployment on PR (read-only)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.REG_NEW_DEPLOY_MODE == 'dry-run'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.REG_NEW_FTP_SERVER }}
+          username: ${{ secrets.REG_NEW_FTP_USERNAME }}
+          password: ${{ secrets.REG_NEW_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ vars.REG_NEW_FTP_DIR }}
+          dry-run: true
+          dangerous-clean-slate: false
+          security: strict
+          log-level: standard
+      - name: Publish secondary bani-vyatki.ru over FTPS (dry-run or live)
+        if: github.ref == 'refs/heads/main' && (vars.REG_NEW_DEPLOY_MODE == 'dry-run' || vars.REG_NEW_DEPLOY_MODE == 'live')
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.REG_NEW_FTP_SERVER }}
+          username: ${{ secrets.REG_NEW_FTP_USERNAME }}
+          password: ${{ secrets.REG_NEW_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ vars.REG_NEW_FTP_DIR }}
+          dry-run: ${{ vars.REG_NEW_DEPLOY_MODE == 'dry-run' }}
           dangerous-clean-slate: false
           security: strict
           log-level: minimal
