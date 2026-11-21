@@ -11,6 +11,23 @@ $cfg = ['webhook_url' => "https://127.0.0.1:$port/rest/17/fixture-token/",
             'catalog_model' => ['field' => 'UF_CRM_TEST_MODEL', 'values' => ['podkova-45' => 21]],
         ]]];
 if (isset($argv[3])) {
+    if (isset($argv[4])) {
+        // Inject a real store-path failure in this child only, before or after rename.
+        if (function_exists('fsync')) {
+            exit(2);
+        }
+        function fsync($stream): bool
+        {
+            global $argv;
+            return $argv[4] === 'directory' && (fstat($stream)['mode'] & 0170000) !== 0040000;
+        }
+        try {
+            bv_v3_attempt($dir, $cfg, $argv[3]);
+        } catch (RuntimeException $e) {
+            exit($e->getMessage() === 'lead_v3_storage' ? 0 : 2);
+        }
+        exit(2);
+    }
     exit(bv_v3_attempt($dir, $cfg, $argv[3])['state'] === 'sent' ? 0 : 1);
 }
 $count = 0;
@@ -32,6 +49,37 @@ function job(string $key): array
 {
     global $dir;
     return json_decode(file_get_contents("$dir/$key.json"), true, flags: JSON_THROW_ON_ERROR);
+}
+function worker(string $key, ?string $failSync = null)
+{
+    global $root, $port;
+    $cmd = [PHP_BINARY, '-d', "curl.cainfo=$root/cert.pem", '-d', "error_log=$root/diagnostics"];
+    if ($failSync !== null) {
+        array_push($cmd, '-d', 'disable_functions=fsync');
+    }
+    array_push($cmd, __FILE__, $root, $port, $key);
+    if ($failSync !== null) {
+        $cmd[] = $failSync;
+    }
+    return proc_open($cmd, [], $pipes);
+}
+function awaitRequest(int $before): void
+{
+    for ($i = 0; $i < 200 && count(inspectCalls()) === $before; $i++) {
+        usleep(20000);
+    }
+    expect(count(inspectCalls()) === $before + 1, 'fixture received first worker request');
+}
+function backdate(string $key, int $age): array
+{
+    global $cfg, $dir;
+    $old = job($key);
+    $op = &$old['lead']['v3_operation'];
+    $op['created'] = time() - $age;
+    $op['seal'] = bv_v3_seal(bv_v3_endpoint($cfg), $key, $op['created'], $op['body']);
+    $old['created_at'] = date('c', $op['created']);
+    bv_v3_store("$dir/$key.json", $old);
+    return $old;
 }
 function mode(string $name): void
 {
@@ -109,7 +157,7 @@ foreach (['http://example.invalid/rest/1/x/', 'https://example.invalid/rest/1/x/
     rejects(fn() => bv_v3_endpoint(['webhook_url' => $bad]), 'invalid webhook URL');
 }
 foreach (['auth' => 'authentication', 'scope' => 'scope', 'rights' => 'permission', 'validation' => 'validation',
-    'server' => 'unconfirmed_response', 'no_echo' => 'unconfirmed_response', 'bad_response' => 'unconfirmed_response'] as $fixture => $reason) {
+    'unknown_rate' => 'unconfirmed_response', 'server' => 'unconfirmed_response', 'no_echo' => 'unconfirmed_response', 'bad_response' => 'unconfirmed_response'] as $fixture => $reason) {
     mode($fixture);
     $key = bv_v3_prepare($dir, $cfg, $lead);
     expect(bv_v3_attempt($dir, $cfg, $key) === ['state' => 'review', 'reason' => $reason], "$fixture classified");
@@ -158,34 +206,150 @@ $changed = job($key);
 $changed['lead']['v3_operation']['body'] .= ' ';
 bv_v3_store("$dir/$key.json", $changed);
 expect(bv_v3_attempt($dir, $cfg, $key)['reason'] === 'scope_or_snapshot_changed' && count(inspectCalls()) === $n, 'changed local bytes never sent');
-foreach ([24 * 3600 + 1, 24 * 3600 - 240] as $age) {
-    $key = bv_v3_prepare($dir, $cfg, $lead);
-    $old = job($key);
-    $op = &$old['lead']['v3_operation'];
-    $op['created'] = time() - $age;
-    $op['seal'] = bv_v3_seal(bv_v3_endpoint($cfg), $key, $op['created'], $op['body']);
-    unset($op);
-    $old['delivery'] = ['state' => 'review', 'reason' => 'timeout'];
-    bv_v3_store("$dir/$key.json", $old);
-    expect(bv_v3_attempt($dir, $cfg, $key, true)['reason'] === 'window' && count(inspectCalls()) === $n, 'expired operation never sent');
-}
+// Preparation is not a POST. A lost first response on a days-old ready row has a fresh replay window.
+mode('lost');
 $key = bv_v3_prepare($dir, $cfg, $lead);
-$inFlight = job($key);
-$inFlight['delivery'] = ['state' => 'sending', 'reason' => 'in_flight'];
-bv_v3_store("$dir/$key.json", $inFlight);
-expect(bv_v3_attempt($dir, $cfg, $key)['reason'] === 'interrupted' && count(inspectCalls()) === $n, 'crash after sending marker needs review');
+$old = backdate($key, 3 * 86400);
+$start = time();
+expect(bv_v3_attempt($dir, $cfg, $key)['reason'] === 'transport', 'old unsent ready allowed');
+$saved = job($key);
+$anchor = $saved['delivery']['possible_since'];
+expect($anchor >= $start && $saved['attempts'] === 1 && count(inspectCalls()) === $n + 1, 'window starts at first possible POST');
+mode('replay_rate');
+expect(bv_v3_attempt($dir, $cfg, $key, true)['state'] === 'review'
+    && job($key)['delivery']['possible_since'] === $anchor, 'later 429 cannot clear prior uncertainty');
+mode('ok');
+$n = count(inspectCalls());
+expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'review' && count(inspectCalls()) === $n, 'no blind retry after ambiguous history');
+$res = bv_v3_attempt($dir, $cfg, $key, true);
+$calls = inspectCalls();
+expect($res['state'] === 'sent' && $res['replayed'] && end($calls) === $calls[count($calls) - 3], 'manual replay of old preparation uses original bytes and key');
+expect(bv_v3_attempt($dir, $rotated, $key, true) === $res && count(inspectCalls()) === count($calls), 'sent terminal even after credential change');
 
-// Two CLI processes share the same operation. The second cannot even start its transport.
-mode('slow');
+foreach ([false, true] as $legacy) {
+    foreach ([86401, 86400 - 240] as $age) {
+        $key = bv_v3_prepare($dir, $cfg, $lead);
+        $old = backdate($key, $age + 60);
+        $old['attempts'] = 1;
+        $old['delivery'] = ['state' => 'review', 'reason' => 'timeout'];
+        if (!$legacy) {
+            $old['delivery']['possible_since'] = time() - $age;
+        }
+        bv_v3_store("$dir/$key.json", $old);
+        $n = count(inspectCalls());
+        expect(bv_v3_attempt($dir, $cfg, $key, true)['reason'] === 'window' && count(inspectCalls()) === $n, 'expired or margin, current and legacy clocks');
+    }
+}
+
+// Confirmed rejections are distinct from a lost response, even when the row is old.
+mode('rate');
 $key = bv_v3_prepare($dir, $cfg, $lead);
-$cmd = [PHP_BINARY, '-d', "curl.cainfo=$root/cert.pem", '-d', "error_log=$root/diagnostics", __FILE__, $root, $port, $key];
-$proc = proc_open($cmd, [], $pipes);
-for ($i = 0; $i < 100 && count(inspectCalls()) === $n; $i++) {
+backdate($key, 3 * 86400);
+expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'retry' && bv_v3_attempt($dir, $cfg, $key)['state'] === 'retry', 'only confirmed rejections');
+$saved = job($key);
+expect(array_key_exists('possible_since', $saved['delivery']) && $saved['delivery']['possible_since'] === null, 'clean retry has no possible creation');
+mode('ok');
+expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'sent', 'old confirmed rejections permit same operation');
+$calls = inspectCalls();
+expect(end($calls) === $calls[count($calls) - 3], 'clean retries preserve wire bytes');
+
+foreach ([
+    [['state' => 'ready', 'reason' => 'prepared'], 1, 'invalid_state'],
+    [['state' => 'retry', 'reason' => 'rate_limit'], 2, 'interrupted'],
+    [['state' => 'sending', 'reason' => 'in_flight'], 1, 'interrupted'],
+    [['state' => 'review', 'reason' => 'transport', 'possible_since' => null], 1, 'invalid_state'],
+    [['state' => 'review', 'reason' => 'transport', 'possible_since' => time() + 86400], 1, 'window'],
+] as [$delivery, $attempts, $reason]) {
+    $key = bv_v3_prepare($dir, $cfg, $lead);
+    $row = job($key);
+    $row['delivery'] = $delivery;
+    $row['attempts'] = $attempts;
+    bv_v3_store("$dir/$key.json", $row);
+    $n = count(inspectCalls());
+    expect(bv_v3_attempt($dir, $cfg, $key, true)['reason'] === $reason && count(inspectCalls()) === $n, 'legacy or inconsistent history held');
+}
+
+mode('lost');
+foreach (['credentials', 'body'] as $change) {
+    $key = bv_v3_prepare($dir, $cfg, $lead);
+    expect(bv_v3_attempt($dir, $cfg, $key)['reason'] === 'transport', "$change initial uncertain result");
+    if ($change === 'body') {
+        $row = job($key);
+        $row['lead']['v3_operation']['body'] .= ' ';
+        bv_v3_store("$dir/$key.json", $row);
+    }
+    $n = count(inspectCalls());
+    expect(bv_v3_attempt($dir, $change === 'body' ? $cfg : $rotated, $key, true)['reason'] === 'scope_or_snapshot_changed'
+        && count(inspectCalls()) === $n, "$change blocks a replay");
+}
+
+$key = bv_v3_prepare($dir, $cfg, $lead);
+file_put_contents("$dir/$key.json", '{"broken":');
+$n = count(inspectCalls());
+expect(bv_v3_attempt($dir, $cfg, $key, true)['reason'] === 'invalid_record' && file_get_contents("$dir/$key.json") === '{"broken":'
+    && count(inspectCalls()) === $n, 'corrupt record preserved without dispatch');
+foreach (['file' => 'ready', 'directory' => 'sending'] as $fail => $state) {
+    $key = bv_v3_prepare($dir, $cfg, $lead);
+    expect(proc_close(worker($key, $fail)) === 0 && job($key)['delivery']['state'] === $state
+        && count(inspectCalls()) === $n, "$fail fsync failed before HTTPS");
+}
+expect(bv_v3_attempt($dir, $cfg, $key)['reason'] === 'interrupted' && count(inspectCalls()) === $n, 'visible sending after directory-sync failure is held');
+
+// A failed lock open or a concurrently running pre-REV worker must prevent any POST.
+$key = bv_v3_prepare($dir, $cfg, $lead);
+$lockPath = "$dir/.lead-v3-$key.lock";
+mkdir($lockPath);
+try {
+    bv_v3_attempt($dir, $cfg, $key);
+    expect(false, 'lock open must fail');
+} catch (RuntimeException $e) {
+    expect($e->getMessage() === 'lead_v3_lock' && count(inspectCalls()) === $n && job($key)['attempts'] === 0, 'lock failure is closed');
+}
+rmdir($lockPath);
+$oldLock = fopen("$dir/.lead-v3.lock", 'c');
+expect(flock($oldLock, LOCK_EX | LOCK_NB), 'legacy worker acquired exclusive spool lock');
+expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'busy' && count(inspectCalls()) === $n, 'legacy worker excludes REV');
+fclose($oldLock);
+
+// Kill a real CLI worker while its POST is outstanding. A second process cannot send or steal its lock.
+mode('hold');
+$proc = worker($key);
+awaitRequest($n);
+$inode = fileinode($lockPath);
+$sending = job($key);
+expect($sending['delivery']['state'] === 'sending' && $sending['attempts'] === 1 && is_int($sending['delivery']['possible_since']), 'durable sending visible during POST');
+expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'busy' && count(inspectCalls()) === $n + 1, 'same key guarded between PHP processes');
+$oldLock = fopen("$dir/.lead-v3.lock", 'c');
+expect(!flock($oldLock, LOCK_EX | LOCK_NB), 'REV also excludes legacy worker');
+fclose($oldLock);
+expect(proc_terminate($proc, 9), 'interrupt actual worker');
+proc_close($proc);
+expect(bv_v3_attempt($dir, $cfg, $key, true)['reason'] === 'interrupted'
+    && job($key)['delivery']['possible_since'] === $sending['delivery']['possible_since'], 'crash recovery preserves original window');
+expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'review' && count(inspectCalls()) === $n + 1, 'one POST despite contention and crash');
+touch("$root/release-$key");
+for ($i = 0; $i < 100 && !is_file("$root/finished-$key"); $i++) {
     usleep(20000);
 }
-expect(bv_v3_attempt($dir, $cfg, $key)['state'] === 'busy', 'parallel attempt held');
-expect(proc_close($proc) === 0 && count(inspectCalls()) === $n + 1 && job($key)['delivery']['state'] === 'sent', 'one request from two workers');
+expect(is_file("$root/finished-$key"), 'first remote execution completed');
+mode('ok');
+expect(bv_v3_attempt($dir, $cfg, $key, true)['replayed'] === true, 'operator replay after crash retrieves cached result');
+clearstatcache(true, $lockPath);
+expect(fileinode($lockPath) === $inode && $inode !== false, 'lock inode stable across recovery');
 
+// Both handlers must be inside the HTTPS fixture together to pass its two-party barrier.
+mode('overlap');
+$left = bv_v3_prepare($dir, $cfg, $lead);
+$right = bv_v3_prepare($dir, $cfg, $lead);
+$n = count(inspectCalls());
+$one = worker($left);
+$two = worker($right);
+$rc1 = proc_close($one);
+$rc2 = proc_close($two);
+expect($rc1 === 0 && $rc2 === 0 && count(inspectCalls()) === $n + 2, 'two independent workers both sent');
+[$a, $b] = json_decode(file_get_contents("$root/interval-$left"), true, flags: JSON_THROW_ON_ERROR);
+[$c, $d] = json_decode(file_get_contents("$root/interval-$right"), true, flags: JSON_THROW_ON_ERROR);
+expect(max($a, $c) < min($b, $d) && job($left)['delivery']['id'] !== job($right)['delivery']['id'], 'measured overlap of independent HTTPS requests');
 
 // Feed a real prepared record to a private copy of the existing worker, never its live queue.
 $legacy = "$root/legacy";

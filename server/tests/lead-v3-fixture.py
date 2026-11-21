@@ -46,6 +46,10 @@ class CRM(BaseHTTPRequestHandler):
             with (root / "calls").open("a") as out:
                 # Test inspector for synthetic traffic, separate from the adapter log.
                 print(json.dumps([key, digest, json.loads(body)]), file=out)
+            # Simulate a gateway refusal before a prior cached result could be read.
+            if mode == "replay_rate":
+                self.reply(429, {"error": {"code": "QUERY_LIMIT_EXCEEDED"}}, key)
+                return
             if cached and cached[0] == digest:
                 self.reply(200, {"result": {"id": cached[1]}}, key, True)
                 return
@@ -54,6 +58,7 @@ class CRM(BaseHTTPRequestHandler):
                       "rights": (403, "BITRIX_REST_V3_EXCEPTION_ACCESSDENIEDEXCEPTION"),
                       "validation": (400, "BITRIX_REST_V3_EXCEPTION_VALIDATION_DTOVALIDATIONEXCEPTION"),
                       "rate": (429, "QUERY_LIMIT_EXCEEDED"),
+                      "unknown_rate": (429, "UNKNOWN"),
                       "server": (503, "INTERNAL_ERROR")}
             if cached:
                 status, code = 422, "BITRIX_REST_V3_EXCEPTION_IDEMPOTENCYKEYREUSEDEXCEPTION"
@@ -74,8 +79,21 @@ class CRM(BaseHTTPRequestHandler):
             time.sleep(12)
             (root / f"finished-{key}").touch()
             return
-        if mode == "slow":
-            time.sleep(1.5)
+        if mode == "overlap":
+            entered = time.monotonic_ns()
+            try:
+                self.server.overlap.wait(timeout=5)
+            except threading.BrokenBarrierError:
+                self.reply(503, {"error": {"code": "NO_OVERLAP"}}, key)
+                return
+            (root / f"interval-{key}").write_text(json.dumps([entered, time.monotonic_ns()]))
+        if mode == "hold":
+            for _ in range(200):
+                if (root / f"release-{key}").exists():
+                    break
+                time.sleep(0.025)
+            (root / f"finished-{key}").touch()
+            return
         if mode == "bad_response":
             self.reply(200, {"result": {"id": "bad"}}, key)
             return
@@ -94,6 +112,7 @@ def main():
         context.load_cert_chain(cert, key)
         server.socket = context.wrap_socket(server.socket, server_side=True)
         server.results, server.lock, server.root = {}, threading.Lock(), root
+        server.overlap = threading.Barrier(2)
         (root / "mode").write_text("ok")
         (root / "calls").touch()
         (root / "queue").mkdir(mode=0o700)

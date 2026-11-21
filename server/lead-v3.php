@@ -191,7 +191,8 @@ function bv_v3_post(string $url, string $key, string $body): array
         && is_int($data['result']['id'] ?? null) && $data['result']['id'] > 0 && $echo === $key) {
         return ['state' => 'sent', 'reason' => 'confirmed', 'id' => $data['result']['id'], 'replayed' => $replayed];
     }
-    if ($status === 429 && is_string($code) && $echo === $key) {
+    if ($status === 429 && $code === 'QUERY_LIMIT_EXCEEDED' && !array_key_exists('result', $data)
+        && !$replayed && $echo === $key) {
         return ['state' => 'retry', 'reason' => 'rate_limit'];
     }
     $reason = match (true) {
@@ -207,23 +208,50 @@ function bv_v3_post(string $url, string $key, string $body): array
     return ['state' => 'review', 'reason' => $reason];
 }
 
+/** Leave five minutes inside the 24-hour REST v3 success-cache period. */
+function bv_v3_window_open(int $since, int $now): bool
+{
+    return $now >= $since && $now - $since < 86400 - 300;
+}
+
+/** A busy lock is normal. Any other filesystem error also prevents transport. */
+function bv_v3_lock(string $path, int $mode)
+{
+    $stream = @fopen($path, 'c');
+    if (!$stream) {
+        throw new RuntimeException('lead_v3_lock');
+    }
+    if (@flock($stream, $mode | LOCK_NB, $wouldBlock)) {
+        return $stream;
+    }
+    fclose($stream);
+    if ($wouldBlock) {
+        return false;
+    }
+    throw new RuntimeException('lead_v3_lock');
+}
+
 /**
- * Process one saved operation. A confirmed replay is a separate operator decision:
- * verify the previous request has finished and the portal supports idempotency first.
- * No public handler or actual cron invokes this function.
+ * All workers share the legacy lock; pre-REV workers still need it exclusively.
+ * Each key has a separate, stable lock inode independent of JSON replacement.
+ * For a confirmed replay, the operator must verify the first POST has finished
+ * and the portal supports idempotency. No public handler or cron calls this adapter.
+ * Keep these files while workers run. Retire per-key locks only offline, after
+ * stopping producers/workers and retiring the corresponding records. Keep the spool lock.
  */
 function bv_v3_attempt(string $dir, array $cfg, string $key, bool $confirmedReplay = false): array
 {
     if (!preg_match('/\A[a-f0-9]{32}\z/', $key)) {
         throw new InvalidArgumentException('lead_v3_key');
     }
-    // One persistent inode per spool, also while JSON files are atomically replaced.
-    $lock = @fopen("$dir/.lead-v3.lock", 'c');
-    if (!$lock) {
-        throw new RuntimeException('lead_v3_lock');
+    $spool = bv_v3_lock("$dir/.lead-v3.lock", LOCK_SH);
+    if (!$spool) {
+        return ['state' => 'busy', 'reason' => 'locked'];
     }
+    $lock = false;
     try {
-        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+        $lock = bv_v3_lock("$dir/.lead-v3-$key.lock", LOCK_EX);
+        if (!$lock) {
             return ['state' => 'busy', 'reason' => 'locked'];
         }
         $path = "$dir/$key.json";
@@ -231,39 +259,70 @@ function bv_v3_attempt(string $dir, array $cfg, string $key, bool $confirmedRepl
         $lead = $job['lead'] ?? [];
         $op = $lead['v3_operation'] ?? [];
         if (($lead['crm_target'] ?? null) !== 'lead' || ($op['key'] ?? null) !== $key
-            || !is_int($op['created'] ?? null) || !is_string($op['body'] ?? null) || !is_string($op['seal'] ?? null)
-            || !is_int($job['attempts'] ?? null) || !is_string($job['delivery']['state'] ?? null)) {
+            || !is_int($op['created'] ?? null) || $op['created'] <= 0
+            || !is_string($op['body'] ?? null) || !is_string($op['seal'] ?? null)
+            || !is_int($job['attempts'] ?? null) || $job['attempts'] < 0 || !is_string($job['delivery']['state'] ?? null)) {
             error_log('lead_v3 review invalid_record');
             return ['state' => 'review', 'reason' => 'invalid_record'];
         }
         $previous = $job['delivery'];
-        if ($previous['state'] === 'sent' || ($previous['state'] === 'review' && !$confirmedReplay)) {
+        $state = $previous['state'];
+        $reason = $previous['reason'] ?? null;
+        $hasClock = array_key_exists('possible_since', $previous);
+        $since = $previous['possible_since'] ?? null;
+        unset($previous['possible_since']); // Internal journal metadata, separate from the caller's result.
+        if ($state === 'sent' || ($state === 'review' && (!$confirmedReplay
+            || !in_array($reason, ['timeout', 'transport', 'unconfirmed_response', 'interrupted'], true)))) {
             return $previous;
+        }
+
+        $attempts = $job['attempts'];
+        $ready = $state === 'ready' && $reason === 'prepared' && $attempts === 0 && !$hasClock;
+        // Old retry rows record only the LAST response. With multiple attempts their earlier outcome is unknown.
+        $rateLimit = $state === 'retry' && $reason === 'rate_limit' && $attempts > 0;
+        $cleanRetry = $rateLimit && $since === null && ($hasClock || $attempts === 1);
+        $uncertain = $attempts > 0 && (($state === 'sending' && $reason === 'in_flight')
+            || $state === 'review' || ($rateLimit && !$hasClock && !$cleanRetry));
+        if ($uncertain && !$hasClock) {
+            $since = $op['created']; // Conservative lower bound for an already attempted pre-REV record.
         }
         $url = bv_v3_endpoint($cfg);
         $now = time();
         if (!hash_equals($op['seal'], bv_v3_seal($url, $key, $op['created'], $op['body']))) {
             $result = ['state' => 'review', 'reason' => 'scope_or_snapshot_changed'];
-        } elseif ($now < $op['created'] || $now - $op['created'] >= 86400 - 300) {
-            $result = ['state' => 'review', 'reason' => 'window'];
-        } elseif ($previous['state'] === 'sending') {
-            $result = ['state' => 'review', 'reason' => 'interrupted'];
-        } elseif ($previous['state'] === 'review'
-            && !in_array($previous['reason'] ?? null, ['timeout', 'transport', 'unconfirmed_response', 'interrupted'], true)) {
-            return $previous;
-        } elseif (!in_array($previous['state'], ['ready', 'retry', 'review'], true)) {
+        } elseif ((!$ready && !$cleanRetry && !$uncertain) || ($uncertain && (!is_int($since) || $since < $op['created']))) {
             $result = ['state' => 'review', 'reason' => 'invalid_state'];
+        } elseif ($now < $op['created'] || ($uncertain && !bv_v3_window_open($since, $now))) {
+            $result = ['state' => 'review', 'reason' => 'window'];
+        } elseif ($uncertain && $state !== 'review') {
+            $result = ['state' => 'review', 'reason' => 'interrupted'];
         } else {
+            // First possible CRM execution, independent of how long an unsent file waited.
+            $since = $uncertain ? $since : $now;
             $job['attempts']++;
-            $job['delivery'] = ['state' => 'sending', 'reason' => 'in_flight'];
+            $job['delivery'] = ['state' => 'sending', 'reason' => 'in_flight', 'possible_since' => $since];
             bv_v3_store($path, $job);
-            $result = bv_v3_post($url, $key, $op['body']);
+            if (!bv_v3_window_open($since, time())) {
+                $result = ['state' => 'review', 'reason' => 'window'];
+            } else {
+                $result = bv_v3_post($url, $key, $op['body']);
+            }
+            if ($uncertain && $result['state'] === 'retry') {
+                // Rejection of this replay cannot prove the FIRST request did not create a lead.
+                $result = $previous;
+            }
         }
         $job['delivery'] = $result;
+        if ($result['state'] === 'retry' || $result['state'] === 'review') {
+            $job['delivery']['possible_since'] = $result['state'] === 'retry' ? null : $since;
+        }
         bv_v3_store($path, $job);
         error_log('lead_v3 ' . $result['state'] . ' ' . $result['reason']);
         return $result;
     } finally {
-        fclose($lock);
+        if ($lock) {
+            fclose($lock);
+        }
+        fclose($spool);
     }
 }
