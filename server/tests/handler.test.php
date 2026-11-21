@@ -469,6 +469,7 @@ check('quiz Komi retry decodes original budget', $komiRetryRc === 0 && count(que
     && str_contains(lastDeal()['COMMENTS'], "Бюджет: 420–570 тыс. ₽\n"));
 
 require __DIR__ . '/regional-cases.php';
+require __DIR__ . '/crm-route-cases.php';
 
 // --- повторное обращение ---
 resetStub('found');
@@ -551,6 +552,10 @@ rename("$priv/config.php.off", "$priv/config.php");
 unlink("$priv/lib.php");
 [$c, $b] = post(lead());
 check('нет lib.php → 500 server_config', $c === 500 && $b === '{"ok":false,"error":"server_config"}', "$c $b");
+
+// Independent REST 3.0 adapter: ephemeral loopback TLS CRM, never the live webhook.
+passthru('python3 ' . escapeshellarg(__DIR__ . '/lead-v3-fixture.py') . ' ' . escapeshellarg(PHP_BINARY), $fixtureStatus);
+check('изолированный REST 3.0-адаптер и идемпотентность', $fixtureStatus === 0);
 
 echo $failed === 0 ? "\nВсе проверки обработчика прошли\n" : "\nПровалено: $failed\n";
 exit($failed === 0 ? 0 : 1);

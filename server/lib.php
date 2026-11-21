@@ -104,9 +104,9 @@ function bv_ensure_dir(string $dir): bool
 
 /**
  * Читает private/config.php. Возвращает массив настроек или код ошибки строкой
- * (config_missing / config_invalid / config_incomplete). Путь наружу не уходит.
+ * Для новых заявок проверяет выбор маршрута. Для очереди маршрут берётся из записи.
  */
-function bv_load_config(): array|string
+function bv_load_config(bool $forQueue = PHP_SAPI === 'cli'): array|string
 {
     $file = bv_path('config.php');
     if (!is_file($file) || !is_readable($file)) {
@@ -120,6 +120,13 @@ function bv_load_config(): array|string
         if (!isset($cfg[$key]) || $cfg[$key] === '') {
             return 'config_incomplete';
         }
+    }
+    // Старый retry.php вызывает загрузчик без аргумента из CLI.
+    // Настройка новых обращений никогда не управляет исторической очередью.
+    if ($forQueue) {
+        unset($cfg['crm_target']);
+    } elseif (array_key_exists('crm_target', $cfg) && $cfg['crm_target'] !== 'deal') {
+        return $cfg['crm_target'] === 'lead' ? 'config_lead_disabled' : 'config_invalid_target';
     }
     return $cfg;
 }
@@ -553,6 +560,15 @@ function bv_bitrix_call(array $cfg, string $method, array $params): array
  */
 function bv_send_lead(array $cfg, array $lead): array
 {
+    // В очереди приоритет имеет сохранённый маршрут, включая явно повреждённый.
+    if (!array_key_exists('crm_target', $lead)) {
+        $lead['crm_target'] = array_key_exists('crm_target', $cfg) ? $cfg['crm_target'] : 'deal';
+    }
+    if ($lead['crm_target'] !== 'deal') {
+        $error = $lead['crm_target'] === 'lead' ? 'lead_disabled' : 'invalid_target';
+        return ['ok' => false, 'error' => $error, 'lead' => $lead];
+    }
+
     // Старые записи очереди содержат только сохранённый page_url.
     $lead['landing_region'] ??= bv_landing_region($lead['page_url'] ?? null);
     $contactId = isset($lead['contact_id']) ? (int) $lead['contact_id'] : 0;
