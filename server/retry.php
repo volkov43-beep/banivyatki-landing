@@ -29,7 +29,7 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
     exit(0);
 }
 
-$cfg = bv_load_config();
+$cfg = bv_load_config(true);
 if (!is_array($cfg)) {
     bv_log("retry result=error reason=$cfg");
     fwrite(STDERR, "retry.php: конфиг не прочитан ($cfg)\n");
@@ -47,18 +47,33 @@ sort($files);
 $sent = 0;
 $left = 0;
 $failed = 0;
+$quarantineError = false;
 
 foreach ($files as $file) {
     $job = json_decode((string) @file_get_contents($file), true);
-    if (!is_array($job) || !is_array($job['lead'] ?? null)) {
-        bv_ensure_dir($failedDir);
-        @rename($file, $failedDir . '/' . basename($file));
-        bv_log('retry result=failed reason=bad_job queue=' . basename($file));
-        $failed++;
+    $lead = $job['lead'] ?? null;
+    $reason = null;
+    if (!is_array($lead)) {
+        $reason = 'bad_job';
+    } elseif (!array_key_exists('crm_target', $lead)) {
+        $lead['crm_target'] = 'deal';
+    } elseif ($lead['crm_target'] !== 'deal') {
+        // Самостоятельная проверка защищает очередь и со старой lib.php.
+        $reason = $lead['crm_target'] === 'lead' ? 'lead_disabled' : 'invalid_target';
+    }
+    if ($reason !== null) {
+        $target = $failedDir . '/' . basename($file);
+        if (bv_ensure_dir($failedDir) && !file_exists($target) && !is_link($target) && @rename($file, $target)) {
+            bv_log("retry result=failed reason=$reason queue=" . basename($file));
+            $failed++;
+        } else {
+            bv_log("retry result=error reason=quarantine_failed queue=" . basename($file));
+            $quarantineError = true;
+            $left++;
+        }
         continue;
     }
 
-    $lead = $job['lead'];
     $attempts = (int) ($job['attempts'] ?? 0) + 1;
     $form = (string) ($lead['form'] ?? '-');
     $hash = isset($lead['phone']) ? bv_phone_hash((string) $lead['phone']) : '-';
@@ -95,3 +110,6 @@ flock($lock, LOCK_UN);
 fclose($lock);
 
 echo "retry: отправлено $sent, в очереди $left, отказ $failed; удалено журналов $prunedLogs, счётчиков $prunedRate\n";
+if ($quarantineError) {
+    exit(1);
+}

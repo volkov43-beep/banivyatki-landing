@@ -469,6 +469,7 @@ check('quiz Komi retry decodes original budget', $komiRetryRc === 0 && count(que
     && str_contains(lastDeal()['COMMENTS'], "Бюджет: 420–570 тыс. ₽\n"));
 
 require __DIR__ . '/regional-cases.php';
+require __DIR__ . '/crm-route-cases.php';
 
 // --- повторное обращение ---
 resetStub('found');
